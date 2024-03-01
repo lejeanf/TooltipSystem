@@ -6,3 +6,7 @@ In order to find this package in unity's package manager make sure to add the sc
 	- name: jeanf
 	- url: https://registry.npmjs.com
 	- scope fr.jeanf
+
+
+Contributors:
+- Felix Côtes-Charlebois
