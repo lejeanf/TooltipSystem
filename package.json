@@ -1,6 +1,6 @@
 {
   "name":"fr.jeanf.tooltipsystem",
-  "version":"0.0.0",
+  "version":"0.0.1",
   "displayName":"Tooltip System",
   "description":"This package contains a Tooltip System that will display useful UI information for players",
   "unity": "2021.3",
