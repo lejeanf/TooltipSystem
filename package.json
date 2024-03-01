@@ -1,17 +1,17 @@
 {
-  "name": "fr.jeanf.tooltipSystem",
-  "version": "0.0.0",
-  "displayName": "Tooltip System",
-  "description": "This package contains a Tooltip System that will display useful UI information for players",
+  "name":"fr.jeanf.tooltipSystem",
+  "version":"0.0.1",
+  "displayName":"Tooltip System",
+  "description":"This package contains a Tooltip System that will display useful UI information for players",
   "unity": "2021.3",
   "keywords": [
     "jeanf",
     "Tooltip System"
   ],
-  "author": {
-    "name": "Jean-François Robin",
-    "email": "robin.jeanfrancois@gmail.com",
-    "url": "https://jeanfrancoisrobin.art"
+  "author":{
+    "name":"Jean-François Robin",
+    "email":"robin.jeanfrancois@gmail.com",
+    "url":"https://jeanfrancoisrobin.art"
   },
   "dependencies": {
   },
