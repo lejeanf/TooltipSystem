@@ -1,5 +1,5 @@
 {
-  "name":"fr.jeanf.tooltipSystem",
+  "name":"fr.jeanf.tooltip-system",
   "version":"0.0.1",
   "displayName":"Tooltip System",
   "description":"This package contains a Tooltip System that will display useful UI information for players",
