@@ -1,9 +1,7 @@
-using jeanf.vrplayer;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
 
 namespace jeanf.tooltip
 {
