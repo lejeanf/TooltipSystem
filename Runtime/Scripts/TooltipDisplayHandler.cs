@@ -9,14 +9,14 @@ namespace jeanf.tooltip
     public class TooltipDisplayHandler : MonoBehaviour
     {
         [Header("ListeningOn")]
-        [SerializeField] StringEventChannelSO stringEventChannelSO;
+        [SerializeField] StringBoolEventChannelSO stringBoolEventChannelSO;
 
-        [SerializeField] TextMeshProUGUI m_TextMeshProUGUI;
+        [SerializeField] TextMeshProUGUI TmpScreenUGUI;
 
 
         private void OnEnable()
         {
-            stringEventChannelSO.OnEventRaised += value => DisplayTooltip(value);
+            stringBoolEventChannelSO.OnEventRaised += (str, hmdStatus) => DisplayTooltip(str, hmdStatus);
         }
 
         private void OnDisable() => Unsubscribe();
@@ -25,15 +25,21 @@ namespace jeanf.tooltip
 
         private void Unsubscribe()
         {
-            stringEventChannelSO.OnEventRaised += value => DisplayTooltip(value);
+            stringBoolEventChannelSO.OnEventRaised -= (str, hmdStatus) => DisplayTooltip(str, hmdStatus);
         }
 
-        void DisplayTooltip(string tooltipToDisplay)
+        void DisplayTooltip(string tooltipToDisplay, bool hmdStatus)
         {
-            m_TextMeshProUGUI.text = tooltipToDisplay;
-            m_TextMeshProUGUI.gameObject.SetActive(true);
+            if (hmdStatus)
+            {
+                Debug.Log(hmdStatus);
+            }
+            else if(!hmdStatus && TmpScreenUGUI != null)
+            {
+                TmpScreenUGUI.text = tooltipToDisplay;
+                TmpScreenUGUI.gameObject.SetActive(true);
+            }
         }
-
     }
 }
 
