@@ -11,7 +11,7 @@ namespace jeanf.tooltip
         [SerializeField] StringEventChannelSO tooltipChannelToBroadcastOn;
 
 
-        void SendTooltip(TooltipSO tooltipToSend)
+        public void SendTooltip(TooltipSO tooltipToSend)
         {
             tooltipChannelToBroadcastOn.RaiseEvent(tooltipToSend.Tooltip);
         }
