@@ -9,18 +9,17 @@ namespace jeanf.tooltip
     {
         [Header("Listening On")]
         [SerializeField] StringEventChannelSO tooltipListener;
+        [SerializeField] BoolEventChannelSO hmdStatusEventChannel;
 
         [Header("Broadcasting On")]
-        [SerializeField] StringEventChannelSO tooltipSender;
-        private bool DetectHMDStatus()
-        {
-            return true;
-        }
+        [SerializeField] StringBoolEventChannelSO tooltipSender;
 
+        private bool hmdStatus;
 
         private void OnEnable()
         {
             tooltipListener.OnEventRaised += value => SendTooltip(value);
+            hmdStatusEventChannel.OnEventRaised += status => SetHMDStatus(status);
         }
         private void OnDisable() => Unsubscribe(); 
         private void OnDestroy() => Unsubscribe();
@@ -32,12 +31,22 @@ namespace jeanf.tooltip
 
         public void SendTooltip(TooltipSO tooltipSO)
         {
-            tooltipSender.RaiseEvent(tooltipSO.Tooltip);
+            tooltipSender.RaiseEvent(CleanString(tooltipSO.Tooltip), hmdStatus);
         }
 
         public void SendTooltip(string tooltip)
         {
-            tooltipSender.RaiseEvent(tooltip);
+            tooltipSender.RaiseEvent(CleanString(tooltip), hmdStatus);
+        }
+
+        public string CleanString(string str)
+        {
+            return str.Trim();
+        }
+
+        private void SetHMDStatus(bool status)
+        {
+            hmdStatus = status;
         }
     }
 }
