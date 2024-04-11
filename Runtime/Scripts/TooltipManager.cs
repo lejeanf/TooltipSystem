@@ -2,6 +2,8 @@ using jeanf.EventSystem;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using jeanf;
 
 namespace jeanf.tooltip
 {
@@ -9,7 +11,7 @@ namespace jeanf.tooltip
     {
         [Header("Listening On")]
         //This most likely needs to be changed into a TooltipEventSender
-        [SerializeField] StringEventChannelSO tooltipListener;
+        [SerializeField] TooltipEventChannelSO tooltipListener;
         [SerializeField] BoolEventChannelSO hmdStatusEventChannel;
 
         [Header("Broadcasting On")]
@@ -17,7 +19,7 @@ namespace jeanf.tooltip
 
         private bool hmdStatus;
 
-        //PlayerInput component will be needed here, get it on player
+        PlayerInput playerInput;
 
         private void OnEnable()
         {
@@ -36,16 +38,17 @@ namespace jeanf.tooltip
 
         public void SendTooltip(TooltipSO tooltipSO)
         {
+            switch (tooltipSO.tooltipType)
+            {
+                case TooltipSO.TooltipType.ControlsTooltip:
+                    tooltipSender.RaiseEvent(CleanString(tooltipSO.Tooltip.Replace("Bindings", GetBindingsInput(tooltipSO))), hmdStatus);
+                    break;
+                case TooltipSO.TooltipType.QuestTooltip:
+                    break;
+            }
             tooltipSender.RaiseEvent(CleanString(tooltipSO.Tooltip), hmdStatus);
-
-            //Tooltip received, check type in switchCase
-            //Depending on type, either send tooltip directly or send tooltip but with GetBindingsInput as a value
         }
 
-        public void SendTooltip(string tooltip)
-        {
-            tooltipSender.RaiseEvent(CleanString(tooltip), hmdStatus);
-        }
 
         public string CleanString(string str)
         {
@@ -57,10 +60,33 @@ namespace jeanf.tooltip
             hmdStatus = status;
         }
 
-        ////Call this function if tooltip is a control-type tooltip, checks what controlScheme we have then get only the right inputs to send in the string
-        //private void GetBindingsInput()
-        //{
+        //Call this function if tooltip is a control-type tooltip, checks what controlScheme we have then get only the right inputs to send in the string
+        private string GetBindingsInput(TooltipSO tooltipSO)
+        {
+            string bindingsToDisplay = "";
+            foreach(InputAction inputAction in playerInput.currentActionMap.actions)
+            {
+                if (inputAction.name == $"{CutTooltip(tooltipSO)}")
+                {
+                    foreach(InputControl control in inputAction.controls)
+                    {
+                        bindingsToDisplay += control.name;
+                    }
+                }
+            }
+            return bindingsToDisplay;
+        }
 
-        //}
+
+        private string CutTooltip(TooltipSO tooltipSO)
+        {
+            int position = tooltipSO.Tooltip.IndexOf("to");
+            if (position >= 0)
+            {
+                string beforeTo = tooltipSO.Tooltip.Remove(0, position);
+                return beforeTo;
+            }
+            return null;
+        }
     }
 }
