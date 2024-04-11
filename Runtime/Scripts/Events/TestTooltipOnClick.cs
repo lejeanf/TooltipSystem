@@ -10,16 +10,15 @@ public class TestTooltipOnClick : MonoBehaviour
 {
     [Header("Broadcasting On")]
     [SerializeField]
-    private StringBoolEventChannelSO testChannel;
+    private TooltipEventChannelSO testChannel;
 
     [Space(20)]
     [SerializeField] private TooltipSO tooltipSO;
-    [SerializeField] private bool hmdStatus;
     
 
     public void CallFunction()
     {
-        testChannel.RaiseEvent(tooltipSO.Tooltip, hmdStatus);
+        testChannel.RaiseEvent(tooltipSO);
     }
 }
 

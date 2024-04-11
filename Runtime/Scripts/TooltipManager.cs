@@ -19,12 +19,17 @@ namespace jeanf.tooltip
 
         private bool hmdStatus;
 
-        PlayerInput playerInput;
+        [SerializeField] PlayerInput playerInput;
 
         private void OnEnable()
         {
             tooltipListener.OnEventRaised += value => SendTooltip(value);
             hmdStatusEventChannel.OnEventRaised += status => SetHMDStatus(status);
+        }
+
+        private void Start()
+        {
+            playerInput = FindObjectOfType<PlayerInput>();
         }
         private void OnDisable() => Unsubscribe(); 
         private void OnDestroy() => Unsubscribe();
@@ -45,8 +50,9 @@ namespace jeanf.tooltip
                     break;
                 case TooltipSO.TooltipType.QuestTooltip:
                     break;
+                default:
+                    break;
             }
-            tooltipSender.RaiseEvent(CleanString(tooltipSO.Tooltip), hmdStatus);
         }
 
 
@@ -70,7 +76,7 @@ namespace jeanf.tooltip
                 {
                     foreach(InputControl control in inputAction.controls)
                     {
-                        bindingsToDisplay += control.name;
+                        bindingsToDisplay += $"{control.name}";
                     }
                 }
             }
@@ -80,10 +86,12 @@ namespace jeanf.tooltip
 
         private string CutTooltip(TooltipSO tooltipSO)
         {
+            Debug.Log(tooltipSO.Tooltip.IndexOf("to"));
             int position = tooltipSO.Tooltip.IndexOf("to");
             if (position >= 0)
             {
-                string beforeTo = tooltipSO.Tooltip.Remove(0, position);
+                string beforeTo = tooltipSO.Tooltip.Remove(0, position + 3);
+                Debug.Log(beforeTo);
                 return beforeTo;
             }
             return null;
