@@ -66,7 +66,6 @@ namespace jeanf.tooltip
             hmdStatus = status;
         }
 
-        //Call this function if tooltip is a control-type tooltip, checks what controlScheme we have then get only the right inputs to send in the string
         private string GetBindingsInput(TooltipSO tooltipSO)
         {
             string bindingsToDisplay = "";
@@ -76,7 +75,7 @@ namespace jeanf.tooltip
                 {
                     foreach(InputControl control in inputAction.controls)
                     {
-                        bindingsToDisplay += $"{control.name}";
+                        bindingsToDisplay += $"{control.name}, ";
                     }
                 }
             }
