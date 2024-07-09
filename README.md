@@ -7,4 +7,4 @@ In order to find this package in unity's package manager make sure to add the sc
 
 
 Contributors:
-- Felix Côtes-Charlebois
+[Code] Felix cotes-Charlebois <a href="https://github.com/Percevent13">
