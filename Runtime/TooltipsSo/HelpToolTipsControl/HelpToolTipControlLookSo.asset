@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8848b0415d4451a8dbaee338702ab01, type: 3}
+  m_Name: HelpToolTipControlLookSo
+  m_EditorClassIdentifier: 
+  helpingMessage: pour regarder
+  helpingImage: {fileID: -1808432274, guid: c365140cc0837034bbc7e890399c50da, type: 3}
+  progressionAdded: 0.05
+  actionCooldown: 0.1
+  canBeShownMultipleTimes: 0
+  timeBeforeShowingAgain: 120
+  canBeShownInVR: 0
+  actionRequired: {fileID: 0}
+  helpToolTipControlType: 1

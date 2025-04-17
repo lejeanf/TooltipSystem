@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47f00d2d9a7494640a75d5f58422914a, type: 3}
+  m_Name: InteractableToolTipSettingsSo1
+  m_EditorClassIdentifier: 
+  fontSizeModifierWhenHidden: 0.5
+  fontSizeForTextMode: 0.5
+  iconMaterial: {fileID: 2100000, guid: d23553817dc08eb4fb3f5b054737b660, type: 2}
+  iconSizeModifierWhenHidden: 0.5
+  iconSize: 0.4
+  iconSpacing: -0.05
+  iconPadding: 0
+  textInBetweenIcons: ou
+  fontSizeForIconMode: 0.1
+  canvasSizeX: 2
+  canvasSizeY: 1
+  textFont: {fileID: 11400000, guid: f9315842bb4dbb04d8cfb3752dccd99d, type: 2}
+  animationDuration: 0.075
+  animationType: 0
