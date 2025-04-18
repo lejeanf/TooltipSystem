@@ -1,8 +1,6 @@
 #if UNITY_EDITOR
 using jeanf.EventSystem;
 using jeanf.tooltip;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
