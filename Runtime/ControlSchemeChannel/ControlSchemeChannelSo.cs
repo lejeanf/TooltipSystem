@@ -1,5 +1,5 @@
 using jeanf.EventSystem;
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 using UnityEngine;
 using UnityEngine.Events;
 

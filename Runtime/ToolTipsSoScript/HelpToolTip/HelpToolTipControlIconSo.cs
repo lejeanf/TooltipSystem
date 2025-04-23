@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 using UnityEngine;
 
 namespace jeanf.tooltip

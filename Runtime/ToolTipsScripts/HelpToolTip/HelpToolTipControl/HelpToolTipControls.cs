@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;

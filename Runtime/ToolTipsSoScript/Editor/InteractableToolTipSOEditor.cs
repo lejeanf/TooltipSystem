@@ -1,5 +1,5 @@
 #if UNITY_EDITOR
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 using UnityEditor;
 
 namespace jeanf.tooltip

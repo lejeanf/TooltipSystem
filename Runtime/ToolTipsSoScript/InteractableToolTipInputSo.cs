@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 using UnityEngine;
 using UnityEngine.InputSystem;
 

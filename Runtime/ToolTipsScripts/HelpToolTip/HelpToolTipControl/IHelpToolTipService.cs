@@ -1,4 +1,4 @@
-using jeanf.vrplayer;
+using jeanf.universalplayer;
 
 namespace jeanf.tooltip
 {
