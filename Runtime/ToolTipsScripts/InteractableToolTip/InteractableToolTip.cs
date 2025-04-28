@@ -51,12 +51,11 @@ namespace jeanf.tooltip
             
             _tooltipGameObject = new GameObject("ToolTip");
             _tooltipGameObject.transform.SetParent(transform.parent);
-            _tooltipGameObject.transform.localPosition = transform.localPosition;
             
             SetUpComponents();
 
-            _tooltipPosition = new Vector3(transform.localPosition.x, transform.localPosition.y + GetParentObjectHeight() + addedOffsetY, transform.localPosition.z);
-            _tooltipGameObject.transform.localPosition = _tooltipPosition;
+            _tooltipPosition = new Vector3(transform.position.x, transform.position.y + GetParentObjectHeight() + addedOffsetY, transform.position.z);
+            _tooltipGameObject.transform.position = _tooltipPosition;
         }
         
         private float GetParentObjectHeight()
@@ -111,7 +110,6 @@ namespace jeanf.tooltip
             else if (sprites.Count == 1)
                 iconGameObject = _interactableIconToolTipService.ForgeIconGameObject(sprites.First(), interactableToolTipSettingsSo);
 
-            //Maybe add a Debug.LogWarning
             if (iconGameObject is null) return;
             
             iconGameObject.transform.SetParent(_tooltipGameObject.transform);

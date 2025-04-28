@@ -13,6 +13,9 @@ namespace jeanf.tooltip
         [SerializeField] private Transform target;
         [SerializeField] private NavMeshSurface navMeshSurface;
         
+        [Header("General Settings")]
+        [Tooltip("Threshold at which the player is arrived at destination")]
+        [SerializeField] private float destinationThreshold = 1f;
         [Header("Line Settings")]
         [SerializeField] private Color startColor = Color.yellow;
         [SerializeField] private Color endColor = Color.yellow;
@@ -93,6 +96,12 @@ namespace jeanf.tooltip
         {
             if (!showToolTip) { HideLine(); HideSprites(); return; }
             if (_playerTransform is null || target is null || navMeshSurface is null) return;
+            
+            if (PlayerArrivedToDestination())
+            {
+                showToolTip = false;
+                return;
+            }
             
             if (IsPathFound())
             {
@@ -197,7 +206,12 @@ namespace jeanf.tooltip
             }
             
         }
-        
+
+        private bool PlayerArrivedToDestination()
+        {
+            return (Vector3.Distance(_playerTransform.position, target.position) <= destinationThreshold);
+        }
+
         private void CheckAndRemoveFirstSprite()
         {
             if (sprites.Count == 0) return;
@@ -343,6 +357,7 @@ namespace jeanf.tooltip
         private void SetDestination(Transform targetTransform)
         {
             target = targetTransform;
+            showToolTip = true;
             UpdatePath();
             DrawSpritesFromZero();
         }
