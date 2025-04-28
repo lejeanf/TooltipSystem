@@ -188,8 +188,6 @@ namespace jeanf.tooltip
                     _interactableTextToolTipService.ShowText();
                     break;
             }
-            
-            _tooltipGameObject.transform.localPosition = _tooltipPosition;
         }
 
         private void HideToolTip()
