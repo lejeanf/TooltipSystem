@@ -31,6 +31,7 @@ namespace jeanf.tooltip
         private float _fontSizeWhenHidden;
         
         private GameObject _tooltipGameObject;
+        private Vector3 _tooltipPosition;
 
         private bool _isToolTipDisplayed;
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
@@ -49,12 +50,13 @@ namespace jeanf.tooltip
             _currentText = $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)} {interactableToolTipInputSo.followingMessage}";
             
             _tooltipGameObject = new GameObject("ToolTip");
-            _tooltipGameObject.transform.SetParent(transform);
-            _tooltipGameObject.transform.localPosition = Vector3.zero;
+            _tooltipGameObject.transform.SetParent(transform.parent);
+            _tooltipGameObject.transform.localPosition = transform.localPosition;
             
             SetUpComponents();
-            
-            _tooltipGameObject.transform.localPosition = new Vector3(0, GetParentObjectHeight() + addedOffsetY, 0);
+
+            _tooltipPosition = new Vector3(transform.localPosition.x, GetParentObjectHeight() + addedOffsetY, transform.localPosition.z);
+            _tooltipGameObject.transform.localPosition = _tooltipPosition;
         }
         
         private float GetParentObjectHeight()
@@ -186,6 +188,8 @@ namespace jeanf.tooltip
                     _interactableTextToolTipService.ShowText();
                     break;
             }
+            
+            _tooltipGameObject.transform.localPosition = _tooltipPosition;
         }
 
         private void HideToolTip()
