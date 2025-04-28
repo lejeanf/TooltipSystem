@@ -55,7 +55,7 @@ namespace jeanf.tooltip
             
             SetUpComponents();
 
-            _tooltipPosition = new Vector3(transform.localPosition.x, GetParentObjectHeight() + addedOffsetY, transform.localPosition.z);
+            _tooltipPosition = new Vector3(transform.localPosition.x, transform.localPosition.y + GetParentObjectHeight() + addedOffsetY, transform.localPosition.z);
             _tooltipGameObject.transform.localPosition = _tooltipPosition;
         }
         
