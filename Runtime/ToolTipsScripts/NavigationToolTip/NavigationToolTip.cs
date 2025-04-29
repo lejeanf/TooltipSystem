@@ -102,7 +102,7 @@ namespace jeanf.tooltip
         private void Update()
         {
             if (!showToolTip) { HideLine(); HideSprites(); return; }
-            if (_playerTransform is null || target is null) return;
+            if (_playerTransform == null || target == null) return;
             
             if (PlayerArrivedToDestination())
             {
@@ -254,7 +254,7 @@ namespace jeanf.tooltip
 
         private bool IsPlayerNearFirstSprite()
         {
-            if (sprites.Count == 0 || _playerTransform is null) return false;
+            if (sprites.Count == 0 || _playerTransform == null) return false;
                 
             GameObject firstSprite = sprites[0];
             float distance = Vector3.Distance(_playerTransform.position, firstSprite.transform.position);
@@ -266,7 +266,7 @@ namespace jeanf.tooltip
         {
             float movementThreshold = 0.005f;
             
-            if (_playerTransform is null) return false;
+            if (_playerTransform == null) return false;
             
             float distanceMoved = Vector3.Distance(_playerTransform.position, _lastPlayerPosition);
 
@@ -275,7 +275,7 @@ namespace jeanf.tooltip
 
         private bool IsPlayerOnSpritePath()
         {
-            if (sprites.Count == 0 || _playerTransform is null)
+            if (sprites.Count == 0 || _playerTransform == null)
                 return false;
 
             for (int i = 0; i < sprites.Count; i++)
@@ -343,8 +343,8 @@ namespace jeanf.tooltip
         private void NormalisePath()
         {
             return;
-            if (_path.corners is null || _path.corners.Length == 0) return;
-            if (topLeft is null || topRight is null || bottomRight is null || bottomLeft is null) return;
+            if (_path.corners == null || _path.corners.Length == 0) return;
+            if (topLeft == null || topRight == null || bottomRight == null || bottomLeft == null) return;
 
             float width = topLeft.position.x - topRight.position.x;
             float height = topLeft.position.z - bottomLeft.position.z;
