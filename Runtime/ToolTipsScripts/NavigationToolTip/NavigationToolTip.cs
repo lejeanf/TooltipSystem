@@ -7,7 +7,7 @@ using UnityEngine.Pool;
 namespace jeanf.tooltip
 {
     [RequireComponent(typeof(LineRenderer))]
-    [RequireComponent(typeof(ObjectPool<>))]
+    [RequireComponent(typeof(ObjectPool<GameObject>))]
     public class NavigationToolTip : ToolTip
     {
         [SerializeField] private Transform target;
@@ -342,6 +342,7 @@ namespace jeanf.tooltip
         
         private void NormalisePath()
         {
+            return;
             if (_path.corners is null || _path.corners.Length == 0) return;
             if (topLeft is null || topRight is null || bottomRight is null || bottomLeft is null) return;
 
