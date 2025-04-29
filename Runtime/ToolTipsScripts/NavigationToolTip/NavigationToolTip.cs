@@ -338,6 +338,7 @@ namespace jeanf.tooltip
         private void NormalisePath()
         {
             if (_path.corners is null || _path.corners.Length == 0) return;
+            if (topLeft is null || topRight is null || bottomRight is null || bottomLeft is null) return;
 
             float width = topLeft.position.x - topRight.position.x;
             float height = topLeft.position.z - bottomLeft.position.z;
