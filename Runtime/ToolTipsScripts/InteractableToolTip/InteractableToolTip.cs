@@ -120,7 +120,7 @@ namespace jeanf.tooltip
         #endregion
         private void Update()
         {
-            if (!showToolTip) return;
+            if (!showToolTip) { HideToolTip(); return; }
             
             if (!_isPlayerNear)
             {
@@ -145,12 +145,14 @@ namespace jeanf.tooltip
         {
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
+            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
         }
 
         private void UnSubscribe()
         {
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
+            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
             _interactableIconToolTipService.Destroy();
             _interactableTextToolTipService.Destroy();
         }

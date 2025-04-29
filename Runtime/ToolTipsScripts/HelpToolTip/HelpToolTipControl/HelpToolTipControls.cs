@@ -117,6 +117,8 @@ namespace jeanf.tooltip
 
         private void Update()
         {
+            if(!showToolTip) { HideHelpToolTip(); return; }
+            
             //For testing
             if (inputToContinue.WasPressedThisFrame())
             {
@@ -145,6 +147,12 @@ namespace jeanf.tooltip
                 helpGameObject.SetActive(true);
                 successGameObject.SetActive(false);
             }
+        }
+
+        private void HideHelpToolTip()
+        {
+            helpGameObject.SetActive(false);
+            successGameObject.SetActive(false);
         }
 
         private void UpdateHelpToolTipCurrentService()
@@ -218,12 +226,14 @@ namespace jeanf.tooltip
         {
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme += UpdateAllHelpToolTipSo;
+            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
         }
 
         private void UnSubscribe()
         {
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateAllHelpToolTipSo;
+            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
             _toolTipServiceTimerCooldown.StopTimer();
             _toolTipSucessTimerCooldown.StopTimer();
         }

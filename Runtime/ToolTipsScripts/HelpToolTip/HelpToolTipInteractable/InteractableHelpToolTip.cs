@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace jeanf.tooltip
 {
-    public class InteractableHelpToolTip : MonoBehaviour
+    public class InteractableHelpToolTip : ToolTip
     {
         [SerializeField] private string helpingMessage;
         [SerializeField] private float timeBeforeShowingInSeconds = 120;
@@ -18,6 +18,21 @@ namespace jeanf.tooltip
 
         private Renderer _rend;
         private Color _originalColor;
+        
+        private void OnEnable() => Subscribe();
+        private void OnDisable() => UnSubscribe();
+        private void OnDestroy() => UnSubscribe();
+
+        private void Subscribe()
+        {
+            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
+        }
+
+        private void UnSubscribe()
+        {
+            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
+        }
+        
         private void Awake()
         {
             _toolTipTimerManager = new ToolTipTimer();
@@ -37,6 +52,8 @@ namespace jeanf.tooltip
 
         private void Update()
         {
+            if (!showToolTip) {HideHelpToolTip(); return;}
+            
             if (_interactableToolTip.IsToolTipDisplayed)
             {
                 HideHelpToolTip();
