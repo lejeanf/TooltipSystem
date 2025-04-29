@@ -342,7 +342,6 @@ namespace jeanf.tooltip
         
         private void NormalisePath()
         {
-            return;
             if (_path.corners == null || _path.corners.Length == 0) return;
             if (topLeft == null || topRight == null || bottomRight == null || bottomLeft == null) return;
 
