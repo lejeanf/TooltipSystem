@@ -16,6 +16,8 @@ namespace jeanf.tooltip
         [Header("General Settings")]
         [Tooltip("Threshold at which the player is arrived at destination")]
         [SerializeField] private float destinationThreshold = 1f;
+        [Tooltip("Distance at which the player and the target is considered on navmesh even if not on it")]
+        [SerializeField] private float navmeshDetectionDistance = 10f;
         [Header("Line Settings")]
         [SerializeField] private Color startColor = Color.yellow;
         [SerializeField] private Color endColor = Color.yellow;
@@ -76,6 +78,9 @@ namespace jeanf.tooltip
             _lineRenderer.material = material;
             _lineRenderer.startColor = startColor;
             _lineRenderer.endColor = endColor;
+            
+            if(navigationToolTipType != NavigationToolTipType.LineRenderer)
+                _lineRenderer.enabled = false;
         }
 
         private void OnEnable() => Subscribe();
@@ -97,7 +102,7 @@ namespace jeanf.tooltip
         private void Update()
         {
             if (!showToolTip) { HideLine(); HideSprites(); return; }
-            if (_playerTransform is null || target is null || navMeshSurface is null) return;
+            if (_playerTransform is null || target is null) return;
             
             if (PlayerArrivedToDestination())
             {
@@ -159,7 +164,7 @@ namespace jeanf.tooltip
         Vector3 GetNearestNavMeshPoint(Vector3 position)
         {
             NavMeshHit hit;
-            if (NavMesh.SamplePosition(position, out hit, 10.0f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(position, out hit, navmeshDetectionDistance, NavMesh.AllAreas))
             {
                 return hit.position;
             }
@@ -211,7 +216,7 @@ namespace jeanf.tooltip
 
         private bool PlayerArrivedToDestination()
         {
-            return (Vector3.Distance(_playerTransform.position, target.position) <= destinationThreshold);
+            return Vector3.Distance(_playerTransform.position, target.position) <= destinationThreshold;
         }
 
         private void CheckAndRemoveFirstSprite()
