@@ -33,6 +33,8 @@ namespace jeanf.tooltip
         private GameObject _tooltipGameObject;
         private Vector3 _tooltipPosition;
 
+        private GameObject _parent;
+
         private bool _isToolTipDisplayed;
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
 
@@ -52,6 +54,8 @@ namespace jeanf.tooltip
             _tooltipGameObject = new GameObject("ToolTip");
             _tooltipGameObject.transform.SetParent(transform.parent.parent);
             
+            _parent = transform.parent.gameObject;
+            
             SetUpComponents();
 
             _tooltipPosition = new Vector3(transform.position.x, transform.position.y + GetParentObjectHeight() + addedOffsetY, transform.position.z);
@@ -60,13 +64,13 @@ namespace jeanf.tooltip
         
         private float GetParentObjectHeight()
         {
-            var rend = transform.parent.GetComponent<Renderer>();
+            var rend = _parent.GetComponent<Renderer>();
             if (rend != null)
             {
                 return rend.bounds.size.y;
             }
 
-            var objectCollider = transform.parent.GetComponent<Collider>();
+            var objectCollider = _parent.GetComponent<Collider>();
             if (objectCollider != null)
             {
                 return objectCollider.bounds.size.y;
@@ -210,7 +214,7 @@ namespace jeanf.tooltip
             
             bool isLooking = false;
             
-            Vector3 directionToObject = (transform.position - _cameraTransform.position).normalized;
+            Vector3 directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
 
             float dot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
