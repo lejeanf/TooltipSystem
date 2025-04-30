@@ -50,7 +50,7 @@ namespace jeanf.tooltip
             _currentText = $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)} {interactableToolTipInputSo.followingMessage}";
             
             _tooltipGameObject = new GameObject("ToolTip");
-            _tooltipGameObject.transform.SetParent(transform.parent);
+            _tooltipGameObject.transform.SetParent(transform.parent.parent);
             
             SetUpComponents();
 
@@ -60,13 +60,13 @@ namespace jeanf.tooltip
         
         private float GetParentObjectHeight()
         {
-            var rend = transform.GetComponent<Renderer>();
+            var rend = transform.parent.GetComponent<Renderer>();
             if (rend != null)
             {
                 return rend.bounds.size.y;
             }
 
-            var objectCollider = transform.GetComponent<Collider>();
+            var objectCollider = transform.parent.GetComponent<Collider>();
             if (objectCollider != null)
             {
                 return objectCollider.bounds.size.y;
