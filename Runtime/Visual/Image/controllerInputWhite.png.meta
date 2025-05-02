@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ae14a5f5e63d83243b26ef02bdb9df7f
+guid: 566bdd7ad9050894189c40df19e05aee
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: lmbBlack_0
+      name: controllerInputWhite_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 320
-        height: 320
+        x: 459
+        y: 361
+        width: 98
+        height: 98
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -112,20 +112,64 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 79a629bf7e4c21f409e9bd64474b67bf
-      internalID: 675879464
+      spriteID: 5020174ba116f2942b4c8b04f2559fe9
+      internalID: 381904358
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: lmbBlack_1
+      name: controllerInputWhite_1
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 320
-        height: 320
+        x: 133
+        y: 311
+        width: 111
+        height: 86
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 39c819651b620b74a8b27afbffcb4cc9
+      internalID: 1316201675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: controllerInputWhite_2
+      rect:
+        serializedVersion: 2
+        x: 336
+        y: 365
+        width: 95
+        height: 94
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 88e4379cbce851d40aa129729853a8f8
+      internalID: 633772466
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: controllerInputWhite_3
+      rect:
+        serializedVersion: 2
+        x: 894
+        y: 310
+        width: 70
+        height: 69
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -134,8 +178,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2583e6041402a1843b6e0046c35aef3f
-      internalID: 431933840
+      spriteID: f00474e5140d38a4db017cc18c5c9c78
+      internalID: -1060422349
       vertices: []
       indices: 
       edges: []
@@ -144,7 +188,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e1b6471b06385ee47be6dac56609583e
+    spriteID: dc9553bd749f0ba4fbdf5993806e88fc
     internalID: 0
     vertices: []
     indices: 
@@ -154,8 +198,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      lmbBlack_0: 675879464
-      lmbBlack_1: 431933840
+      controllerInputWhite_0: 381904358
+      controllerInputWhite_1: 1316201675
+      controllerInputWhite_2: 633772466
+      controllerInputWhite_3: -1060422349
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

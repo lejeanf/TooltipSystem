@@ -11,7 +11,6 @@ namespace jeanf.tooltip
         public InputActionReference XrInput;
         public InputActionReference GamepadInput;
         public InputActionReference KeyboardMouseInput;
-        public string followingMessage = "";
 
         private Dictionary<BroadcastControlsStatus.ControlScheme, string> inputsDictionnary;
         

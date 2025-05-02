@@ -16,12 +16,12 @@ namespace jeanf.tooltip
             EditorGUILayout.Space();
             
             EditorGUILayout.LabelField("XR : ", 
-                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.XR)} {interactableToolTipInputSo.followingMessage}" 
+                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.XR)}" 
                 );
             EditorGUILayout.LabelField("Gamepad : ", 
-                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.Gamepad)} {interactableToolTipInputSo.followingMessage}");
+                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.Gamepad)}");
             EditorGUILayout.LabelField("Keyboard & Mouse : ", 
-                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)} {interactableToolTipInputSo.followingMessage}");
+                $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)}");
         }
         
     }

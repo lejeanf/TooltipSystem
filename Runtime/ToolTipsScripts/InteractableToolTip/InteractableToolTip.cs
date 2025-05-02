@@ -1,39 +1,40 @@
-using System.Collections.Generic;
-using System.Linq;
 using jeanf.universalplayer;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace jeanf.tooltip
 {
     public class InteractableToolTip : ToolTip
     {
         
+        [FormerlySerializedAs("_tooltipGameObject")]
         [Header("ToolTip Settings")]
+        [SerializeField] private string tooltipGameObjectName;
+        [SerializeField] private GameObject tooltipGameObjectPrefab;
+        [SerializeField] private string tooltipInteractionDescription;
         [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
         [SerializeField] private InteractableToolTipSettingsSo interactableToolTipSettingsSo;
         [SerializeField] private InputIconSo inputIconSo;
-        [Tooltip("Added Offset with the object height")]
-        [SerializeField] private float addedOffsetY = 0.5f;
         [Tooltip("1 : Need player to look directly at the target | 0 : Accept that player doesn't look the target")]
         [SerializeField] private float fieldOfViewThreshold = 0.8f;
         
         [Header("Temporary Settings")]
         [SerializeField] private InteractableToolTipEnum interactableToolTipType;
         
-        private InteractableIconToolTipService _interactableIconToolTipService;
+        private InteractableToolTipService _interactableToolTipService;
         private InteractableTextToolTipService _interactableTextToolTipService;
         
         private string _currentText;
         
         private bool _isPlayerNear;
         private Transform _cameraTransform;
-        private float _targetFontSize;
-        private float _fontSizeWhenHidden;
         
-        private GameObject _tooltipGameObject;
-        private Vector3 _tooltipPosition;
+        private Image _image;
 
         private GameObject _parent;
+        private GameObject _tooltip;
 
         private bool _isToolTipDisplayed;
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
@@ -43,23 +44,28 @@ namespace jeanf.tooltip
         private void OnDestroy() => UnSubscribe();
 
         #region Start
-        private void Start()
+        private void Awake()
         {
-            _interactableIconToolTipService = new InteractableIconToolTipService();
-            _interactableTextToolTipService = new InteractableTextToolTipService();
-            
             _cameraTransform = Camera.main?.transform;
-            _currentText = $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)} {interactableToolTipInputSo.followingMessage}";
-            
-            _tooltipGameObject = new GameObject("ToolTip");
-            _tooltipGameObject.transform.SetParent(transform.parent.parent);
-            
+            _currentText = $"{interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse)} {tooltipInteractionDescription}";
+
             _parent = transform.parent.gameObject;
             
+            _tooltip = Instantiate(tooltipGameObjectPrefab, _parent.transform.parent, false);
+            _tooltip.name = tooltipGameObjectName;
+
+            _image = _tooltip.GetComponentInChildren<Image>();
+            TMP_Text text = _tooltip.GetComponentInChildren<TMP_Text>();
+            
+            if(text != null)
+                text.text = tooltipInteractionDescription;
+            
+            _interactableToolTipService = new InteractableToolTipService(_tooltip, interactableToolTipSettingsSo);
+            Debug.Log($"InteractableToolTipService : {_interactableToolTipService}");
+            _interactableTextToolTipService = new InteractableTextToolTipService();
             SetUpComponents();
 
-            _tooltipPosition = new Vector3(transform.position.x, transform.position.y + GetParentObjectHeight() + addedOffsetY, transform.position.z);
-            _tooltipGameObject.transform.position = _tooltipPosition;
+            _tooltip.transform.position = transform.position;
         }
         
         private float GetParentObjectHeight()
@@ -97,7 +103,7 @@ namespace jeanf.tooltip
         {
             GameObject textGameObject = null;
             textGameObject = _interactableTextToolTipService.ForgeTextGameObject(_currentText, interactableToolTipSettingsSo);
-            textGameObject.transform.SetParent(_tooltipGameObject.transform);
+            textGameObject.transform.SetParent(_tooltip.transform);
             textGameObject.transform.localPosition = Vector3.zero;
         }
 
@@ -105,19 +111,12 @@ namespace jeanf.tooltip
         {
             string inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             
-            List<Sprite> sprites = inputIconSo.GetInputIcons(inputName);
-
-            GameObject iconGameObject = null;
+            Sprite sprite = inputIconSo.GetInputIcon(inputName);
             
-            if (sprites.Count > 1)
-                iconGameObject = _interactableIconToolTipService.ForgeIconGameObject(sprites[0], sprites[1], interactableToolTipSettingsSo);
-            else if (sprites.Count == 1)
-                iconGameObject = _interactableIconToolTipService.ForgeIconGameObject(sprites.First(), interactableToolTipSettingsSo);
-
-            if (iconGameObject is null) return;
+            if(_image != null)
+                _image.sprite = sprite;
             
-            iconGameObject.transform.SetParent(_tooltipGameObject.transform);
-            iconGameObject.transform.localPosition = Vector3.zero;
+            _tooltip.transform.localPosition = Vector3.zero;
         }
         #endregion
         
@@ -157,7 +156,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
             OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
-            _interactableIconToolTipService.Destroy();
+            _interactableToolTipService.Destroy();
             _interactableTextToolTipService.Destroy();
         }
 
@@ -186,7 +185,7 @@ namespace jeanf.tooltip
             switch (interactableToolTipType)
             {
                 case InteractableToolTipEnum.Icon:
-                    _interactableIconToolTipService.ShowIcons();
+                    _interactableToolTipService.ShowIcons();
                     break;
                 case InteractableToolTipEnum.Text:
                     _interactableTextToolTipService.ShowText();
@@ -200,7 +199,7 @@ namespace jeanf.tooltip
             switch (interactableToolTipType)
             {
                 case InteractableToolTipEnum.Icon:
-                    _interactableIconToolTipService.HideIcons();
+                    _interactableToolTipService.HideIcons();
                     break;
                 case InteractableToolTipEnum.Text:
                     _interactableTextToolTipService.HideText();
@@ -224,7 +223,7 @@ namespace jeanf.tooltip
         
         private void ToolTipLookTowardsPlayer()
         {
-            _tooltipGameObject.transform.forward = _cameraTransform.forward;
+            _tooltip.transform.forward = _cameraTransform.forward;
         }
         
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
@@ -234,14 +233,11 @@ namespace jeanf.tooltip
             switch (interactableToolTipType)
             {
                 case InteractableToolTipEnum.Icon:
-                    List<Sprite> icons = inputIconSo.GetInputIcons(inputName);
-                    if(icons.Count > 1)
-                        _interactableIconToolTipService.ChangeSprite(icons[0], icons[1]);
-                    else if (icons.Count == 1)
-                        _interactableIconToolTipService.ChangeSprite(icons.First());
+                    Sprite icon = inputIconSo.GetInputIcon(inputName);
+                    _image.sprite = icon;
                     break;
                 case InteractableToolTipEnum.Text:
-                    _currentText = $"{inputName} {interactableToolTipInputSo.followingMessage}";
+                    _currentText = $"{inputName} {tooltipInteractionDescription}";
                     _interactableTextToolTipService.ChangeText(_currentText);
                     break;
             }
@@ -263,16 +259,13 @@ namespace jeanf.tooltip
             switch (interactableToolTipType)
             {
                 case InteractableToolTipEnum.Icon:
-                    if (_interactableIconToolTipService is null) return;
-                    List<Sprite> icons = inputIconSo.GetInputIcons(inputName);
-                    if(icons.Count > 1)
-                        _interactableIconToolTipService.ChangeSprite(icons[0], icons[1]);
-                    else if (icons.Count == 1)
-                        _interactableIconToolTipService.ChangeSprite(icons.First());
+                    if (_interactableToolTipService is null) return;
+                    Sprite icon = inputIconSo.GetInputIcon(inputName);
+                    _image.sprite = icon;
                     break;
                 case InteractableToolTipEnum.Text:
                     if(_interactableTextToolTipService is null) return;
-                    _currentText = $"{inputName} {interactableToolTipInputSo.followingMessage}";
+                    _currentText = $"{inputName} {tooltipInteractionDescription}";
                     _interactableTextToolTipService.ChangeText(_currentText);
                     break;
             }

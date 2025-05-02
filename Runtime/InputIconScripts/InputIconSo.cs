@@ -25,12 +25,12 @@ namespace jeanf.tooltip
             inputsDictionary.Add("E", keyboardE);
         }
 
-        public List<Sprite> GetInputIcons(string inputName)
+        public Sprite GetInputIcon(string inputName)
         {
             return inputsDictionary
                 .Where(pair => inputName.Contains(pair.Key))
                 .Select(pair => pair.Value)
-                .ToList();
+                .First();
         }
     }
 }

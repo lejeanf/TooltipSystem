@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ae14a5f5e63d83243b26ef02bdb9df7f
+guid: fc24b8acbad207b4fa5b6fe7256f1edc
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,35 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: lmbBlack_0
+      name: eWhite_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 320
-        height: 320
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 79a629bf7e4c21f409e9bd64474b67bf
-      internalID: 675879464
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: lmbBlack_1
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 320
-        height: 320
+        x: 255
+        y: 275
+        width: 561
+        height: 530
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -134,8 +112,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2583e6041402a1843b6e0046c35aef3f
-      internalID: 431933840
+      spriteID: e4df67f05d1e48741b117eaf48f37d04
+      internalID: 2106816506
       vertices: []
       indices: 
       edges: []
@@ -144,7 +122,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e1b6471b06385ee47be6dac56609583e
+    spriteID: 6c45b26350d65084a912f1240b0c2192
     internalID: 0
     vertices: []
     indices: 
@@ -154,8 +132,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      lmbBlack_0: 675879464
-      lmbBlack_1: 431933840
+      eWhite_0: 2106816506
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
