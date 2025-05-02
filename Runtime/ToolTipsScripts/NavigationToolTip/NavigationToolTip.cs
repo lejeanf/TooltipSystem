@@ -76,8 +76,7 @@ namespace jeanf.tooltip
             _lineRenderer.startColor = startColor;
             _lineRenderer.endColor = endColor;
             
-            if(navigationToolTipType != NavigationToolTipType.LineRenderer)
-                _lineRenderer.enabled = false;
+            _lineRenderer.enabled = false;
         }
 
         private void OnEnable() => Subscribe();
