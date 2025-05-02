@@ -40,29 +40,26 @@ namespace jeanf.tooltip
         public delegate void UpdateNormalisedPathDelegate(List<Vector2> normalisedPath);
         public static UpdateNormalisedPathDelegate UpdateNormalisedPath;
         
-        private List<Vector3> worldPath;
+        private List<Vector3> _worldPath;
         private List<Vector2> _normalisedPath;
 
         private NavMeshPath _path;
         private Vector3 _playerNavMeshPosition;
         private Vector3 _targetNavMeshPosition;
 
-        private bool isPlayerOnPath = false;
+        private bool _isPlayerOnPath = false;
         
         private LineRenderer _lineRenderer;
-        private List<GameObject> sprites;
+        private List<GameObject> _sprites;
         private ObjectPool _objectPool;
-
-        private const int SPRITE_ROTATION_X = -90;
-        private const int SPRITE_ROTATION_Y = 180;
-        private const int SPRITE_ROTATION_Z = 0;
+        
         private Transform _playerTransform;
 
         private Vector3 _lastPlayerPosition;
         
         private void Awake()
         {
-            worldPath = new List<Vector3>();
+            _worldPath = new List<Vector3>();
             _normalisedPath = new List<Vector2>();
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
@@ -71,7 +68,7 @@ namespace jeanf.tooltip
             _playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
             _lastPlayerPosition = _playerTransform.position;
             
-            sprites = new List<GameObject>();
+            _sprites = new List<GameObject>();
 
             _lineRenderer.startWidth = lineWidth;
             _lineRenderer.endWidth = lineWidth;
@@ -145,10 +142,10 @@ namespace jeanf.tooltip
             _playerNavMeshPosition = GetNearestNavMeshPoint(_playerTransform.position);
             _targetNavMeshPosition = GetNearestNavMeshPoint(target.position);
 
-            return (NavMesh.CalculatePath(_playerNavMeshPosition, 
+            return NavMesh.CalculatePath(_playerNavMeshPosition, 
                                             _targetNavMeshPosition, 
                                             NavMesh.AllAreas, _path) &&
-                    _path.corners.Length > 0);
+                    _path.corners.Length > 0;
         }
 
         private void UpdatePath()
@@ -173,6 +170,7 @@ namespace jeanf.tooltip
 
         private void DrawLine()
         {
+            _lineRenderer.enabled = true;
             Vector3[] elevatedPath = new Vector3[_path.corners.Length];
             for (int i = 0; i < _path.corners.Length; i++)
             {
@@ -186,6 +184,7 @@ namespace jeanf.tooltip
         private void HideLine()
         {
             _lineRenderer.positionCount = 0;
+            _lineRenderer.enabled = false;
         }
         
         private void DrawSpritesPath()
@@ -196,14 +195,14 @@ namespace jeanf.tooltip
             {
                 CheckAndRemoveFirstSprite();
                 _lastPlayerPosition = _playerTransform.position;
-                isPlayerOnPath = true;
+                _isPlayerOnPath = true;
                 return;
             }
 
             if (!IsPlayerNearFirstSprite())
             {
                 DrawSpritesFromZero();
-                isPlayerOnPath = false;
+                _isPlayerOnPath = false;
                 return;
             }
 
@@ -221,16 +220,16 @@ namespace jeanf.tooltip
 
         private void CheckAndRemoveFirstSprite()
         {
-            if (sprites.Count == 0) return;
+            if (_sprites.Count == 0) return;
 
-            GameObject firstSprite = sprites[0];
+            GameObject firstSprite = _sprites[0];
 
             if (Vector3.Distance(_playerTransform.position, firstSprite.transform.position) < spacing * 0.5f)
             {
                 _objectPool.Release(firstSprite);
-                sprites.RemoveAt(0);
+                _sprites.RemoveAt(0);
                 
-                if(worldPath.Count > 0) worldPath.RemoveAt(0);
+                if(_worldPath.Count > 0) _worldPath.RemoveAt(0);
                 
                 NormalisePath();
                 UpdateNormalisedPath?.Invoke(_normalisedPath);
@@ -239,9 +238,9 @@ namespace jeanf.tooltip
 
         private bool IsPlayerGoingTowardPath()
         {
-            if (sprites.Count > 0)
+            if (_sprites.Count > 0)
             {
-                GameObject nextSprite = sprites[0];
+                GameObject nextSprite = _sprites[0];
                 Vector3 toNextSprite = (nextSprite.transform.position - _playerTransform.position).normalized;
                 Vector3 playerMovement = (_playerTransform.position - _lastPlayerPosition).normalized;
 
@@ -254,9 +253,9 @@ namespace jeanf.tooltip
 
         private bool IsPlayerNearFirstSprite()
         {
-            if (sprites.Count == 0 || _playerTransform == null) return false;
+            if (_sprites.Count == 0 || _playerTransform == null) return false;
                 
-            GameObject firstSprite = sprites[0];
+            GameObject firstSprite = _sprites[0];
             float distance = Vector3.Distance(_playerTransform.position, firstSprite.transform.position);
 
             return distance < playerDistanceThresholdFirstSprite;
@@ -275,12 +274,12 @@ namespace jeanf.tooltip
 
         private bool IsPlayerOnSpritePath()
         {
-            if (sprites.Count == 0 || _playerTransform == null)
+            if (_sprites.Count == 0 || _playerTransform == null)
                 return false;
 
-            for (int i = 0; i < sprites.Count; i++)
+            for (int i = 0; i < _sprites.Count; i++)
             {
-                if (Vector3.Distance(_playerTransform.position, sprites[i].transform.position) < playerDistanceThresholdSpritePath)
+                if (Vector3.Distance(_playerTransform.position, _sprites[i].transform.position) < playerDistanceThresholdSpritePath)
                 {
                     return true;
                 }
@@ -295,7 +294,7 @@ namespace jeanf.tooltip
     
             float distanceCovered = 0f;
             
-            worldPath.Clear();
+            _worldPath.Clear();
 
             for (int i = 1; i < _path.corners.Length; i++)
             {
@@ -313,9 +312,9 @@ namespace jeanf.tooltip
                     GameObject sprite = _objectPool.Get(position);
                     
                     if(sprite is not null)
-                        sprites.Add(sprite);
+                        _sprites.Add(sprite);
 
-                    worldPath.Add(position);
+                    _worldPath.Add(position);
                 }
 
                 distanceCovered -= segmentLength;
@@ -337,7 +336,7 @@ namespace jeanf.tooltip
                     _objectPool.Release(transform.GetChild(i).gameObject);
             }
             
-            sprites.Clear();
+            _sprites.Clear();
         }
         
         private void NormalisePath()
