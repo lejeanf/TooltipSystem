@@ -128,7 +128,11 @@ namespace jeanf.tooltip
             //
             
             ShowHelpToolTip();
-
+            
+            if(_currentControlScheme == BroadcastControlsStatus.ControlScheme.XR 
+               && !_activeHelpToolTipControl.canBeShownInVR)
+                SetUpNextHelpToolTipWithoutTransition();
+            
             if (Mathf.Approximately(_helpToolTipSlider.value, 1))
                 SetUpNextHelpToolTip();
             
@@ -194,6 +198,29 @@ namespace jeanf.tooltip
             UpdateHelpToolTipCurrentService();
             
             StartTransition();
+        }
+        
+        private void SetUpNextHelpToolTipWithoutTransition()
+        {
+            if (helpToolTipControls.Count == 0)
+            {
+                _activeHelpToolTipControl = null;
+                _toolTipServiceTimerCooldown.StopTimer();
+                _toolTipSucessTimerCooldown.StopTimer();
+                gameObject.SetActive(false);
+                return;
+            }
+            
+            _activeHelpToolTipControl = helpToolTipControls.First();
+            helpToolTipControls.RemoveAt(0);
+            
+            _helpToolTipSlider.value = 0f;
+            
+            _currentText = _activeHelpToolTipControl.helpingMessage;
+            _helpToolTipText.text = _currentText;
+            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+            
+            UpdateHelpToolTipCurrentService();
         }
 
         private void SetUpService()
