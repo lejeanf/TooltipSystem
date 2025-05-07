@@ -9,6 +9,11 @@ namespace jeanf.tooltip
         [SerializeField] private GameObject _tooltipClose;
         
         public GameObject TooltipClose => _tooltipClose;
+
+        private void Awake()
+        {
+            transform.rotation = transform.parent.rotation;
+        }
         
         public void ShowFarTooltip()
         {
