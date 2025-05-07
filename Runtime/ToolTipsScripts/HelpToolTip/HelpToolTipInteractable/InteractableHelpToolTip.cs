@@ -13,7 +13,7 @@ namespace jeanf.tooltip
         
         private TMP_Text _helpToolTipText;
         private ToolTipTimer _toolTipTimerManager;
-        private InteractableToolTip _interactableToolTip;
+        private InteractableToolTipController _interactableToolTipController;
         private ParticleSystem _particleSystem;
 
         private Renderer _rend;
@@ -37,7 +37,7 @@ namespace jeanf.tooltip
         {
             _toolTipTimerManager = new ToolTipTimer();
             
-            _interactableToolTip = GetComponent<InteractableToolTip>();
+            _interactableToolTipController = GetComponent<InteractableToolTipController>();
             
             _rend = GetComponent<Renderer>();
             _originalColor = _rend.material.color;
@@ -54,7 +54,7 @@ namespace jeanf.tooltip
         {
             if (!showToolTip) {HideHelpToolTip(); return;}
             
-            if (_interactableToolTip.IsToolTipDisplayed)
+            if (_interactableToolTipController.IsToolTipDisplayed)
             {
                 HideHelpToolTip();
             }

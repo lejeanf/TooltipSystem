@@ -13,17 +13,20 @@ namespace jeanf.tooltip
         private readonly float _animationDuration = 0f;
         private readonly ToolTipAnimationEnum _animationType;
         private MotionHandle _motionHandle;
+        private InteractableToolTip _interactableToolTip;
 
         private readonly GameObject _tooltip;
         
         
-        public InteractableToolTipService(GameObject tooltip, InteractableToolTipSettingsSo interactableToolTipSettingsSo)
+        public InteractableToolTipService(InteractableToolTip interactableToolTip, InteractableToolTipSettingsSo interactableToolTipSettingsSo)
         {
-            _tooltip = tooltip;
-            _canvasGroup = tooltip.GetComponent<CanvasGroup>();
+            _tooltip = interactableToolTip.TooltipClose;
+            _canvasGroup = _tooltip.GetComponent<CanvasGroup>();
                         
             _animationDuration = interactableToolTipSettingsSo.animationDuration;
             _animationType = interactableToolTipSettingsSo.animationType;
+            
+            _interactableToolTip = interactableToolTip;
             
             AnimationSetUp(interactableToolTipSettingsSo);
             
@@ -97,7 +100,7 @@ namespace jeanf.tooltip
             }
             
             if(_motionHandle.IsActive())
-                _motionHandle.GetAwaiter().OnCompleted(() => _tooltip.SetActive(false));
+                _motionHandle.GetAwaiter().OnCompleted(() => _interactableToolTip.ShowCloseTooltip());
         }
 
         private void PlayPopInAnimation()
