@@ -4,7 +4,13 @@ namespace jeanf.tooltip
 {
     public class InteractableToolTipFarTrigger : MonoBehaviour
     {
-        [SerializeField] private InteractableToolTipFar interactableToolTipFar;
+        //[SerializeField] 
+        private InteractableToolTipFar interactableToolTipFar;
+
+        public void Awake()
+        {
+            interactableToolTipFar = gameObject.GetComponentInParent<InteractableToolTipFar>();
+        }
         
         private void OnTriggerEnter(Collider other)
         {
