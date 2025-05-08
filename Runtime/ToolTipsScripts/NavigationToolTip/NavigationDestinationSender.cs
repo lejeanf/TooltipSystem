@@ -4,8 +4,8 @@ namespace jeanf.tooltip
 {
     public class NavigationDestinationSender : MonoBehaviour
     {
-        public delegate void SendDestination(Transform destination);
-        public static SendDestination OnSendDestination;
+        public delegate void SendDestinationDelegate(Transform destination);
+        public static SendDestinationDelegate OnSendDestination;
         
         private void OnEnable()
         {

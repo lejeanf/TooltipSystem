@@ -87,12 +87,14 @@ namespace jeanf.tooltip
         {
             NavigationDestinationSender.OnSendDestination += SetDestination;
             OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
+            NavigationMapCornerSender.OnSendNewMapCorner += SetNewMapCorner;
         }
 
         private void Unsubscribe()
         {
             NavigationDestinationSender.OnSendDestination -= SetDestination;
             OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
+            NavigationMapCornerSender.OnSendNewMapCorner -= SetNewMapCorner;
         }
 
         private void Update()
@@ -366,6 +368,25 @@ namespace jeanf.tooltip
             showToolTip = true;
             UpdatePath();
             DrawSpritesFromZero();
+        }
+
+        private void SetNewMapCorner(Transform newCorner, NavigationMapCornerType cornerType)
+        {
+            switch (cornerType)
+            {
+                case NavigationMapCornerType.TopLeft:
+                    topLeft = newCorner;
+                    break;
+                case NavigationMapCornerType.TopRight:
+                    topRight = newCorner;
+                    break;
+                case NavigationMapCornerType.BottomLeft:
+                    bottomLeft = newCorner;
+                    break;
+                case NavigationMapCornerType.BottomRight:
+                    bottomRight = newCorner;
+                    break;
+            }
         }
     }
 }
