@@ -10,9 +10,9 @@ namespace jeanf.tooltip
         
         public GameObject TooltipClose => _tooltipClose;
 
-        private void Awake()
+        public void ArrangeRotation()
         {
-            transform.rotation = transform.parent.rotation;
+            transform.localRotation = transform.parent.localRotation;
         }
         
         public void ShowFarTooltip()
