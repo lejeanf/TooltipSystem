@@ -129,6 +129,7 @@ namespace jeanf.tooltip
         
         private void Subscribe()
         {
+            ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
             OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
@@ -136,6 +137,7 @@ namespace jeanf.tooltip
 
         private void UnSubscribe()
         {
+            ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
             OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
@@ -190,7 +192,11 @@ namespace jeanf.tooltip
                     _interactableTextToolTipService.HideText();
                     break;
             }
-            _interactableToolTip.ShowFarTooltip();
+            
+            if(showToolTip)
+                _interactableToolTip.ShowFarTooltip();
+            else
+                _interactableToolTip.HideFarTooltip();
         }
         
         private bool CheckIfPlayerIsLooking()

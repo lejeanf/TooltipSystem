@@ -251,6 +251,7 @@ namespace jeanf.tooltip
         
         private void Subscribe()
         {
+            ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme += UpdateAllHelpToolTipSo;
             OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
@@ -258,6 +259,7 @@ namespace jeanf.tooltip
 
         private void UnSubscribe()
         {
+            ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateAllHelpToolTipSo;
             OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;

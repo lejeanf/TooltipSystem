@@ -6,7 +6,8 @@ namespace jeanf.tooltip
 {
     public class ToolTipManager : MonoBehaviour
     {
-        [SerializeField] private BoolEventChannelSO hmdState; 
+        [SerializeField] private BoolEventChannelSO hmdState;
+        [SerializeField] private BoolEventChannelSO ipadState;
         [SerializeField] private ControlSchemeChannelSo controlSchemeChannelSo;
         
         public delegate void UpdateToolTipControlSchemeWithHmdDelegate(bool hmdSatus);
@@ -14,6 +15,9 @@ namespace jeanf.tooltip
         
         public delegate void UpdateToolTipControlSchemeDelegate(BroadcastControlsStatus.ControlScheme controlScheme);
         public static UpdateToolTipControlSchemeDelegate UpdateToolTipControlScheme;
+        
+        public delegate void UpdateShowToolTipDelegate(bool isShowing);
+        public static UpdateShowToolTipDelegate UpdateShowToolTip;
         
         
         private void OnEnable() => Subscribe();
@@ -26,6 +30,7 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised += UpdateControlScheme;
             hmdState.OnEventRaised += UpdateTooltip;
+            ipadState.OnEventRaised += OnIpadState;
         }
 
         private void UnSubscribe()
@@ -34,6 +39,7 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised -= UpdateControlScheme;
             hmdState.OnEventRaised -= UpdateTooltip;
+            ipadState.OnEventRaised -= OnIpadState;
         }
 
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
@@ -44,6 +50,11 @@ namespace jeanf.tooltip
         private void UpdateTooltip(bool hmdState)
         {
             UpdateToolTipControlSchemeWithHmd.Invoke(hmdState);
+        }
+
+        private void OnIpadState(bool ipadState)
+        {
+            UpdateShowToolTip?.Invoke(ipadState);
         }
         
     }

@@ -25,6 +25,7 @@ namespace jeanf.tooltip
         [SerializeField] private float lineWidth = 0.05f;
         [Header("Sprite Settings")]
         [SerializeField] private float spacing = 1f;
+        [SerializeField] private Color lastSpriteColor = Color.yellow;
         [Tooltip("Distance from which player is considered too far from closest sprite")]
         [SerializeField] private float playerDistanceThresholdFirstSprite = 3f;
         [Tooltip("Distance from which player is considered too far from sprite path")]
@@ -51,7 +52,7 @@ namespace jeanf.tooltip
         
         private LineRenderer _lineRenderer;
         private List<GameObject> _sprites;
-        private ObjectPool _objectPool;
+        private NavigationObjectPool _navigationObjectPool;
         
         private Transform _playerTransform;
 
@@ -63,7 +64,7 @@ namespace jeanf.tooltip
             _normalisedPath = new List<Vector2>();
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
-            _objectPool = GetComponent<ObjectPool>();
+            _navigationObjectPool = GetComponent<NavigationObjectPool>();
             
             _playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
             _lastPlayerPosition = _playerTransform.position;
@@ -227,7 +228,7 @@ namespace jeanf.tooltip
 
             if (Vector3.Distance(_playerTransform.position, firstSprite.transform.position) < spacing * 0.5f)
             {
-                _objectPool.Release(firstSprite);
+                _navigationObjectPool.Release(firstSprite);
                 _sprites.RemoveAt(0);
                 
                 if(_worldPath.Count > 0) _worldPath.RemoveAt(0);
@@ -310,7 +311,7 @@ namespace jeanf.tooltip
                     float relativePosition = distanceCovered / segmentLength;
                     Vector3 position = Vector3.Lerp(start, end, relativePosition);
 
-                    GameObject sprite = _objectPool.Get(position);
+                    GameObject sprite = _navigationObjectPool.Get(position);
                     
                     if(sprite is not null)
                         _sprites.Add(sprite);
@@ -320,7 +321,13 @@ namespace jeanf.tooltip
 
                 distanceCovered -= segmentLength;
             }
-
+            
+            //SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[_sprites.Count - 1]);
+            //Debug.Log("Thomas Position " + lastSpriteRenderer.gameObject.transform.position);
+            //Debug.Log("Thomas Before " + lastSpriteRenderer.color);
+            //lastSpriteRenderer.color = lastSpriteColor;
+            //Debug.Log("Thomas After " + lastSpriteRenderer.color);
+            
             NormalisePath();
             UpdateNormalisedPath?.Invoke(_normalisedPath);
             
@@ -334,7 +341,7 @@ namespace jeanf.tooltip
             {
                 GameObject sprite = transform.GetChild(i).gameObject;
                 if(sprite.activeSelf)
-                    _objectPool.Release(transform.GetChild(i).gameObject);
+                    _navigationObjectPool.Release(transform.GetChild(i).gameObject);
             }
             
             _sprites.Clear();
