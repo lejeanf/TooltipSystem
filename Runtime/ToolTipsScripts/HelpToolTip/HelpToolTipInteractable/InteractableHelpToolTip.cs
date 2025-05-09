@@ -26,13 +26,11 @@ namespace jeanf.tooltip
         private void Subscribe()
         {
             ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
-            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
         }
 
         private void UnSubscribe()
         {
             ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
-            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
         }
         
         private void Awake()

@@ -131,7 +131,6 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
-            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
         }
 
         private void UnSubscribe()
@@ -139,7 +138,6 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
-            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
             _interactableToolTipService.Destroy();
             _interactableTextToolTipService.Destroy();
         }

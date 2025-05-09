@@ -87,14 +87,12 @@ namespace jeanf.tooltip
         private void Subscribe()
         {
             NavigationDestinationSender.OnSendDestination += SetDestination;
-            OnUpdateIsShowingToolTip += UpdateIsShowingToolTip;
             NavigationMapCornerSender.OnSendNewMapCorner += SetNewMapCorner;
         }
 
         private void Unsubscribe()
         {
             NavigationDestinationSender.OnSendDestination -= SetDestination;
-            OnUpdateIsShowingToolTip -= UpdateIsShowingToolTip;
             NavigationMapCornerSender.OnSendNewMapCorner -= SetNewMapCorner;
         }
 
