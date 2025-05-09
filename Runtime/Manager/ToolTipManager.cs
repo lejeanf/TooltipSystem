@@ -54,7 +54,7 @@ namespace jeanf.tooltip
 
         private void OnIpadState(bool ipadState)
         {
-            UpdateShowToolTip?.Invoke(ipadState);
+            UpdateShowToolTip?.Invoke(!ipadState);
         }
         
     }

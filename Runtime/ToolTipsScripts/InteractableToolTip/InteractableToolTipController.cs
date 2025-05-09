@@ -106,7 +106,7 @@ namespace jeanf.tooltip
         #endregion
         private void Update()
         {
-            if (!showToolTip) { HideToolTip(); return; }
+            if (!showToolTip) { HideToolTipWithoutAnimation(); return; }
             
             ToolTipLookTowardsPlayer();
             
@@ -196,6 +196,12 @@ namespace jeanf.tooltip
                 _interactableToolTip.ShowFarTooltip();
             else
                 _interactableToolTip.HideFarTooltip();
+        }
+
+        private void HideToolTipWithoutAnimation()
+        {
+            _interactableToolTip.HideCloseTooltip();
+            _interactableToolTip.HideFarTooltip();
         }
         
         private bool CheckIfPlayerIsLooking()
