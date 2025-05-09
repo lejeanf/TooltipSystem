@@ -62,7 +62,6 @@ namespace jeanf.tooltip
                 text.text = tooltipInteractionDescription;
             
             _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
-            Debug.Log($"InteractableToolTipService : {_interactableToolTipService}");
             _interactableTextToolTipService = new InteractableTextToolTipService();
             SetUpComponents();
 
