@@ -254,6 +254,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme += UpdateAllHelpToolTipSo;
+            ToolTipManager.DisableToolTip += DisableToolTip;
         }
 
         private void UnSubscribe()
@@ -261,6 +262,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateAllHelpToolTipSo;
+            ToolTipManager.DisableToolTip -= DisableToolTip;
             _toolTipServiceTimerCooldown.StopTimer();
             _toolTipSucessTimerCooldown.StopTimer();
         }

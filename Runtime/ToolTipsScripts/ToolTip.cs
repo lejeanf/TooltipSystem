@@ -10,5 +10,10 @@ namespace jeanf.tooltip
         {
             showToolTip = isShowing;
         }
+
+        protected void DisableToolTip()
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

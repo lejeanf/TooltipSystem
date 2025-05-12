@@ -1,11 +1,15 @@
 using jeanf.EventSystem;
 using jeanf.universalplayer;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace jeanf.tooltip
 {
     public class ToolTipManager : MonoBehaviour
     {
+        [Tooltip("If disable all tooltips then no tooltip will be displayed except NavigationToolTip.")]
+        [SerializeField] private bool _disableAllTooltips = false;
+        
         [SerializeField] private BoolEventChannelSO hmdState;
         [SerializeField] private BoolEventChannelSO ipadState;
         [SerializeField] private ControlSchemeChannelSo controlSchemeChannelSo;
@@ -19,6 +23,8 @@ namespace jeanf.tooltip
         public delegate void UpdateShowToolTipDelegate(bool isShowing);
         public static UpdateShowToolTipDelegate UpdateShowToolTip;
         
+        public delegate void DisableTipDelegate();
+        public static DisableTipDelegate DisableToolTip;
         
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
@@ -27,6 +33,8 @@ namespace jeanf.tooltip
         private void Subscribe()
         {
             BroadcastControlsStatus.SendControlScheme += UpdateControlScheme;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            
             
             controlSchemeChannelSo.OnEventRaised += UpdateControlScheme;
             hmdState.OnEventRaised += UpdateTooltip;
@@ -36,6 +44,7 @@ namespace jeanf.tooltip
         private void UnSubscribe()
         {
             BroadcastControlsStatus.SendControlScheme -= UpdateControlScheme;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
             
             controlSchemeChannelSo.OnEventRaised -= UpdateControlScheme;
             hmdState.OnEventRaised -= UpdateTooltip;
@@ -55,6 +64,12 @@ namespace jeanf.tooltip
         private void OnIpadState(bool ipadState)
         {
             UpdateShowToolTip?.Invoke(!ipadState);
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if(_disableAllTooltips)
+                DisableToolTip?.Invoke();
         }
         
     }

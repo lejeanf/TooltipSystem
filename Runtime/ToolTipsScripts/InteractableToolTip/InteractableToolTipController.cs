@@ -21,7 +21,6 @@ namespace jeanf.tooltip
         [SerializeField] private InteractableToolTipEnum interactableToolTipType;
         
         private InteractableToolTipService _interactableToolTipService;
-        private InteractableTextToolTipService _interactableTextToolTipService;
         
         private string _currentText;
         
@@ -62,7 +61,6 @@ namespace jeanf.tooltip
                 text.text = tooltipInteractionDescription;
             
             _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
-            _interactableTextToolTipService = new InteractableTextToolTipService();
             SetUpComponents();
 
             _tooltip.transform.position = transform.position;
@@ -76,18 +74,7 @@ namespace jeanf.tooltip
                 case InteractableToolTipEnum.Icon:
                     SetUpIcon();
                     break;
-                case InteractableToolTipEnum.Text:
-                    SetUpText();
-                    break;
             }
-        }
-
-        private void SetUpText()
-        {
-            GameObject textGameObject = null;
-            textGameObject = _interactableTextToolTipService.ForgeTextGameObject(_currentText, interactableToolTipSettingsSo);
-            textGameObject.transform.SetParent(_tooltip.transform);
-            textGameObject.transform.localPosition = Vector3.zero;
         }
 
         private void SetUpIcon()
@@ -131,6 +118,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
+            ToolTipManager.DisableToolTip += DisableToolTip;
         }
 
         private void UnSubscribe()
@@ -138,8 +126,8 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
+            ToolTipManager.DisableToolTip -= DisableToolTip;
             _interactableToolTipService.Destroy();
-            _interactableTextToolTipService.Destroy();
         }
 
         private void OnTriggerEnter(Collider other)
@@ -170,9 +158,6 @@ namespace jeanf.tooltip
                     _interactableToolTip.ShowCloseTooltip();
                     _interactableToolTipService.ShowIcons();
                     break;
-                case InteractableToolTipEnum.Text:
-                    _interactableTextToolTipService.ShowText();
-                    break;
             }
             _interactableToolTip.HideFarTooltip();
         }
@@ -184,9 +169,6 @@ namespace jeanf.tooltip
             {
                 case InteractableToolTipEnum.Icon:
                     _interactableToolTipService.HideIcons();
-                    break;
-                case InteractableToolTipEnum.Text:
-                    _interactableTextToolTipService.HideText();
                     break;
             }
             
@@ -231,10 +213,6 @@ namespace jeanf.tooltip
                     Sprite icon = inputIconSo.GetInputIcon(inputName);
                     _image.sprite = icon;
                     break;
-                case InteractableToolTipEnum.Text:
-                    _currentText = $"{inputName} {tooltipInteractionDescription}";
-                    _interactableTextToolTipService.ChangeText(_currentText);
-                    break;
             }
         }
 
@@ -257,11 +235,6 @@ namespace jeanf.tooltip
                     if (_interactableToolTipService is null) return;
                     Sprite icon = inputIconSo.GetInputIcon(inputName);
                     _image.sprite = icon;
-                    break;
-                case InteractableToolTipEnum.Text:
-                    if(_interactableTextToolTipService is null) return;
-                    _currentText = $"{inputName} {tooltipInteractionDescription}";
-                    _interactableTextToolTipService.ChangeText(_currentText);
                     break;
             }
         }
