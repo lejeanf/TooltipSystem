@@ -330,9 +330,15 @@ namespace jeanf.tooltip
 
         private void ChangeLastSpriteColor()
         {
-            SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[_sprites.Count - 1]);
-            lastSpriteColor.a = 1f;
-            lastSpriteRenderer.color = lastSpriteColor;
+            int index = _sprites.Count - 1;
+            SpriteRenderer lastSpriteRenderer;
+
+            if (index >= 0)
+            {
+                lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
+                lastSpriteColor.a = 1f;
+                lastSpriteRenderer.color = lastSpriteColor;
+            }
         }
 
         private void HideSprites()
