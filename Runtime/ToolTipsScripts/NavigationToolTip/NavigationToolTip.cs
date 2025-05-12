@@ -25,6 +25,7 @@ namespace jeanf.tooltip
         [SerializeField] private float lineWidth = 0.05f;
         [Header("Sprite Settings")]
         [SerializeField] private float spacing = 1f;
+        [SerializeField] private bool changeLastSpriteColor = true;
         [SerializeField] private Color lastSpriteColor = Color.yellow;
         [Tooltip("Distance from which player is considered too far from closest sprite")]
         [SerializeField] private float playerDistanceThresholdFirstSprite = 3f;
@@ -320,15 +321,18 @@ namespace jeanf.tooltip
                 distanceCovered -= segmentLength;
             }
             
-            //SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[_sprites.Count - 1]);
-            //Debug.Log("Thomas Position " + lastSpriteRenderer.gameObject.transform.position);
-            //Debug.Log("Thomas Before " + lastSpriteRenderer.color);
-            //lastSpriteRenderer.color = lastSpriteColor;
-            //Debug.Log("Thomas After " + lastSpriteRenderer.color);
+            if(changeLastSpriteColor)
+                ChangeLastSpriteColor();
             
             NormalisePath();
             UpdateNormalisedPath?.Invoke(_normalisedPath);
-            
+        }
+
+        private void ChangeLastSpriteColor()
+        {
+            SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[_sprites.Count - 1]);
+            lastSpriteColor.a = 1f;
+            lastSpriteRenderer.color = lastSpriteColor;
         }
 
         private void HideSprites()
