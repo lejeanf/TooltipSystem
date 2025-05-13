@@ -53,12 +53,12 @@ namespace jeanf.tooltip
 
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
         {
-            UpdateToolTipControlScheme.Invoke(controlScheme);
+            UpdateToolTipControlScheme?.Invoke(controlScheme);
         }
 
         private void UpdateTooltip(bool hmdState)
         {
-            UpdateToolTipControlSchemeWithHmd.Invoke(hmdState);
+            UpdateToolTipControlSchemeWithHmd?.Invoke(hmdState);
         }
 
         private void OnIpadState(bool ipadState)

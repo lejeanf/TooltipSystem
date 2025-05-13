@@ -333,7 +333,7 @@ namespace jeanf.tooltip
             int index = _sprites.Count - 1;
             SpriteRenderer lastSpriteRenderer;
 
-            if (index >= 0)
+            if (index >= 0 && _sprites[index] != null)
             {
                 lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
                 lastSpriteColor.a = 1f;
