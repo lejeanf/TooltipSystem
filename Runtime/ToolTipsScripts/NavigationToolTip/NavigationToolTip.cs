@@ -336,8 +336,11 @@ namespace jeanf.tooltip
             if (index >= 0 && _sprites[index] != null)
             {
                 lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
-                lastSpriteColor.a = 1f;
-                lastSpriteRenderer.color = lastSpriteColor;
+                if (lastSpriteRenderer != null)
+                {
+                    lastSpriteColor.a = 1f;
+                    lastSpriteRenderer.color = lastSpriteColor;
+                }
             }
         }
 
