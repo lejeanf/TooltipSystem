@@ -4,7 +4,6 @@ namespace jeanf.tooltip
 {
     public class InteractableToolTipFarTrigger : MonoBehaviour
     {
-        //[SerializeField] 
         private InteractableToolTipFar interactableToolTipFar;
 
         public void Awake()
@@ -16,8 +15,8 @@ namespace jeanf.tooltip
         {
             if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                interactableToolTipFar.ShowImage();
                 interactableToolTipFar.UpdatePlayerInRange(true);
+                interactableToolTipFar.ShowImage();
             }
         }
 
@@ -25,8 +24,8 @@ namespace jeanf.tooltip
         {
             if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                interactableToolTipFar.HideImage();
                 interactableToolTipFar.UpdatePlayerInRange(false);
+                interactableToolTipFar.HideImage();
             }
         }
     }

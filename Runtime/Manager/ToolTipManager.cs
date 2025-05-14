@@ -35,7 +35,6 @@ namespace jeanf.tooltip
             BroadcastControlsStatus.SendControlScheme += UpdateControlScheme;
             SceneManager.sceneLoaded += OnSceneLoaded;
             
-            
             controlSchemeChannelSo.OnEventRaised += UpdateControlScheme;
             hmdState.OnEventRaised += UpdateTooltip;
             ipadState.OnEventRaised += OnIpadState;

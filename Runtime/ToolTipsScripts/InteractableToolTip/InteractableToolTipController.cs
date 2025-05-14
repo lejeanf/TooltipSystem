@@ -20,6 +20,12 @@ namespace jeanf.tooltip
         [Header("Temporary Settings")]
         [SerializeField] private InteractableToolTipEnum interactableToolTipType;
         
+        public delegate bool RequestShowToolTipDelegate(float playerDirectionDot, InteractableToolTipController interactableToolTipController);
+        public static RequestShowToolTipDelegate RequestShowToolTip;
+        
+        public delegate void WarnHideToolTipDelegate(InteractableToolTipController interactableToolTipController);
+        public static WarnHideToolTipDelegate WarnHideToolTip;
+        
         private InteractableToolTipService _interactableToolTipService;
         
         private string _currentText;
@@ -28,6 +34,8 @@ namespace jeanf.tooltip
         private Transform _cameraTransform;
         
         private Image _image;
+
+        private float _playerLookingDirectionDot;
 
         private GameObject _parent;
         private GameObject _tooltip;
@@ -99,20 +107,31 @@ namespace jeanf.tooltip
             
             if (!_isPlayerNear)
             {
+                if (_isToolTipDisplayed)
+                {
+                    WarnHideToolTip?.Invoke(this);
+                }
+                
                 HideToolTip();
+                
                 return;
             }
-                
-            if (CheckIfPlayerIsLooking())
+            
+            if (CheckIfPlayerIsLooking() && RequestPermissionToShowToolTip())
             {
                 ShowToolTip();
             }
             else
             {
+                if (_isToolTipDisplayed)
+                {
+                    WarnHideToolTip?.Invoke(this);
+                }
+                
                 HideToolTip();
             }
         }
-        
+
         private void Subscribe()
         {
             ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
@@ -148,7 +167,7 @@ namespace jeanf.tooltip
             }
         }
         
-        private void ShowToolTip()
+        public void ShowToolTip()
         {
             _isToolTipDisplayed = true;
             
@@ -162,9 +181,10 @@ namespace jeanf.tooltip
             _interactableToolTip.HideFarTooltip();
         }
 
-        private void HideToolTip()
+        public void HideToolTip()
         {
             _isToolTipDisplayed = false;
+            
             switch (interactableToolTipType)
             {
                 case InteractableToolTipEnum.Icon:
@@ -192,10 +212,19 @@ namespace jeanf.tooltip
             
             Vector3 directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
 
-            float dot = Vector3.Dot(_cameraTransform.forward, directionToObject);
+            _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
-            isLooking = dot > fieldOfViewThreshold;
+            isLooking = _playerLookingDirectionDot > fieldOfViewThreshold;
             return isLooking;
+        }
+        
+        private bool RequestPermissionToShowToolTip()
+        {
+            bool? permission = RequestShowToolTip?.Invoke(_playerLookingDirectionDot, this);
+            if (permission.HasValue)
+                return permission.Value;
+            else
+                return false;
         }
         
         private void ToolTipLookTowardsPlayer()

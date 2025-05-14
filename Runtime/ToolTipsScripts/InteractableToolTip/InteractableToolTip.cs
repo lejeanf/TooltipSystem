@@ -17,6 +17,7 @@ namespace jeanf.tooltip
         
         public void ShowFarTooltip()
         {
+            _tooltipFar.UnFreeze();
             _tooltipFar.ShowImage();
         }
 
@@ -28,6 +29,7 @@ namespace jeanf.tooltip
         public void HideFarTooltip()
         {
             _tooltipFar.HideImage();
+            _tooltipFar.Freeze();
         }
 
         public void HideCloseTooltip()

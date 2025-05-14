@@ -10,22 +10,34 @@ namespace jeanf.tooltip
         private bool _isPlayerInRange = false;
         public bool IsPlayerInRange => _isPlayerInRange;
         
+        private bool _isFrozen = false;
+        
         private Image _tooltipFarImage;
 
         private void Awake()
         {
             _tooltipFarImage = tooltipFarImageGameObject.GetComponent<Image>();
-            _tooltipFarImage.enabled = false;
         }
 
         public void HideImage()
         {
-            _tooltipFarImage.enabled = false;
+            if(!_isFrozen)
+                _tooltipFarImage.enabled = false;
+        }
+
+        public void Freeze()
+        {
+            _isFrozen = true;
+        }
+
+        public void UnFreeze()
+        {
+            _isFrozen = false;
         }
 
         public void ShowImage()
         {
-            if(_isPlayerInRange)
+            if(_isPlayerInRange && !_isFrozen)
                 _tooltipFarImage.enabled = true;
         }
 
