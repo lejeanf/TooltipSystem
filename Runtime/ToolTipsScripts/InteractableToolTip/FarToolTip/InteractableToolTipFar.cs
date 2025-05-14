@@ -17,6 +17,7 @@ namespace jeanf.tooltip
         private void Awake()
         {
             _tooltipFarImage = tooltipFarImageGameObject.GetComponent<Image>();
+            _tooltipFarImage.enabled = false;
         }
 
         public void HideImage()
