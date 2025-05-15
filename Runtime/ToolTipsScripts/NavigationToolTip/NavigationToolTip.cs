@@ -39,11 +39,11 @@ namespace jeanf.tooltip
         [SerializeField] private Transform bottomLeft;
         [SerializeField] private Transform bottomRight;
         
-        public delegate void UpdateNormalisedPathDelegate(List<Vector2> normalisedPath);
+        public delegate void UpdateNormalisedPathDelegate(float[][] normalisedPath);
         public static UpdateNormalisedPathDelegate UpdateNormalisedPath;
         
         private List<Vector3> _worldPath;
-        private List<Vector2> _normalisedPath;
+        private float[][] _normalisedPath;
 
         private NavMeshPath _path;
         private Vector3 _playerNavMeshPosition;
@@ -62,7 +62,7 @@ namespace jeanf.tooltip
         private void Awake()
         {
             _worldPath = new List<Vector3>();
-            _normalisedPath = new List<Vector2>();
+            _normalisedPath = null;
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
             _navigationObjectPool = GetComponent<NavigationObjectPool>();
@@ -366,17 +366,21 @@ namespace jeanf.tooltip
             float width = topLeft.position.x - topRight.position.x;
             float height = topLeft.position.z - bottomLeft.position.z;
 
-            List<Vector2> result = new List<Vector2>();
+            float[][] result = new float[_path.corners.Length][];
+            
             for (int i = 0; i < _path.corners.Length; i++)
             {
+                result[i] = new float[2];
                 Vector3 pos = _path.corners[i];
                 
                 float distanceFromTopLeftX = (topLeft.position.x - pos.x) / width;
                 float distanceFromTopLeftY = 1 - (1 - (topLeft.position.z - pos.z) / height);
                 
-                result.Add(new Vector2(distanceFromTopLeftX, distanceFromTopLeftY));
+                result[i][0] = distanceFromTopLeftX;
+                result[i][1] = distanceFromTopLeftY;
             }
             
+            Debug.Log("HAS NORMALIZED PATH");
             _normalisedPath = result;
         }
 
