@@ -13,7 +13,21 @@ namespace jeanf.tooltip
         private bool _isFrozen = false;
         
         private Image _tooltipFarImage;
+        
+        private void OnEnable() => Subscribe();
+        private void OnDisable() => UnSubscribe();
+        private void OnDestroy() => UnSubscribe();
 
+        private void Subscribe()
+        {
+            ToolTipManager.DisableToolTip += Freeze;
+        }
+
+        private void UnSubscribe()
+        {
+            ToolTipManager.DisableToolTip -= Freeze;
+        }
+        
         private void Awake()
         {
             _tooltipFarImage = tooltipFarImageGameObject.GetComponent<Image>();
