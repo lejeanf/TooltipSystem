@@ -380,7 +380,6 @@ namespace jeanf.tooltip
                 result[i][1] = distanceFromTopLeftY;
             }
             
-            Debug.Log("HAS NORMALIZED PATH");
             _normalisedPath = result;
         }
 
