@@ -23,8 +23,8 @@ namespace jeanf.tooltip
             _tooltip = interactableToolTip.TooltipClose;
             _canvasGroup = _tooltip.GetComponent<CanvasGroup>();
                         
-            _animationDuration = interactableToolTipSettingsSo.animationDuration;
-            _animationType = interactableToolTipSettingsSo.animationType;
+            _animationDuration = interactableToolTipSettingsSo.animationSo.animationDuration;
+            _animationType = interactableToolTipSettingsSo.animationSo.animationType;
             
             _interactableToolTip = interactableToolTip;
             
@@ -61,7 +61,7 @@ namespace jeanf.tooltip
             {
                 case ToolTipAnimationEnum.Pop:
                     _originalToolTipSize = _tooltip.transform.localScale;
-                    _tooltipSizeWhenHidden = _tooltip.transform.localScale * settings.iconSizeModifierWhenHidden;
+                    _tooltipSizeWhenHidden = _tooltip.transform.localScale * settings.animationSo.iconSizeModifierWhenHidden;
                     _tooltip.transform.localScale = _tooltipSizeWhenHidden;
                     _canvasGroup.alpha = 1f;
                     break;
