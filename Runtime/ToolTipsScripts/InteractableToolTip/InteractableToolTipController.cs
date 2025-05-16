@@ -43,6 +43,17 @@ namespace jeanf.tooltip
         #region Start
         private void Awake()
         {
+
+            if (interactableToolTipSettingsSo == null ||
+                interactableToolTipInputSo == null ||
+                interactableToolTipSettingsSo.animationSo == null ||
+                inputIconSo == null)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+               
+            
             _cameraTransform = Camera.main?.transform;
             _parent = transform.parent.gameObject;
             
@@ -127,7 +138,8 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
             ToolTipManager.DisableToolTip -= DisableToolTip;
-            _interactableToolTipService.Destroy();
+            if(_interactableToolTipService != null)
+                _interactableToolTipService.Destroy();
         }
 
         private void OnTriggerEnter(Collider other)
