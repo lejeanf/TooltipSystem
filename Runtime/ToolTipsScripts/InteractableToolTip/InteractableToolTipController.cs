@@ -10,8 +10,7 @@ namespace jeanf.tooltip
         [SerializeField] private GameObject tooltipGameObjectPrefab;
         [SerializeField] private InteractableToolTipSettingsSo interactableToolTipSettingsSo;
         [SerializeField] private InputIconSo inputIconSo;
-        //
-        //[SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
+        [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
         
         
         public delegate bool RequestShowToolTipDelegate(float playerDirectionDot, InteractableToolTipController interactableToolTipController);
@@ -69,7 +68,7 @@ namespace jeanf.tooltip
 
         private void SetUpIcon()
         {
-            string inputName = interactableToolTipSettingsSo.interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
+            string inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             
             Sprite sprite = inputIconSo.GetInputIcon(inputName);
             
@@ -205,7 +204,7 @@ namespace jeanf.tooltip
         
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
         {
-            string inputName = interactableToolTipSettingsSo.interactableToolTipInputSo.GetBindingName(controlScheme);
+            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
             
             Sprite icon = inputIconSo.GetInputIcon(inputName);
             _image.sprite = icon;
@@ -217,11 +216,11 @@ namespace jeanf.tooltip
             
             if (hmdStatus)
             {
-                inputName = interactableToolTipSettingsSo.interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.XR);
+                inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.XR);
             }
             else
             {
-                inputName = interactableToolTipSettingsSo.interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
+                inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             }
             
             if (_interactableToolTipService is null) return;

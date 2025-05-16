@@ -15,7 +15,6 @@ namespace jeanf.tooltip
         public float iconSizeModifierWhenHidden = 0.5f;
         public float animationDuration = 0.075f;
         public ToolTipAnimationEnum animationType;
-        public InteractableToolTipInputSo interactableToolTipInputSo;
 
     }
 }
