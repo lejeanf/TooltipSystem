@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using jeanf.propertyDrawer;
 using jeanf.universalplayer;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace jeanf.tooltip
 {
+    [ScriptableObjectDrawer]
     [CreateAssetMenu(fileName = "InteractableToolTipSO", menuName = "Tooltips/InteractableToolTipSO", order = 1)]
     public class InteractableToolTipInputSo : ScriptableObject
     {

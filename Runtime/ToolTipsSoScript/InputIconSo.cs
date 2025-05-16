@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using jeanf.propertyDrawer;
 using UnityEngine;
 
 namespace jeanf.tooltip
 {
+    [ScriptableObjectDrawer]
     [CreateAssetMenu(fileName = "InputIconSo", menuName = "Tooltips/InputIconSo", order = 1)]
     public class InputIconSo : ScriptableObject
     {
