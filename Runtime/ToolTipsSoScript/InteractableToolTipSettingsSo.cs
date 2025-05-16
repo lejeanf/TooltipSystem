@@ -1,23 +1,19 @@
-using TMPro;
+using jeanf.propertyDrawer;
 using UnityEngine;
+
 
 namespace jeanf.tooltip
 {
+    [ScriptableObjectDrawer]
     [CreateAssetMenu(fileName = "InteractableToolTipSettingsSO", menuName = "Tooltips/InteractableToolTipSettingsSO", order = 1)]
     public class InteractableToolTipSettingsSo : ScriptableObject
     {
-        [Header("Text Mode Only")]
-        public float fontSizeModifierWhenHidden = 0.5f;
-        public float fontSizeForTextMode = 0.5f;
-        
-        [Header("Icon Mode Only")]
+        public string tooltipName = "Tooltip";
+        public string description = "";
+        [Tooltip("1 : Need player to look directly at the target | 0 : Accept that player doesn't look the target")]
+        public float fieldOfViewThreshold = 0.9855f;
         public float iconSizeModifierWhenHidden = 0.5f;
-        
-        [Header("Common Settings")]
-        public TMP_FontAsset textFont;
         public float animationDuration = 0.075f;
-        
-        [Header("Temporary")]
         public ToolTipAnimationEnum animationType;
         
     }

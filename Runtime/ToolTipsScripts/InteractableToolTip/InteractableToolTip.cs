@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 namespace jeanf.tooltip
@@ -10,6 +11,16 @@ namespace jeanf.tooltip
         
         public GameObject TooltipClose => _tooltipClose;
 
+        public void UpdateDescription(string description)
+        {
+            var text = _tooltipClose.GetComponentInChildren<TMP_Text>();
+            if (text != null)
+            {
+                text.text = description;
+                Debug.Log(text.text);
+            }
+        }
+        
         public void ArrangeRotation()
         {
             transform.localRotation = transform.parent.localRotation;
