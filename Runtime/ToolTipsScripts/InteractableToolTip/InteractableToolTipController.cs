@@ -1,3 +1,4 @@
+using jeanf.scenemanagement;
 using jeanf.universalplayer;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,6 +12,7 @@ namespace jeanf.tooltip
         [SerializeField] private InteractableToolTipSettingsSo interactableToolTipSettingsSo;
         [SerializeField] private InputIconSo inputIconSo;
         [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
+        [SerializeField] private Zone currentZone;
         
         
         public delegate bool RequestShowToolTipDelegate(float playerDirectionDot, InteractableToolTipController interactableToolTipController);
@@ -18,6 +20,8 @@ namespace jeanf.tooltip
         
         public delegate void WarnHideToolTipDelegate(InteractableToolTipController interactableToolTipController);
         public static WarnHideToolTipDelegate WarnHideToolTip;
+        
+        private bool isPlayerInZone = false;
         
         private InteractableToolTipService _interactableToolTipService;
         
@@ -93,7 +97,7 @@ namespace jeanf.tooltip
         #endregion
         private void Update()
         {
-            if (!showToolTip) { HideToolTipWithoutAnimation(); return; }
+            if (!showToolTip || !isPlayerInZone) { HideToolTipWithoutAnimation(); return; }
             
             ToolTipLookTowardsPlayer();
             
@@ -130,6 +134,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
             ToolTipManager.DisableToolTip += DisableToolTip;
+            WorldManager.PublishCurrentZoneId += CheckIfPlayerInZone;
         }
 
         private void UnSubscribe()
@@ -240,6 +245,13 @@ namespace jeanf.tooltip
             Sprite icon = inputIconSo.GetInputIcon(inputName);
             _image.sprite = icon;
             
+        }
+
+        private void CheckIfPlayerInZone(string zoneId)
+        {
+            if(currentZone == null) return;
+            
+            isPlayerInZone = (zoneId == currentZone.id.id);
         }
     }
 }

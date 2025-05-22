@@ -23,7 +23,8 @@ namespace jeanf.tooltip
         
         public void ArrangeRotation()
         {
-            transform.localRotation = transform.parent.localRotation;
+            if(transform.parent != null)
+                transform.localRotation = transform.parent.localRotation;
         }
         
         public void ShowFarTooltip()
