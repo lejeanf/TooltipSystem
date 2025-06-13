@@ -17,7 +17,7 @@ namespace jeanf.tooltip
             if (text != null)
             {
                 text.text = description;
-                Debug.Log(text.text);
+                //Debug.Log(text.text);
             }
         }
         
