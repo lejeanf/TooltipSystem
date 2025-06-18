@@ -140,7 +140,6 @@ namespace jeanf.tooltip
         public void Destroy()
         {
             if(!_motionHandle.IsActive()) return;
-            _motionHandle.Complete();
             _motionHandle.Cancel();
         }
     }

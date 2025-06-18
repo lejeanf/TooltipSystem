@@ -31,7 +31,7 @@ namespace jeanf.tooltip
         private Slider _helpToolTipSlider;
         
         private ToolTipTimer _toolTipServiceTimerCooldown;
-        private ToolTipTimer _toolTipSucessTimerCooldown;
+        private ToolTipTimer _toolTipSuccessTimerCooldown;
         private HelpToolTipControlSo _activeHelpToolTipControl;
         
         private IHelpToolTipService _currentHelpToolTipService;
@@ -52,7 +52,7 @@ namespace jeanf.tooltip
             _helpToolTipSlider = GetComponentInChildren<Slider>();
             
             _toolTipServiceTimerCooldown = new ToolTipTimer();
-            _toolTipSucessTimerCooldown = new ToolTipTimer();
+            _toolTipSuccessTimerCooldown = new ToolTipTimer();
             
             _currentControlScheme = startingControlScheme;
             
@@ -94,7 +94,7 @@ namespace jeanf.tooltip
                         helpToolTipControls[i].actionRequiredWhenGamepad.action?.Enable();
                         helpToolTipControls[i].actionRequiredWhenXr.action?.Enable();
                         
-                        Dictionary<BroadcastControlsStatus.ControlScheme, InputActionReference> inputs = new Dictionary<BroadcastControlsStatus.ControlScheme, InputActionReference>
+                        var inputs = new Dictionary<BroadcastControlsStatus.ControlScheme, InputActionReference>
                         {
                             {
                                 BroadcastControlsStatus.ControlScheme.KeyboardMouse,
@@ -141,7 +141,7 @@ namespace jeanf.tooltip
 
         private void ShowHelpToolTip()
         {
-            if (_toolTipSucessTimerCooldown.IsTimerRunning)
+            if (_toolTipSuccessTimerCooldown.IsTimerRunning)
             {
                 helpGameObject.SetActive(false);
                 successGameObject.SetActive(true);
@@ -181,7 +181,7 @@ namespace jeanf.tooltip
             {
                 _activeHelpToolTipControl = null;
                 _toolTipServiceTimerCooldown.StopTimer();
-                _toolTipSucessTimerCooldown.StopTimer();
+                _toolTipSuccessTimerCooldown.StopTimer();
                 gameObject.SetActive(false);
                 return;
             }
@@ -206,7 +206,7 @@ namespace jeanf.tooltip
             {
                 _activeHelpToolTipControl = null;
                 _toolTipServiceTimerCooldown.StopTimer();
-                _toolTipSucessTimerCooldown.StopTimer();
+                _toolTipSuccessTimerCooldown.StopTimer();
                 gameObject.SetActive(false);
                 return;
             }
@@ -238,12 +238,12 @@ namespace jeanf.tooltip
         
         private void StartTransition()
         {
-            _toolTipSucessTimerCooldown.StartTimer(helpSwitchCooldown, ActivateHelpToolTipService);
+            _toolTipSuccessTimerCooldown.StartTimer(helpSwitchCooldown, ActivateHelpToolTipService);
         }
 
         private void ActivateHelpToolTipService()
         {
-            if (_toolTipSucessTimerCooldown.IsTimerRunning) return;
+            if (_toolTipSuccessTimerCooldown.IsTimerRunning) return;
 
             _helpToolTipSlider.value += _currentHelpToolTipService.Activate();
             _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
@@ -264,7 +264,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlScheme -= UpdateAllHelpToolTipSo;
             ToolTipManager.DisableToolTip -= DisableToolTip;
             _toolTipServiceTimerCooldown.StopTimer();
-            _toolTipSucessTimerCooldown.StopTimer();
+            _toolTipSuccessTimerCooldown.StopTimer();
         }
 
         private void UpdateAllHelpToolTipSo(BroadcastControlsStatus.ControlScheme controlScheme)

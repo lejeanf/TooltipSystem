@@ -70,18 +70,14 @@ namespace jeanf.tooltip
             _image = _tooltip.GetComponentInChildren<Image>();
             
             _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
-            SetUpComponents();
+            SetIcon();
 
             _tooltip.transform.position = transform.position;
         }
 
         #region Setup
-        private void SetUpComponents()
-        {
-            SetUpIcon();
-        }
 
-        private void SetUpIcon()
+        private void SetIcon()
         {
             string inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             
@@ -143,8 +139,7 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
             ToolTipManager.DisableToolTip -= DisableToolTip;
-            if(_interactableToolTipService != null)
-                _interactableToolTipService.Destroy();
+            _interactableToolTipService?.Destroy();
         }
 
         private void OnTriggerEnter(Collider other)
@@ -195,9 +190,9 @@ namespace jeanf.tooltip
         {
             if (_cameraTransform is null) return false;
             
-            bool isLooking = false;
+            var isLooking = false;
             
-            Vector3 directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
+            var directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
 
             _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
@@ -230,21 +225,13 @@ namespace jeanf.tooltip
         private void UpdateControlScheme(bool hmdStatus)
         {
             string inputName;
-            
-            if (hmdStatus)
-            {
-                inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.XR);
-            }
-            else
-            {
-                inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
-            }
-            
+
+            inputName = interactableToolTipInputSo.GetBindingName(hmdStatus ? BroadcastControlsStatus.ControlScheme.XR : BroadcastControlsStatus.ControlScheme.KeyboardMouse);
+
             if (_interactableToolTipService is null) return;
             
-            Sprite icon = inputIconSo.GetInputIcon(inputName);
+            var icon = inputIconSo.GetInputIcon(inputName);
             _image.sprite = icon;
-            
         }
 
         private void CheckIfPlayerInZone(string zoneId)

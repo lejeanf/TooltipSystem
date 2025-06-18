@@ -44,12 +44,10 @@ namespace jeanf.tooltip
 
         private void WarnHideToolTip(InteractableToolTipController interactableToolTipController)
         {
-            if (_interactableToolTipController == interactableToolTipController)
-            {
-                _isToolTipDisplayed = false;
-                _interactableToolTipController = null;
-                _currentDot = 0;
-            }
+            if (_interactableToolTipController != interactableToolTipController) return;
+            _isToolTipDisplayed = false;
+            _interactableToolTipController = null;
+            _currentDot = 0;
         }
 
         private void ReplaceCurrentInteractableController(float dot, InteractableToolTipController interactableToolTipController)
