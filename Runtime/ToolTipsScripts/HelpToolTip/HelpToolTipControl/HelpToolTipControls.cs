@@ -125,7 +125,6 @@ namespace jeanf.tooltip
                 SetUpNextHelpToolTip();
                 return;
             }
-            //
             
             ShowHelpToolTip();
             

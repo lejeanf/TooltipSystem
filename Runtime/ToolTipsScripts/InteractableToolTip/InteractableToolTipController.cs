@@ -47,7 +47,6 @@ namespace jeanf.tooltip
         #region Start
         private void Awake()
         {
-
             if (interactableToolTipSettingsSo == null ||
                 interactableToolTipInputSo == null ||
                 interactableToolTipSettingsSo.animationSo == null ||
@@ -95,7 +94,7 @@ namespace jeanf.tooltip
         {
             if (!showToolTip || !isPlayerInZone) { HideToolTipWithoutAnimation(); return; }
             
-            ToolTipLookTowardsPlayer();
+            //ToolTipLookTowardsPlayer();
             
             if (!_isPlayerNear)
             {

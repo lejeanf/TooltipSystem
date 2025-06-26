@@ -9,10 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 47f00d2d9a7494640a75d5f58422914a, type: 3}
-  m_Name: InteractableToolTipSettingsSoBase
+  m_Script: {fileID: 11500000, guid: e7e93fd4310c4f4eab2285b8cc803fb5, type: 3}
+  m_Name: InteractableToolTipAnimationFadeSo
   m_EditorClassIdentifier: 
-  tooltipName: Tooltip
-  description: Description
-  fieldOfViewThreshold: 0.9855
-  animationSo: {fileID: 11400000, guid: 005dc3186a9be1341b21f348e020d944, type: 2}
+  iconSizeModifierWhenHidden: 0.5
+  animationDuration: 0.075
+  animationType: 0
