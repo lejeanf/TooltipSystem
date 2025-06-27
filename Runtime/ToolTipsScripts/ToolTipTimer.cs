@@ -10,13 +10,14 @@ namespace jeanf.tooltip
         private bool _isTimerRunning = false;
         public bool IsTimerRunning => _isTimerRunning;
 
-        public void StartTimer(float seconds, Action onTimerDone)
+        public async UniTask StartTimer(float seconds, Action onTimerDone)
         {
             StopTimer();
             _cts = new CancellationTokenSource();
             _isTimerRunning = true;
-            PlayTimer(seconds, _cts.Token, onTimerDone).Forget();
+            await PlayTimer(seconds, _cts.Token, onTimerDone);
         }
+
 
         public void StopTimer()
         {
@@ -29,7 +30,7 @@ namespace jeanf.tooltip
             _isTimerRunning = false;
         }
 
-        private async UniTaskVoid PlayTimer(float seconds, CancellationToken token, Action onTimerDone)
+        private async UniTask PlayTimer(float seconds, CancellationToken token, Action onTimerDone)
         {
             try
             {
@@ -40,7 +41,7 @@ namespace jeanf.tooltip
                     onTimerDone?.Invoke();
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException) { StopTimer();}
         }
     }
 }

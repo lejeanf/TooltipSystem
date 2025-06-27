@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: HelpToolTipControlMoveSo
   m_EditorClassIdentifier: 
   helpingMessage: "pour se d\xE9placer"
-  helpingImage: {fileID: -298940166, guid: 1ca9f8e07bfc7eb4195ab4462a2f258e, type: 3}
+  progressionAdded: 0.1
+  actionCooldown: 0.1
   canBeShownMultipleTimes: 0
   timeBeforeShowingAgain: 120
   canBeShownInVR: 1
+  actionRequiredWhenKeyBoard: {fileID: 4837329596722531451, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
+  actionRequiredWhenGamepad: {fileID: 4837329596722531451, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
+  actionRequiredWhenXr: {fileID: -1900390651776063716, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
   helpToolTipControlType: 0

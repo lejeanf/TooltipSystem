@@ -11,11 +11,11 @@ public class CustomInspectorInstanciateTooltip : Editor
         
         GUILayout.Label("Preview tooltip :");
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Instanciate Tooltip"))
+        if (GUILayout.Button("Instantiate Tooltip"))
         {
             interactableToolTipController.InstanciateTooltip();
         }
-        if (GUILayout.Button("Instanciate Tooltip"))
+        if (GUILayout.Button("Destroy Tooltip"))
         {
             interactableToolTipController.DestroyInstanciateToolTip();
         }

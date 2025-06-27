@@ -13,11 +13,15 @@ MonoBehaviour:
   m_Name: HelpToolTipControlLookSo
   m_EditorClassIdentifier: 
   helpingMessage: pour regarder
-  helpingImage: {fileID: -1808432274, guid: c365140cc0837034bbc7e890399c50da, type: 3}
   progressionAdded: 0.05
   actionCooldown: 0.1
   canBeShownMultipleTimes: 0
   timeBeforeShowingAgain: 120
   canBeShownInVR: 0
-  actionRequired: {fileID: 0}
+  actionRequiredWhenKeyBoard: {fileID: -4093205024048774046, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
+  actionRequiredWhenGamepad: {fileID: -4093205024048774046, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
+  actionRequiredWhenXr: {fileID: -530380113134220495, guid: c348712bda248c246b8c49b3db54643f,
+    type: 3}
   helpToolTipControlType: 1

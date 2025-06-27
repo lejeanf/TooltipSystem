@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using jeanf.universalplayer;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -19,7 +22,11 @@ namespace jeanf.tooltip
         [SerializeField] private BroadcastControlsStatus.ControlScheme startingControlScheme;
         [Header("For testing")]
         [SerializeField] private InputAction inputToContinue;
-        
+        public static event Action ShowLookTooltipEvent;
+        public static event Action ShowMoveTooltipEvent;
+        public static event Action ShowInputTooltipEvent;
+        public static event Action<HelpToolTipControlType> ShowSpecificTooltipEvent;
+        public static event Action StopAllTooltipsEvent;
         
         private string _currentText;
         private Transform _cameraTransform;
@@ -38,6 +45,13 @@ namespace jeanf.tooltip
         private HelpToolTipLookService _helpToolTipLookService;
         private HelpToolTipMoveService _helpToolTipMoveService;
         private HelpToolTipInputPressedService _helpToolTipInputPressedService;
+
+        private Queue<HelpToolTipControlSo> _tooltipQueue;
+        private bool _isShowingSequentialTooltips = false;
+        private bool _isShowingSingleTooltip = false;
+        
+        private Dictionary<HelpToolTipControlType, IHelpToolTipService> _servicesByType;
+        private Dictionary<HelpToolTipControlType, HelpToolTipControlSo> _tooltipsByType;
         
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
@@ -56,86 +70,117 @@ namespace jeanf.tooltip
             
             _currentControlScheme = startingControlScheme;
             
-            SetUpAllServices();
-            
-            _activeHelpToolTipControl = helpToolTipControls.First();
-            helpToolTipControls.RemoveAt(0);
-            
-            UpdateHelpToolTipCurrentService();
-            
-            UpdateAllHelpToolTipSo(startingControlScheme);
-            
-            _helpToolTipSlider.value = 0f;
-            
-            _currentText = _activeHelpToolTipControl.helpingMessage;
-            _helpToolTipText.text = _currentText;
-            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
-            
-            _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
+            InitializeTooltipSystem();
             
             inputToContinue.Enable();
+            inputToContinue.performed += OnContinuePressed;
+        }
+
+        private void InitializeTooltipSystem()
+        {
+            _tooltipQueue = new Queue<HelpToolTipControlSo>();
+            _servicesByType = new Dictionary<HelpToolTipControlType, IHelpToolTipService>();
+            _tooltipsByType = new Dictionary<HelpToolTipControlType, HelpToolTipControlSo>();
+            
+            SetUpAllServices();
+            CacheTooltipsByType();
+            
+            HideHelpToolTip();
         }
 
         private void SetUpAllServices()
         {
-            for (int i = 0; i < helpToolTipControls.Count; i++)
+            foreach (var tooltip in helpToolTipControls)
             {
-                switch (helpToolTipControls[i].helpToolTipControlType)
+                switch (tooltip.helpToolTipControlType)
                 {
                     case HelpToolTipControlType.HowToLook:
-                        _helpToolTipLookService ??= new HelpToolTipLookService(helpToolTipControls[i].progressionAdded, _cameraTransform);
+                        if (_helpToolTipLookService == null)
+                        {
+                            _helpToolTipLookService = new HelpToolTipLookService(tooltip.progressionAdded, _cameraTransform);
+                            _servicesByType[HelpToolTipControlType.HowToLook] = _helpToolTipLookService;
+                        }
                         break;
                     case HelpToolTipControlType.HowToMove:
-                        _helpToolTipMoveService ??= new HelpToolTipMoveService(helpToolTipControls[i].progressionAdded, _cameraTransform);
+                        if (_helpToolTipMoveService == null)
+                        {
+                            _helpToolTipMoveService = new HelpToolTipMoveService(tooltip.progressionAdded, _cameraTransform);
+                            _servicesByType[HelpToolTipControlType.HowToMove] = _helpToolTipMoveService;
+                        }
                         break;
                     case HelpToolTipControlType.InputPressed:
-                        
-                        helpToolTipControls[i].actionRequiredWhenKeyBoard.action?.Enable();
-                        helpToolTipControls[i].actionRequiredWhenGamepad.action?.Enable();
-                        helpToolTipControls[i].actionRequiredWhenXr.action?.Enable();
-                        
-                        var inputs = new Dictionary<BroadcastControlsStatus.ControlScheme, InputActionReference>
+                        if (_helpToolTipInputPressedService == null)
                         {
+                            tooltip.actionRequiredWhenKeyBoard.action?.Enable();
+                            tooltip.actionRequiredWhenGamepad.action?.Enable();
+                            tooltip.actionRequiredWhenXr.action?.Enable();
+                            
+                            var inputs = new Dictionary<BroadcastControlsStatus.ControlScheme, InputActionReference>
                             {
-                                BroadcastControlsStatus.ControlScheme.KeyboardMouse,
-                                helpToolTipControls[i].actionRequiredWhenKeyBoard
-                            },
-                            {
-                                BroadcastControlsStatus.ControlScheme.Gamepad,
-                                helpToolTipControls[i].actionRequiredWhenGamepad
-                            },
-                            {
-                                BroadcastControlsStatus.ControlScheme.XR, 
-                                helpToolTipControls[i].actionRequiredWhenXr
-                            }
-                        };
-                        _helpToolTipInputPressedService ??= new HelpToolTipInputPressedService(helpToolTipControls[i].progressionAdded, inputs, startingControlScheme);
+                                { BroadcastControlsStatus.ControlScheme.KeyboardMouse, tooltip.actionRequiredWhenKeyBoard },
+                                { BroadcastControlsStatus.ControlScheme.Gamepad, tooltip.actionRequiredWhenGamepad },
+                                { BroadcastControlsStatus.ControlScheme.XR, tooltip.actionRequiredWhenXr }
+                            };
+                            _helpToolTipInputPressedService = new HelpToolTipInputPressedService(tooltip.progressionAdded, inputs, startingControlScheme);
+                            _servicesByType[HelpToolTipControlType.InputPressed] = _helpToolTipInputPressedService;
+                        }
                         break;
+                }
+            }
+        }
+
+        private void CacheTooltipsByType()
+        {
+            foreach (var tooltip in helpToolTipControls)
+            {
+                if (!_tooltipsByType.ContainsKey(tooltip.helpToolTipControlType))
+                {
+                    _tooltipsByType[tooltip.helpToolTipControlType] = tooltip;
                 }
             }
         }
 
         private void Update()
         {
-            if(!showToolTip) { HideHelpToolTip(); return; }
-            
-            //For testing
-            if (inputToContinue.WasPressedThisFrame())
-            {
-                SetUpNextHelpToolTip();
-                return;
+            if (!showToolTip) 
+            { 
+                HideHelpToolTip(); 
+                return; 
             }
             
             ShowHelpToolTip();
             
-            if(_currentControlScheme == BroadcastControlsStatus.ControlScheme.XR 
+            // Handle VR skipping
+            if (_currentControlScheme == BroadcastControlsStatus.ControlScheme.XR 
+               && _activeHelpToolTipControl != null
                && !_activeHelpToolTipControl.canBeShownInVR)
-                SetUpNextHelpToolTipWithoutTransition();
+            {
+                if (_isShowingSequentialTooltips)
+                    SetUpNextHelpToolTipWithoutTransition();
+                else
+                    StopCurrentTooltip();
+            }
             
-            if (Mathf.Approximately(_helpToolTipSlider.value, 1))
+            // Handle completion
+            if (Mathf.Approximately(_helpToolTipSlider.value, 1)) 
+            {
+                if (_isShowingSequentialTooltips)
+                    SetUpNextHelpToolTip();
+                else
+                    StopCurrentTooltip();
+            }
+            
+            // Update tooltip facing direction
+            if (_cameraTransform != null)
+                transform.forward = _cameraTransform.forward;
+        }
+
+        private void OnContinuePressed(InputAction.CallbackContext context)
+        {
+            if (_isShowingSequentialTooltips)
                 SetUpNextHelpToolTip();
-            
-            transform.forward = _cameraTransform.forward;
+            else if (_isShowingSingleTooltip)
+                StopCurrentTooltip();
         }
 
         private void ShowHelpToolTip()
@@ -158,94 +203,163 @@ namespace jeanf.tooltip
             successGameObject.SetActive(false);
         }
 
-        private void UpdateHelpToolTipCurrentService()
+        private void OnShowLookTooltip()
         {
-            switch (_activeHelpToolTipControl.helpToolTipControlType)
+            ShowSingleTooltip(HelpToolTipControlType.HowToLook);
+        }
+
+        private void OnShowMoveTooltip()
+        {
+            ShowSingleTooltip(HelpToolTipControlType.HowToMove);
+        }
+
+        private void OnShowInputTooltip()
+        {
+            ShowSingleTooltip(HelpToolTipControlType.InputPressed);
+        }
+
+        private void OnShowSpecificTooltip(HelpToolTipControlType tooltipType)
+        {
+            ShowSingleTooltip(tooltipType);
+        }
+
+        private void OnStopAllTooltips()
+        {
+            StopAllTooltips();
+        }
+
+        public void ShowSingleTooltip(HelpToolTipControlType tooltipType)
+        {
+            if (!_tooltipsByType.ContainsKey(tooltipType) || !_servicesByType.ContainsKey(tooltipType))
             {
-                case HelpToolTipControlType.HowToLook:
-                    _currentHelpToolTipService = _helpToolTipLookService;
-                    break;
-                case HelpToolTipControlType.HowToMove:
-                    _currentHelpToolTipService = _helpToolTipMoveService;
-                    break;
-                case HelpToolTipControlType.InputPressed:
-                    _currentHelpToolTipService = _helpToolTipInputPressedService;
-                    break;
+                Debug.LogWarning($"Tooltip type {tooltipType} not found or not properly initialized.");
+                return;
+            }
+
+            StopAllTooltipsNow(); // Stop any current tooltips
+            
+            _isShowingSingleTooltip = true;
+            _isShowingSequentialTooltips = false;
+            
+            _activeHelpToolTipControl = _tooltipsByType[tooltipType];
+            _currentHelpToolTipService = _servicesByType[tooltipType];
+            
+            SetupTooltipDisplay();
+            showToolTip = true;
+            StartTooltipService();
+        }
+
+        public void ShowAllTooltipsSequentially()
+        {
+            StopAllTooltipsNow();
+            
+            _isShowingSequentialTooltips = true;
+            _isShowingSingleTooltip = false;
+            
+            // Populate queue with all tooltips
+            _tooltipQueue.Clear();
+            foreach (var tooltip in helpToolTipControls)
+            {
+                _tooltipQueue.Enqueue(tooltip);
+            }
+            
+            if (_tooltipQueue.Count > 0)
+            {
+                showToolTip = true;
+                SetUpNextHelpToolTip();
+            }
+        }
+
+        private void SetupTooltipDisplay()
+        {
+            if (_activeHelpToolTipControl == null) return;
+            
+            _helpToolTipSlider.value = 0f;
+            _currentText = _activeHelpToolTipControl.helpingMessage;
+            _helpToolTipText.text = _currentText;
+            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+        }
+
+        private void StartTooltipService()
+        {
+            if (_activeHelpToolTipControl != null)
+            {
+                _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
             }
         }
 
         private void SetUpNextHelpToolTip()
         {
-            if (helpToolTipControls.Count == 0)
+            if (!_isShowingSequentialTooltips || _tooltipQueue.Count == 0)
             {
-                _activeHelpToolTipControl = null;
-                _toolTipServiceTimerCooldown.StopTimer();
-                _toolTipSuccessTimerCooldown.StopTimer();
-                gameObject.SetActive(false);
+                StopAllTooltipsNow();
                 return;
             }
             
-            _activeHelpToolTipControl = helpToolTipControls.First();
-            helpToolTipControls.RemoveAt(0);
-            
-            _helpToolTipSlider.value = 0f;
-            
-            _currentText = _activeHelpToolTipControl.helpingMessage;
-            _helpToolTipText.text = _currentText;
-            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
-            
+            _activeHelpToolTipControl = _tooltipQueue.Dequeue();
+            SetupTooltipDisplay();
             UpdateHelpToolTipCurrentService();
-            
             StartTransition();
         }
         
         private void SetUpNextHelpToolTipWithoutTransition()
         {
-            if (helpToolTipControls.Count == 0)
+            if (!_isShowingSequentialTooltips || _tooltipQueue.Count == 0)
             {
-                _activeHelpToolTipControl = null;
-                _toolTipServiceTimerCooldown.StopTimer();
-                _toolTipSuccessTimerCooldown.StopTimer();
-                gameObject.SetActive(false);
+                StopAllTooltipsNow();
                 return;
             }
             
-            _activeHelpToolTipControl = helpToolTipControls.First();
-            helpToolTipControls.RemoveAt(0);
-            
-            _helpToolTipSlider.value = 0f;
-            
-            _currentText = _activeHelpToolTipControl.helpingMessage;
-            _helpToolTipText.text = _currentText;
-            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
-            
+            _activeHelpToolTipControl = _tooltipQueue.Dequeue();
+            SetupTooltipDisplay();
             UpdateHelpToolTipCurrentService();
+            StartTooltipService();
         }
 
-        private void SetUpService()
+        private void UpdateHelpToolTipCurrentService()
         {
-            switch (_activeHelpToolTipControl.helpToolTipControlType)
+            if (_activeHelpToolTipControl != null && _servicesByType.ContainsKey(_activeHelpToolTipControl.helpToolTipControlType))
             {
-                case HelpToolTipControlType.HowToLook:
-                    break;
-                case HelpToolTipControlType.HowToMove:
-                    break;
-                case HelpToolTipControlType.InputPressed:
-                    break;
+                _currentHelpToolTipService = _servicesByType[_activeHelpToolTipControl.helpToolTipControlType];
             }
         }
-        
+
         private void StartTransition()
         {
-            _toolTipSuccessTimerCooldown.StartTimer(helpSwitchCooldown, ActivateHelpToolTipService);
+            _toolTipSuccessTimerCooldown.StartTimer(helpSwitchCooldown, StartTooltipService);
         }
 
         private void ActivateHelpToolTipService()
         {
             if (_toolTipSuccessTimerCooldown.IsTimerRunning) return;
 
-            _helpToolTipSlider.value += _currentHelpToolTipService.Activate();
-            _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
+            if (_currentHelpToolTipService != null)
+            {
+                _helpToolTipSlider.value += _currentHelpToolTipService.Activate();
+                _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
+            }
+        }
+
+        private void StopCurrentTooltip()
+        {
+            _isShowingSingleTooltip = false;
+            showToolTip = false;
+            _toolTipServiceTimerCooldown.StopTimer();
+            _toolTipSuccessTimerCooldown.StopTimer();
+            _activeHelpToolTipControl = null;
+            _currentHelpToolTipService = null;
+        }
+
+        private void StopAllTooltipsNow()
+        {
+            _isShowingSequentialTooltips = false;
+            _isShowingSingleTooltip = false;
+            _tooltipQueue?.Clear();
+            showToolTip = false;
+            _toolTipServiceTimerCooldown.StopTimer();
+            _toolTipSuccessTimerCooldown.StopTimer();
+            _activeHelpToolTipControl = null;
+            _currentHelpToolTipService = null;
         }
         
         private void Subscribe()
@@ -254,6 +368,13 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme += UpdateAllHelpToolTipSo;
             ToolTipManager.DisableToolTip += DisableToolTip;
+            
+            // Subscribe to manual tooltip events
+            ShowLookTooltipEvent += OnShowLookTooltip;
+            ShowMoveTooltipEvent += OnShowMoveTooltip;
+            ShowInputTooltipEvent += OnShowInputTooltip;
+            ShowSpecificTooltipEvent += OnShowSpecificTooltip;
+            StopAllTooltipsEvent += OnStopAllTooltips;
         }
 
         private void UnSubscribe()
@@ -262,26 +383,43 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateAllHelpToolTipSo;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateAllHelpToolTipSo;
             ToolTipManager.DisableToolTip -= DisableToolTip;
-            _toolTipServiceTimerCooldown.StopTimer();
-            _toolTipSuccessTimerCooldown.StopTimer();
+            
+            // Unsubscribe from manual tooltip events
+            ShowLookTooltipEvent -= OnShowLookTooltip;
+            ShowMoveTooltipEvent -= OnShowMoveTooltip;
+            ShowInputTooltipEvent -= OnShowInputTooltip;
+            ShowSpecificTooltipEvent -= OnShowSpecificTooltip;
+            StopAllTooltipsEvent -= OnStopAllTooltips;
+            
+            _toolTipServiceTimerCooldown?.StopTimer();
+            _toolTipSuccessTimerCooldown?.StopTimer();
+            
+            if (inputToContinue != null)
+            {
+                inputToContinue.performed -= OnContinuePressed;
+                inputToContinue.Disable();
+            }
         }
 
         private void UpdateAllHelpToolTipSo(BroadcastControlsStatus.ControlScheme controlScheme)
         {
-            for (int i = 0; i < helpToolTipControls.Count; i++)
+            // Update all cached tooltips
+            foreach (var tooltip in helpToolTipControls)
             {
-                Sprite newSprite = helpToolTipControlIconSo
-                    .GetIcon(helpToolTipControls[i].helpToolTipControlType, controlScheme);
-                helpToolTipControls[i].UpdateSprite(newSprite);
+                Sprite newSprite = helpToolTipControlIconSo.GetIcon(tooltip.helpToolTipControlType, controlScheme);
+                tooltip.UpdateSprite(newSprite);
             }
             
-            Sprite newActualSprite = helpToolTipControlIconSo
-                .GetIcon(_activeHelpToolTipControl.helpToolTipControlType, controlScheme);
-            _activeHelpToolTipControl.UpdateSprite(newActualSprite);
+            // Update active tooltip if exists
+            if (_activeHelpToolTipControl != null)
+            {
+                Sprite newActualSprite = helpToolTipControlIconSo.GetIcon(_activeHelpToolTipControl.helpToolTipControlType, controlScheme);
+                _activeHelpToolTipControl.UpdateSprite(newActualSprite);
+                _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+            }
             
-            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
-            
-            _helpToolTipInputPressedService.UpdateFromControlScheme(controlScheme);
+            // Update services
+            _helpToolTipInputPressedService?.UpdateFromControlScheme(controlScheme);
             _currentHelpToolTipService?.UpdateFromControlScheme(controlScheme);
             
             _currentControlScheme = controlScheme;
@@ -289,14 +427,74 @@ namespace jeanf.tooltip
         
         private void UpdateAllHelpToolTipSo(bool hmdStatus)
         {
-            if (hmdStatus)
-            {
-                UpdateAllHelpToolTipSo(BroadcastControlsStatus.ControlScheme.XR);
-            }
-            else
-            {
-                UpdateAllHelpToolTipSo(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
-            }
+            var scheme = hmdStatus ? BroadcastControlsStatus.ControlScheme.XR : BroadcastControlsStatus.ControlScheme.KeyboardMouse;
+            UpdateAllHelpToolTipSo(scheme);
+        }
+        public static void TriggerLookTooltip()
+        {
+            ShowLookTooltipEvent?.Invoke();
+        }
+
+        public static void TriggerMoveTooltip()
+        {
+            ShowMoveTooltipEvent?.Invoke();
+        }
+
+        public static void TriggerInputTooltip()
+        {
+            ShowInputTooltipEvent?.Invoke();
+        }
+        public static void TriggerSpecificTooltip(HelpToolTipControlType tooltipType)
+        {
+            ShowSpecificTooltipEvent?.Invoke(tooltipType);
+        }
+
+        public static void StopAllTooltips()
+        {
+            StopAllTooltipsEvent?.Invoke();
         }
     }
+
+    #if UNITY_EDITOR
+    [CustomEditor(typeof(HelpToolTipControls))]
+    public class HelpToolTipControlsEditor : Editor 
+    {
+        public override void OnInspectorGUI() 
+        {
+            var tooltipController = (HelpToolTipControls)target;
+            
+            GUILayout.Label("Individual Tooltip Controls", EditorStyles.boldLabel);
+            GUILayout.BeginHorizontal();
+            if(GUILayout.Button("Show All Sequential", GUILayout.Height(30))) 
+            {
+                tooltipController.ShowAllTooltipsSequentially();
+            }
+            if(GUILayout.Button("Stop All Tooltips", GUILayout.Height(30))) 
+            {
+                HelpToolTipControls.StopAllTooltips();
+            }
+            GUILayout.EndHorizontal();
+            
+            GUILayout.Space(10);
+            GUILayout.Label("Static Event Triggers", EditorStyles.boldLabel);
+            GUILayout.BeginHorizontal();
+            if(GUILayout.Button("Trigger Look Event", GUILayout.Height(25))) 
+            {
+                HelpToolTipControls.TriggerLookTooltip();
+            }
+            if(GUILayout.Button("Trigger Move Event", GUILayout.Height(25))) 
+            {
+                HelpToolTipControls.TriggerMoveTooltip();
+            }
+            if(GUILayout.Button("Trigger Input Event", GUILayout.Height(25))) 
+            {
+                HelpToolTipControls.TriggerInputTooltip();
+            }
+            GUILayout.EndHorizontal();
+            
+            GUILayout.Space(10);
+            DrawDefaultInspector();
+        }
+    }
+    #endif
 }

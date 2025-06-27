@@ -4,7 +4,7 @@ namespace jeanf.tooltip
 {
     public abstract class ToolTip : MonoBehaviour
     {
-        [SerializeField] protected bool showToolTip = true;
+        [SerializeField] protected bool showToolTip = false;
 
         protected void UpdateIsShowingToolTip(bool isShowing)
         {
