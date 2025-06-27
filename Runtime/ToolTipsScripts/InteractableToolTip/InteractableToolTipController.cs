@@ -73,9 +73,11 @@ namespace jeanf.tooltip
             _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
             SetIcon();
 
-            /*_tooltip.transform.localPosition = transform.localPosition;
-            _tooltip.transform.localRotation = transform.localRotation;
-            _tooltip.transform.localScale = transform.localScale;*/
+            _tooltip.transform.localPosition = Vector3.zero;
+            _tooltip.transform.localRotation = Quaternion.Euler(0,0,0);
+            //_tooltip.transform.localPosition = transform.localPosition;
+            //_tooltip.transform.localRotation = transform.localRotation;
+            //_tooltip.transform.localScale = transform.localScale;
         }
 
         #region Setup
