@@ -194,7 +194,8 @@ namespace jeanf.tooltip
             
             var isLooking = false;
             
-            var directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
+            //var directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
+            var directionToObject = (transform.position - _cameraTransform.position).normalized;
 
             _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
