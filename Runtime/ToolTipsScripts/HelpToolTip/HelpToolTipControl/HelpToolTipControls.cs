@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Cysharp.Threading.Tasks;
 using jeanf.universalplayer;
 using TMPro;
 using UnityEditor;
@@ -53,12 +51,21 @@ namespace jeanf.tooltip
         private Dictionary<HelpToolTipControlType, IHelpToolTipService> _servicesByType;
         private Dictionary<HelpToolTipControlType, HelpToolTipControlSo> _tooltipsByType;
         
+        private bool _isInitialized = false;
+        
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
         private void OnDestroy() => UnSubscribe();
         
         private void Awake()
         {
+            InitializeComponents();
+        }
+
+        private void InitializeComponents()
+        {
+            if (_isInitialized) return;
+            
             _cameraTransform = Camera.main?.transform;
             
             _helpToolTipText = GetComponentInChildren<TMP_Text>();
@@ -72,8 +79,13 @@ namespace jeanf.tooltip
             
             InitializeTooltipSystem();
             
-            inputToContinue.Enable();
-            inputToContinue.performed += OnContinuePressed;
+            if (inputToContinue != null)
+            {
+                inputToContinue.Enable();
+                inputToContinue.performed += OnContinuePressed;
+            }
+            
+            _isInitialized = true;
         }
 
         private void InitializeTooltipSystem()
@@ -162,7 +174,7 @@ namespace jeanf.tooltip
             }
             
             // Handle completion
-            if (Mathf.Approximately(_helpToolTipSlider.value, 1)) 
+            if (_helpToolTipSlider != null && Mathf.Approximately(_helpToolTipSlider.value, 1)) 
             {
                 if (_isShowingSequentialTooltips)
                     SetUpNextHelpToolTip();
@@ -187,20 +199,20 @@ namespace jeanf.tooltip
         {
             if (_toolTipSuccessTimerCooldown.IsTimerRunning)
             {
-                helpGameObject.SetActive(false);
-                successGameObject.SetActive(true);
+                helpGameObject?.SetActive(false);
+                successGameObject?.SetActive(true);
             }
             else
             {
-                helpGameObject.SetActive(true);
-                successGameObject.SetActive(false);
+                helpGameObject?.SetActive(true);
+                successGameObject?.SetActive(false);
             }
         }
 
         private void HideHelpToolTip()
         {
-            helpGameObject.SetActive(false);
-            successGameObject.SetActive(false);
+            helpGameObject?.SetActive(false);
+            successGameObject?.SetActive(false);
         }
 
         private void OnShowLookTooltip()
@@ -230,9 +242,19 @@ namespace jeanf.tooltip
 
         public void ShowSingleTooltip(HelpToolTipControlType tooltipType)
         {
+            // Ensure components are initialized
+            InitializeComponents();
+            
             if (!_tooltipsByType.ContainsKey(tooltipType) || !_servicesByType.ContainsKey(tooltipType))
             {
                 Debug.LogWarning($"Tooltip type {tooltipType} not found or not properly initialized.");
+                return;
+            }
+
+            // Check if we're in play mode or if components are properly set up
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("Tooltips can only be shown during play mode.");
                 return;
             }
 
@@ -251,6 +273,15 @@ namespace jeanf.tooltip
 
         public void ShowAllTooltipsSequentially()
         {
+            // Ensure components are initialized
+            InitializeComponents();
+            
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("Tooltips can only be shown during play mode.");
+                return;
+            }
+            
             StopAllTooltipsNow();
             
             _isShowingSequentialTooltips = true;
@@ -274,15 +305,22 @@ namespace jeanf.tooltip
         {
             if (_activeHelpToolTipControl == null) return;
             
-            _helpToolTipSlider.value = 0f;
+            // Add null checks for UI components
+            if (_helpToolTipSlider != null)
+                _helpToolTipSlider.value = 0f;
+                
             _currentText = _activeHelpToolTipControl.helpingMessage;
-            _helpToolTipText.text = _currentText;
-            _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+            
+            if (_helpToolTipText != null)
+                _helpToolTipText.text = _currentText;
+                
+            if (_helpToolTipImage != null)
+                _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
         }
 
         private void StartTooltipService()
         {
-            if (_activeHelpToolTipControl != null)
+            if (_activeHelpToolTipControl != null && _toolTipServiceTimerCooldown != null)
             {
                 _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
             }
@@ -326,14 +364,15 @@ namespace jeanf.tooltip
 
         private void StartTransition()
         {
-            _toolTipSuccessTimerCooldown.StartTimer(helpSwitchCooldown, StartTooltipService);
+            if (_toolTipSuccessTimerCooldown != null)
+                _toolTipSuccessTimerCooldown.StartTimer(helpSwitchCooldown, StartTooltipService);
         }
 
         private void ActivateHelpToolTipService()
         {
-            if (_toolTipSuccessTimerCooldown.IsTimerRunning) return;
+            if (_toolTipSuccessTimerCooldown != null && _toolTipSuccessTimerCooldown.IsTimerRunning) return;
 
-            if (_currentHelpToolTipService != null)
+            if (_currentHelpToolTipService != null && _helpToolTipSlider != null && _activeHelpToolTipControl != null && _toolTipServiceTimerCooldown != null)
             {
                 _helpToolTipSlider.value += _currentHelpToolTipService.Activate();
                 _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
@@ -344,8 +383,8 @@ namespace jeanf.tooltip
         {
             _isShowingSingleTooltip = false;
             showToolTip = false;
-            _toolTipServiceTimerCooldown.StopTimer();
-            _toolTipSuccessTimerCooldown.StopTimer();
+            _toolTipServiceTimerCooldown?.StopTimer();
+            _toolTipSuccessTimerCooldown?.StopTimer();
             _activeHelpToolTipControl = null;
             _currentHelpToolTipService = null;
         }
@@ -356,8 +395,8 @@ namespace jeanf.tooltip
             _isShowingSingleTooltip = false;
             _tooltipQueue?.Clear();
             showToolTip = false;
-            _toolTipServiceTimerCooldown.StopTimer();
-            _toolTipSuccessTimerCooldown.StopTimer();
+            _toolTipServiceTimerCooldown?.StopTimer();
+            _toolTipSuccessTimerCooldown?.StopTimer();
             _activeHelpToolTipControl = null;
             _currentHelpToolTipService = null;
         }
@@ -415,7 +454,8 @@ namespace jeanf.tooltip
             {
                 Sprite newActualSprite = helpToolTipControlIconSo.GetIcon(_activeHelpToolTipControl.helpToolTipControlType, controlScheme);
                 _activeHelpToolTipControl.UpdateSprite(newActualSprite);
-                _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+                if (_helpToolTipImage != null)
+                    _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
             }
             
             // Update services
@@ -430,6 +470,7 @@ namespace jeanf.tooltip
             var scheme = hmdStatus ? BroadcastControlsStatus.ControlScheme.XR : BroadcastControlsStatus.ControlScheme.KeyboardMouse;
             UpdateAllHelpToolTipSo(scheme);
         }
+        
         public static void TriggerLookTooltip()
         {
             ShowLookTooltipEvent?.Invoke();
@@ -444,6 +485,7 @@ namespace jeanf.tooltip
         {
             ShowInputTooltipEvent?.Invoke();
         }
+        
         public static void TriggerSpecificTooltip(HelpToolTipControlType tooltipType)
         {
             ShowSpecificTooltipEvent?.Invoke(tooltipType);
@@ -467,7 +509,10 @@ namespace jeanf.tooltip
             GUILayout.BeginHorizontal();
             if(GUILayout.Button("Show All Sequential", GUILayout.Height(30))) 
             {
-                tooltipController.ShowAllTooltipsSequentially();
+                if (Application.isPlaying)
+                    tooltipController.ShowAllTooltipsSequentially();
+                else
+                    Debug.LogWarning("Tooltips can only be shown during play mode.");
             }
             if(GUILayout.Button("Stop All Tooltips", GUILayout.Height(30))) 
             {
@@ -477,18 +522,33 @@ namespace jeanf.tooltip
             
             GUILayout.Space(10);
             GUILayout.Label("Static Event Triggers", EditorStyles.boldLabel);
+            
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Tooltip triggers only work during play mode.", MessageType.Info);
+            }
+            
             GUILayout.BeginHorizontal();
             if(GUILayout.Button("Trigger Look Event", GUILayout.Height(25))) 
             {
-                HelpToolTipControls.TriggerLookTooltip();
+                if (Application.isPlaying)
+                    HelpToolTipControls.TriggerLookTooltip();
+                else
+                    Debug.LogWarning("Tooltips can only be triggered during play mode.");
             }
             if(GUILayout.Button("Trigger Move Event", GUILayout.Height(25))) 
             {
-                HelpToolTipControls.TriggerMoveTooltip();
+                if (Application.isPlaying)
+                    HelpToolTipControls.TriggerMoveTooltip();
+                else
+                    Debug.LogWarning("Tooltips can only be triggered during play mode.");
             }
             if(GUILayout.Button("Trigger Input Event", GUILayout.Height(25))) 
             {
-                HelpToolTipControls.TriggerInputTooltip();
+                if (Application.isPlaying)
+                    HelpToolTipControls.TriggerInputTooltip();
+                else
+                    Debug.LogWarning("Tooltips can only be triggered during play mode.");
             }
             GUILayout.EndHorizontal();
             
