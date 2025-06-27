@@ -5,6 +5,7 @@ using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace jeanf.tooltip
@@ -16,6 +17,9 @@ namespace jeanf.tooltip
         [SerializeField] private float helpSwitchCooldown = 1.5f;
         [SerializeField] private GameObject helpGameObject;
         [SerializeField] private GameObject successGameObject;
+        [SerializeField] private TMP_Text helpToolTipText;
+        [SerializeField] private Image helpToolTipImage;
+        [SerializeField] private Slider helpToolTipSlider;
         [SerializeField] private HelpToolTipControlIconSo helpToolTipControlIconSo;
         [SerializeField] private BroadcastControlsStatus.ControlScheme startingControlScheme;
         [Header("For testing")]
@@ -30,10 +34,6 @@ namespace jeanf.tooltip
         private Transform _cameraTransform;
         
         private BroadcastControlsStatus.ControlScheme _currentControlScheme;
-        
-        private TMP_Text _helpToolTipText;
-        private Image _helpToolTipImage;
-        private Slider _helpToolTipSlider;
         
         private ToolTipTimer _toolTipServiceTimerCooldown;
         private ToolTipTimer _toolTipSuccessTimerCooldown;
@@ -67,10 +67,6 @@ namespace jeanf.tooltip
             if (_isInitialized) return;
             
             _cameraTransform = Camera.main?.transform;
-            
-            _helpToolTipText = GetComponentInChildren<TMP_Text>();
-            _helpToolTipImage = GetComponentInChildren<Image>();
-            _helpToolTipSlider = GetComponentInChildren<Slider>();
             
             _toolTipServiceTimerCooldown = new ToolTipTimer();
             _toolTipSuccessTimerCooldown = new ToolTipTimer();
@@ -160,6 +156,13 @@ namespace jeanf.tooltip
                 return; 
             }
             
+            // Ensure we have valid components before proceeding
+            if (helpToolTipSlider == null || _activeHelpToolTipControl == null)
+            {
+                Debug.LogWarning("Update: Missing required components for tooltip display");
+                return;
+            }
+            
             ShowHelpToolTip();
             
             // Handle VR skipping
@@ -174,8 +177,9 @@ namespace jeanf.tooltip
             }
             
             // Handle completion
-            if (_helpToolTipSlider != null && Mathf.Approximately(_helpToolTipSlider.value, 1)) 
+            if (Mathf.Approximately(helpToolTipSlider.value, 1)) 
             {
+                Debug.Log("Tooltip completed (slider value = 1)");
                 if (_isShowingSequentialTooltips)
                     SetUpNextHelpToolTip();
                 else
@@ -185,6 +189,12 @@ namespace jeanf.tooltip
             // Update tooltip facing direction
             if (_cameraTransform != null)
                 transform.forward = _cameraTransform.forward;
+                
+            // Debug current slider value
+            if (Time.frameCount % 60 == 0) // Log every 60 frames to avoid spam
+            {
+                Debug.Log($"Current slider value: {helpToolTipSlider.value}, Service active: {_currentHelpToolTipService != null}");
+            }
         }
 
         private void OnContinuePressed(InputAction.CallbackContext context)
@@ -242,7 +252,6 @@ namespace jeanf.tooltip
 
         public void ShowSingleTooltip(HelpToolTipControlType tooltipType)
         {
-            // Ensure components are initialized
             InitializeComponents();
             
             if (!_tooltipsByType.ContainsKey(tooltipType) || !_servicesByType.ContainsKey(tooltipType))
@@ -251,12 +260,19 @@ namespace jeanf.tooltip
                 return;
             }
 
-            // Check if we're in play mode or if components are properly set up
+            if (helpToolTipText == null || helpToolTipImage == null || helpToolTipSlider == null)
+            {
+                Debug.LogError("Cannot show tooltip: UI components are missing. Make sure the tooltip UI is properly set up in the scene.");
+                return;
+            }
+
             if (!Application.isPlaying)
             {
                 Debug.LogWarning("Tooltips can only be shown during play mode.");
                 return;
             }
+
+            Debug.Log($"Showing tooltip for: {tooltipType}");
 
             StopAllTooltipsNow(); // Stop any current tooltips
             
@@ -303,19 +319,46 @@ namespace jeanf.tooltip
 
         private void SetupTooltipDisplay()
         {
-            if (_activeHelpToolTipControl == null) return;
+            if (_activeHelpToolTipControl == null) 
+            {
+                Debug.LogWarning("SetupTooltipDisplay: _activeHelpToolTipControl is null");
+                return;
+            }
             
-            // Add null checks for UI components
-            if (_helpToolTipSlider != null)
-                _helpToolTipSlider.value = 0f;
+            Debug.Log($"Setting up tooltip display for: {_activeHelpToolTipControl.helpToolTipControlType}");
+            
+            // Add null checks for UI components with logging
+            if (helpToolTipSlider != null)
+            {
+                helpToolTipSlider.value = 0f;
+                Debug.Log("Slider value reset to 0");
+            }
+            else
+            {
+                Debug.LogError("SetupTooltipDisplay: _helpToolTipSlider is null!");
+            }
                 
             _currentText = _activeHelpToolTipControl.helpingMessage;
             
-            if (_helpToolTipText != null)
-                _helpToolTipText.text = _currentText;
+            if (helpToolTipText != null)
+            {
+                helpToolTipText.text = _currentText;
+                Debug.Log($"Text set to: {_currentText}");
+            }
+            else
+            {
+                Debug.LogError("SetupTooltipDisplay: _helpToolTipText is null!");
+            }
                 
-            if (_helpToolTipImage != null)
-                _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+            if (helpToolTipImage != null)
+            {
+                helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+                Debug.Log($"Image sprite set: {_activeHelpToolTipControl.HelpingImage?.name ?? "null"}");
+            }
+            else
+            {
+                Debug.LogError("SetupTooltipDisplay: _helpToolTipImage is null!");
+            }
         }
 
         private void StartTooltipService()
@@ -372,9 +415,9 @@ namespace jeanf.tooltip
         {
             if (_toolTipSuccessTimerCooldown != null && _toolTipSuccessTimerCooldown.IsTimerRunning) return;
 
-            if (_currentHelpToolTipService != null && _helpToolTipSlider != null && _activeHelpToolTipControl != null && _toolTipServiceTimerCooldown != null)
+            if (_currentHelpToolTipService != null && helpToolTipSlider != null && _activeHelpToolTipControl != null && _toolTipServiceTimerCooldown != null)
             {
-                _helpToolTipSlider.value += _currentHelpToolTipService.Activate();
+                helpToolTipSlider.value += _currentHelpToolTipService.Activate();
                 _toolTipServiceTimerCooldown.StartTimer(_activeHelpToolTipControl.actionCooldown, ActivateHelpToolTipService);
             }
         }
@@ -454,8 +497,8 @@ namespace jeanf.tooltip
             {
                 Sprite newActualSprite = helpToolTipControlIconSo.GetIcon(_activeHelpToolTipControl.helpToolTipControlType, controlScheme);
                 _activeHelpToolTipControl.UpdateSprite(newActualSprite);
-                if (_helpToolTipImage != null)
-                    _helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
+                if (helpToolTipImage != null)
+                    helpToolTipImage.sprite = _activeHelpToolTipControl.HelpingImage;
             }
             
             // Update services
@@ -505,6 +548,7 @@ namespace jeanf.tooltip
         {
             var tooltipController = (HelpToolTipControls)target;
             
+            EditorGUILayout.Space();
             GUILayout.Label("Individual Tooltip Controls", EditorStyles.boldLabel);
             GUILayout.BeginHorizontal();
             if(GUILayout.Button("Show All Sequential", GUILayout.Height(30))) 
