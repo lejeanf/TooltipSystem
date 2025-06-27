@@ -61,7 +61,7 @@ namespace jeanf.tooltip
             _parent = transform.parent.gameObject;
             
             //_tooltip = Instantiate(tooltipGameObjectPrefab, _parent.transform.parent, false);
-            _tooltip = Instantiate(tooltipGameObjectPrefab, _parent.transform, false);
+            _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
             _tooltip.name = interactableToolTipSettingsSo.tooltipName;
             _interactableToolTip = _tooltip.GetComponent<InteractableToolTip>();
             _interactableToolTip.ArrangeRotation();
