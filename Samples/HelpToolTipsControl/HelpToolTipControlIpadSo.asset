@@ -18,7 +18,7 @@ MonoBehaviour:
   canBeShownMultipleTimes: 0
   timeBeforeShowingAgain: 120
   canBeShownInVR: 1
-  actionRequiredWhenKeyBoard: {fileID: 4546399164687744209, guid: e5da83df3724f954cb715c439839d2cd,
+  actionRequiredWhenKeyBoard: {fileID: -879462523816536454, guid: 110d9016d6486d84697b9d7a66a57d45,
     type: 3}
   actionRequiredWhenGamepad: {fileID: 873782351341311617, guid: 110d9016d6486d84697b9d7a66a57d45,
     type: 3}
