@@ -164,6 +164,28 @@ namespace jeanf.tooltip
                 _isPlayerNear = false;
             }
         }
+
+        public void InstanciateTooltip()
+        {
+            _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
+            _tooltip.name = interactableToolTipSettingsSo.tooltipName;
+            _interactableToolTip = _tooltip.GetComponent<InteractableToolTip>();
+            _interactableToolTip.ArrangeRotation();
+            _interactableToolTip.UpdateDescription(interactableToolTipSettingsSo.description);
+
+            _image = _tooltip.GetComponentsInChildren<Image>().Length > 1 ? _tooltip.GetComponentsInChildren<Image>()[2] : _tooltip.GetComponentsInChildren<Image>()[0];
+            
+            _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
+            SetIcon();
+
+            _tooltip.transform.localPosition = Vector3.zero;
+            _tooltip.transform.localRotation = Quaternion.Euler(0,0,0);
+        }
+
+        public void DestroyInstanciateToolTip()
+        {
+            DestroyImmediate(_tooltip);
+        }
         
         public void ShowToolTip()
         {
