@@ -9,6 +9,7 @@ namespace jeanf.tooltip
     {
         [Header("ToolTip Settings")]
         [SerializeField] private GameObject tooltipGameObjectPrefab;
+        [SerializeField] private GameObject objectToBeViewed;
         [SerializeField] private InteractableToolTipSettingsSo interactableToolTipSettingsSo;
         [SerializeField] private InputIconSo inputIconSo;
         [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
@@ -195,7 +196,8 @@ namespace jeanf.tooltip
             var isLooking = false;
             
             //var directionToObject = (_parent.transform.position - _cameraTransform.position).normalized;
-            var directionToObject = (transform.position - _cameraTransform.position).normalized;
+            //var directionToObject = (transform.position - _cameraTransform.position).normalized;
+            var directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
 
             _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
