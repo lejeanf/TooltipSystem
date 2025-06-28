@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
@@ -49,7 +50,7 @@ namespace jeanf.tooltip
             particleRenderer.material = helpingMaterial;
             _particleSystem.Stop();
             
-            _toolTipTimerManager.StartTimer(timeBeforeShowingInSeconds, ShowHelpToolTip);
+            _toolTipTimerManager.StartTimer(timeBeforeShowingInSeconds, ShowHelpToolTip).Forget();
         }
 
         private void Update()

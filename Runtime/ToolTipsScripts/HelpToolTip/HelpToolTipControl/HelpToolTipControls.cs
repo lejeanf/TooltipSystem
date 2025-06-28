@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using jeanf.universalplayer;
 using LitMotion;
+using LitMotion.Extensions;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -64,11 +65,32 @@ namespace jeanf.tooltip
             _cameraTransform = Camera.main?.transform;
             _currentControlScheme = startingControlScheme;
             _lifetimeCancellation = new CancellationTokenSource();
-            
+
+            if (helpToolTipControlIconSo != null)
+            {
+                var testCombinations = new[]
+                {
+                    (HelpToolTipControlType.HowToLook, BroadcastControlsStatus.ControlScheme.KeyboardMouse),
+                    (HelpToolTipControlType.HowToLook, BroadcastControlsStatus.ControlScheme.Gamepad),
+                    (HelpToolTipControlType.HowToLook, BroadcastControlsStatus.ControlScheme.XR),
+                    (HelpToolTipControlType.HowToMove, BroadcastControlsStatus.ControlScheme.KeyboardMouse),
+                    (HelpToolTipControlType.HowToMove, BroadcastControlsStatus.ControlScheme.Gamepad),
+                    (HelpToolTipControlType.HowToMove, BroadcastControlsStatus.ControlScheme.XR),
+                    (HelpToolTipControlType.InputPressed, BroadcastControlsStatus.ControlScheme.KeyboardMouse),
+                    (HelpToolTipControlType.InputPressed, BroadcastControlsStatus.ControlScheme.Gamepad),
+                    (HelpToolTipControlType.InputPressed, BroadcastControlsStatus.ControlScheme.XR)
+                };
+        
+                foreach (var (controlType, scheme) in testCombinations)
+                {
+                    var sprite = helpToolTipControlIconSo.GetIcon(controlType, scheme);
+                }
+            }
+    
             InitializeServices();
             CacheTooltips();
             InitializeCanvasGroups();
-            
+    
             inputToContinue?.Enable();
         }
 
@@ -159,14 +181,12 @@ namespace jeanf.tooltip
 
         private void InitializeCanvasGroups()
         {
-            // Auto-find CanvasGroups if not assigned
             if (helpCanvasGroup == null && helpGameObject != null)
                 helpCanvasGroup = helpGameObject.GetComponent<CanvasGroup>();
             
             if (successCanvasGroup == null && successGameObject != null)
                 successCanvasGroup = successGameObject.GetComponent<CanvasGroup>();
             
-            // Initialize alpha values
             if (helpCanvasGroup != null)
             {
                 helpCanvasGroup.alpha = 0f;
@@ -186,14 +206,26 @@ namespace jeanf.tooltip
         #region Public API
         public void ShowSingleTooltip(HelpToolTipControlType tooltipType)
         {
-            if (!ValidateTooltipRequest(tooltipType)) return;
-            
+            if (!ValidateTooltipRequest(tooltipType)) 
+            {
+                Debug.LogError("ValidateTooltipRequest failed!");
+                return;
+            }
+    
             StopAllTooltips();
-            
+    
             _isSequentialMode = false;
-            _currentTooltip = _tooltipLookup[tooltipType];
-            _currentService = _services[tooltipType];
-            
+    
+            if (_tooltipLookup.TryGetValue(tooltipType, out var tooltip))
+            {
+                _currentTooltip = tooltip;
+            }
+    
+            if (_services.TryGetValue(tooltipType, out var service))
+            {
+                _currentService = service;
+            }
+
             StartTooltipAsync().Forget();
         }
 
@@ -240,15 +272,39 @@ namespace jeanf.tooltip
         {
             if (helpToolTipSlider != null) helpToolTipSlider.value = 0f;
             if (helpToolTipText != null) helpToolTipText.text = _currentTooltip.helpingMessage;
-            if (helpToolTipImage != null) helpToolTipImage.sprite = _currentTooltip.HelpingImage;
+            
+            if (helpToolTipImage != null && _currentTooltip != null)
+            {
+                // Test the GetIcon method directly
+                if (helpToolTipControlIconSo != null)
+                {
+                    var iconSprite = helpToolTipControlIconSo.GetIcon(_currentTooltip.helpToolTipControlType, _currentControlScheme);
+                    
+                    if (iconSprite != null)
+                    {
+                        helpToolTipImage.sprite = iconSprite;
+                    }
+                    else
+                    {
+                        helpToolTipImage.sprite = _currentTooltip.HelpingImage;
+                    }
+                }
+                else
+                {
+                    helpToolTipImage.sprite = _currentTooltip.HelpingImage;
+                }
+            }
+            else
+            {
+                if (helpToolTipImage == null) Debug.LogError("helpToolTipImage is null!");
+                if (_currentTooltip == null) Debug.LogError("_currentTooltip is null!");
+            }
         }
 
         private async UniTask RunTooltipProgressAsync(CancellationToken cancellationToken)
         {
-            // Wait for initial cooldown
             await UniTask.Delay(TimeSpan.FromSeconds(_currentTooltip.actionCooldown), cancellationToken: cancellationToken);
             
-            // Progress the tooltip
             while (_currentTooltip != null && helpToolTipSlider != null && helpToolTipSlider.value < 1f)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -277,13 +333,10 @@ namespace jeanf.tooltip
             
             try
             {
-                // Cross-fade to success state
                 await CrossFadeToSuccessAsync(_transitionCancellation.Token);
                 
-                // Wait for success display duration
                 await UniTask.Delay(TimeSpan.FromSeconds(helpSwitchCooldown), cancellationToken: _transitionCancellation.Token);
                 
-                // Fade out completely
                 await FadeOutAllAsync(_transitionCancellation.Token);
                 
                 StopCurrentTooltip();
@@ -301,13 +354,10 @@ namespace jeanf.tooltip
             
             try
             {
-                // Cross-fade to success state
                 await CrossFadeToSuccessAsync(_transitionCancellation.Token);
                 
-                // Wait for transition cooldown
                 await UniTask.Delay(TimeSpan.FromSeconds(helpSwitchCooldown), cancellationToken: _transitionCancellation.Token);
                 
-                // Continue to next tooltip
                 await ShowNextTooltipAsync();
             }
             catch (OperationCanceledException)
@@ -349,7 +399,6 @@ namespace jeanf.tooltip
         {
             if (_isTransitioningVisibility) return;
             
-            // Only fade in if we're not currently visible and should be showing
             if (!_isCurrentlyVisible && showToolTip)
             {
                 await FadeInHelpAsync(_lifetimeCancellation.Token);
@@ -360,7 +409,6 @@ namespace jeanf.tooltip
         {
             if (_isTransitioningVisibility) return;
             
-            // Only fade out if we're currently visible and shouldn't be showing
             if (_isCurrentlyVisible && !showToolTip)
             {
                 await FadeOutAllAsync(_lifetimeCancellation.Token);
@@ -377,11 +425,9 @@ namespace jeanf.tooltip
             
             try
             {
-                // Ensure GameObjects are active before fading
                 helpGameObject?.SetActive(true);
                 successGameObject?.SetActive(false);
                 
-                // Make sure success is hidden
                 if (successCanvasGroup != null)
                 {
                     successCanvasGroup.alpha = 0f;
@@ -389,10 +435,9 @@ namespace jeanf.tooltip
                     successCanvasGroup.blocksRaycasts = false;
                 }
                 
-                // Fade in help using LitMotion
                 await LMotion.Create(helpCanvasGroup.alpha, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .Bind(alpha => helpCanvasGroup.alpha = alpha)
+                    .BindToCanvasGroupAlpha(helpCanvasGroup)
                     .ToUniTask(cancellationToken);
                 
                 helpCanvasGroup.interactable = true;
@@ -418,46 +463,38 @@ namespace jeanf.tooltip
             
             try
             {
-                // Ensure both GameObjects are active for cross-fade
                 helpGameObject?.SetActive(true);
                 successGameObject?.SetActive(true);
                 
-                // Prepare success canvas group
                 successCanvasGroup.alpha = 0f;
                 successCanvasGroup.interactable = false;
                 successCanvasGroup.blocksRaycasts = false;
                 
-                // Disable help interactions immediately
                 if (helpCanvasGroup != null)
                 {
                     helpCanvasGroup.interactable = false;
                     helpCanvasGroup.blocksRaycasts = false;
                 }
                 
-                // Create cross-fade animation using LitMotion
                 var crossFadeTasks = new List<UniTask>();
                 
-                // Fade out help (if visible)
                 if (helpCanvasGroup != null && helpCanvasGroup.alpha > 0)
                 {
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
+                        .BindToCanvasGroupAlpha(helpCanvasGroup);
                     
                     crossFadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
                 
-                // Fade in success
                 var successFadeIn = LMotion.Create(0f, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .Bind(alpha => helpCanvasGroup.alpha = alpha);
+                    .BindToCanvasGroupAlpha(successCanvasGroup);
                 
                 crossFadeTasks.Add(successFadeIn.ToUniTask(cancellationToken));
                 
-                // Wait for all animations to complete
                 await UniTask.WhenAll(crossFadeTasks);
                 
-                // Clean up after animation
                 helpGameObject?.SetActive(false);
                 
                 successCanvasGroup.interactable = true;
@@ -483,11 +520,9 @@ namespace jeanf.tooltip
             
             try
             {
-                // Ensure GameObjects are active
                 helpGameObject?.SetActive(false);
                 successGameObject?.SetActive(true);
                 
-                // Fade out help if it's visible
                 if (helpCanvasGroup != null && helpCanvasGroup.alpha > 0)
                 {
                     helpCanvasGroup.interactable = false;
@@ -495,14 +530,13 @@ namespace jeanf.tooltip
                     
                     await LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .Bind(alpha => helpCanvasGroup.alpha = alpha)
+                        .BindToCanvasGroupAlpha(helpCanvasGroup)
                         .ToUniTask(cancellationToken);
                 }
                 
-                // Fade in success
                 await LMotion.Create(successCanvasGroup.alpha, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .Bind(alpha => helpCanvasGroup.alpha = alpha)
+                    .BindToCanvasGroupAlpha(successCanvasGroup)
                     .ToUniTask(cancellationToken);
                 
                 successCanvasGroup.interactable = true;
@@ -537,7 +571,7 @@ namespace jeanf.tooltip
                     
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
+                        .BindToCanvasGroupAlpha(helpCanvasGroup);
                     
                     fadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
@@ -549,7 +583,7 @@ namespace jeanf.tooltip
                     
                     var successFadeOut = LMotion.Create(successCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
+                        .BindToCanvasGroupAlpha(successCanvasGroup);
                     
                     fadeTasks.Add(successFadeOut.ToUniTask(cancellationToken));
                 }
@@ -557,7 +591,6 @@ namespace jeanf.tooltip
                 if (fadeTasks.Count > 0)
                     await UniTask.WhenAll(fadeTasks);
                 
-                // Deactivate GameObjects after fade
                 helpGameObject?.SetActive(false);
                 successGameObject?.SetActive(false);
                 
@@ -656,22 +689,49 @@ namespace jeanf.tooltip
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
         {
             _currentControlScheme = controlScheme;
-            
+    
+            // Safety check
+            if (helpToolTipControlIconSo == null)
+            {
+                Debug.LogError("HelpToolTipControlIconSo is not assigned!");
+                return;
+            }
+    
             // Update all tooltip sprites
             foreach (var tooltip in helpToolTipControls)
             {
+                if (tooltip == null) continue;
+        
                 var newSprite = helpToolTipControlIconSo.GetIcon(tooltip.helpToolTipControlType, controlScheme);
-                tooltip.UpdateSprite(newSprite);
+                if (newSprite != null)
+                {
+                    tooltip.UpdateSprite(newSprite);
+                }
+                else
+                {
+                    Debug.LogWarning($"No sprite found for {tooltip.helpToolTipControlType} with control scheme {controlScheme}");
+                }
             }
-            
+    
             // Update current tooltip display
             if (_currentTooltip != null && helpToolTipImage != null)
             {
                 var newSprite = helpToolTipControlIconSo.GetIcon(_currentTooltip.helpToolTipControlType, controlScheme);
-                _currentTooltip.UpdateSprite(newSprite);
-                helpToolTipImage.sprite = _currentTooltip.HelpingImage;
-            }
+                if (newSprite != null)
+                {
+                    _currentTooltip.UpdateSprite(newSprite);
+                    helpToolTipImage.sprite = _currentTooltip.HelpingImage;
             
+                    // Force refresh the image component
+                    helpToolTipImage.enabled = false;
+                    helpToolTipImage.enabled = true;
+                }
+                else
+                {
+                    Debug.LogWarning($"No sprite found for current tooltip {_currentTooltip.helpToolTipControlType} with control scheme {controlScheme}");
+                }
+            }
+    
             // Update services
             foreach (var service in _services.Values)
                 service?.UpdateFromControlScheme(controlScheme);

@@ -114,7 +114,7 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 0}
+  m_TargetGraphic: {fileID: 8411785231972911070}
   m_FillRect: {fileID: 141706375105241088}
   m_HandleRect: {fileID: 0}
   m_Direction: 0
@@ -135,6 +135,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5626356009218835000}
   - component: {fileID: 8436195851531603555}
+  - component: {fileID: 3884054206988695580}
   - component: {fileID: 4713251361886342080}
   m_Layer: 0
   m_Name: SuccessGameObject
@@ -159,7 +160,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 90.399994, y: 500}
+  m_AnchoredPosition: {x: 0, y: 500}
   m_SizeDelta: {x: 250, y: 250}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8436195851531603555
@@ -170,6 +171,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3539096212235990325}
   m_CullTransparentMesh: 1
+--- !u!225 &3884054206988695580
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3539096212235990325}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 0
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!114 &4713251361886342080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -420,6 +433,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7508653026165574698}
+  - component: {fileID: 6586887174669452828}
   m_Layer: 0
   m_Name: HelpGameObject
   m_TagString: Untagged
@@ -449,6 +463,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &6586887174669452828
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4948646899419296847}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 0
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!1 &5399759756761803156
 GameObject:
   m_ObjectHideFlags: 0
@@ -514,7 +540,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 81bdf8a2d5635c8418bc8d4a7e1ea449, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -653,58 +679,10 @@ MonoBehaviour:
       m_Action: Input To Continue
       m_Flags: 0
     m_Flags: 0
-  helpCanvasGroup: {fileID: 0}
-  successCanvasGroup: {fileID: 0}
+  helpCanvasGroup: {fileID: 6586887174669452828}
+  successCanvasGroup: {fileID: 3884054206988695580}
   fadeInDuration: 0.3
   fadeOutDuration: 0.2
-  fadeInCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  fadeOutCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!1 &8985171380057169926
 GameObject:
   m_ObjectHideFlags: 0
