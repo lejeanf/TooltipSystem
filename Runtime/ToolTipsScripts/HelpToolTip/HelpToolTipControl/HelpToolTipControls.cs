@@ -4,7 +4,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using jeanf.universalplayer;
 using LitMotion;
-using LitMotion.Extensions;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -393,7 +392,7 @@ namespace jeanf.tooltip
                 // Fade in help using LitMotion
                 await LMotion.Create(helpCanvasGroup.alpha, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .BindToCanvasGroupAlpha(helpCanvasGroup)
+                    .Bind(alpha => helpCanvasGroup.alpha = alpha)
                     .ToUniTask(cancellationToken);
                 
                 helpCanvasGroup.interactable = true;
@@ -443,7 +442,7 @@ namespace jeanf.tooltip
                 {
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .BindToCanvasGroupAlpha(helpCanvasGroup);
+                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
                     
                     crossFadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
@@ -451,7 +450,7 @@ namespace jeanf.tooltip
                 // Fade in success
                 var successFadeIn = LMotion.Create(0f, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .BindToCanvasGroupAlpha(successCanvasGroup);
+                    .Bind(alpha => helpCanvasGroup.alpha = alpha);
                 
                 crossFadeTasks.Add(successFadeIn.ToUniTask(cancellationToken));
                 
@@ -496,14 +495,14 @@ namespace jeanf.tooltip
                     
                     await LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .BindToCanvasGroupAlpha(helpCanvasGroup)
+                        .Bind(alpha => helpCanvasGroup.alpha = alpha)
                         .ToUniTask(cancellationToken);
                 }
                 
                 // Fade in success
                 await LMotion.Create(successCanvasGroup.alpha, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .BindToCanvasGroupAlpha(successCanvasGroup)
+                    .Bind(alpha => helpCanvasGroup.alpha = alpha)
                     .ToUniTask(cancellationToken);
                 
                 successCanvasGroup.interactable = true;
@@ -538,7 +537,7 @@ namespace jeanf.tooltip
                     
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .BindToCanvasGroupAlpha(helpCanvasGroup);
+                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
                     
                     fadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
@@ -550,7 +549,7 @@ namespace jeanf.tooltip
                     
                     var successFadeOut = LMotion.Create(successCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .BindToCanvasGroupAlpha(successCanvasGroup);
+                        .Bind(alpha => helpCanvasGroup.alpha = alpha);
                     
                     fadeTasks.Add(successFadeOut.ToUniTask(cancellationToken));
                 }
