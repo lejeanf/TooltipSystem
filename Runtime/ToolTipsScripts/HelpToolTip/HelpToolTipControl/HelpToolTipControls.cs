@@ -25,6 +25,9 @@ namespace jeanf.tooltip
         [SerializeField] private BroadcastControlsStatus.ControlScheme startingControlScheme;
         [SerializeField] private InputAction inputToContinue;
         
+        [Header("Tooltip Behavior")]
+        [SerializeField] private bool isPermanentTooltip = true; // True for permanent markers, false for punctual help
+        
         [Header("Fade Settings")]
         [SerializeField] private CanvasGroup helpCanvasGroup;
         [SerializeField] private CanvasGroup successCanvasGroup;
@@ -46,7 +49,6 @@ namespace jeanf.tooltip
         private Queue<HelpToolTipControlSo> _tooltipQueue = new Queue<HelpToolTipControlSo>();
         private bool _isSequentialMode;
         
-        // NEW: Track completion state and iPad interruption
         private bool _wasInterruptedByIpad;
         private bool _currentTooltipCompleted;
         private bool _tooltipWasShowingBeforeIpad;
@@ -117,12 +119,41 @@ namespace jeanf.tooltip
 
         private void Update()
         {
-            // NEW: Handle iPad interruption logic
+            // Handle different behavior for permanent vs punctual tooltips
+            if (isPermanentTooltip)
+            {
+                HandlePermanentTooltipUpdate();
+            }
+            else
+            {
+                HandlePunctualTooltipUpdate();
+            }
+            
+            // Common behavior for all tooltips
+            HandleCommonTooltipUpdate();
+        }
+        
+        private void HandlePermanentTooltipUpdate()
+        {
+            // For permanent tooltips, always show if conditions are met (unless explicitly disabled)
+            // The showToolTip flag is controlled by the tooltip's internal logic, not by iPad state
+            if (!showToolTip)
+            {
+                if (_isCurrentlyVisible)
+                    HideTooltipAsync().Forget();
+                return;
+            }
+
+            if (!_isCurrentlyVisible)
+                ShowTooltipAsync().Forget();
+        }
+        
+        private void HandlePunctualTooltipUpdate()
+        {
             if (!showToolTip)
             {
                 if (_isCurrentlyVisible) // Only hide if currently visible
                 {
-                    // Track if tooltip was showing when iPad was opened
                     if (!_wasInterruptedByIpad && _currentTooltip != null && !_currentTooltipCompleted)
                     {
                         _wasInterruptedByIpad = true;
@@ -133,7 +164,6 @@ namespace jeanf.tooltip
                 return;
             }
 
-            // NEW: Check if we should resume after iPad interruption
             if (_wasInterruptedByIpad && _tooltipWasShowingBeforeIpad && !_currentTooltipCompleted)
             {
                 // Resume the tooltip since the action wasn't completed
@@ -150,7 +180,10 @@ namespace jeanf.tooltip
 
             if (!_isCurrentlyVisible) // Only show if not currently visible
                 ShowTooltipAsync().Forget();
-    
+        }
+        
+        private void HandleCommonTooltipUpdate()
+        {
             // Face camera
             if (_cameraTransform != null)
                 transform.forward = _cameraTransform.forward;
@@ -249,7 +282,6 @@ namespace jeanf.tooltip
             if (_tooltipLookup.TryGetValue(tooltipType, out var tooltip))
             {
                 _currentTooltip = tooltip;
-                // NEW: Reset completion state for new tooltip
                 _currentTooltipCompleted = false;
                 _wasInterruptedByIpad = false;
                 _tooltipWasShowingBeforeIpad = false;
@@ -354,7 +386,6 @@ namespace jeanf.tooltip
 
         private void OnTooltipCompleted()
         {
-            // NEW: Mark tooltip as completed
             _currentTooltipCompleted = true;
             
             if (_isSequentialMode)
@@ -412,7 +443,6 @@ namespace jeanf.tooltip
             }
             
             _currentTooltip = _tooltipQueue.Dequeue();
-            // NEW: Reset completion state for next tooltip
             _currentTooltipCompleted = false;
             _wasInterruptedByIpad = false;
             _tooltipWasShowingBeforeIpad = false;
@@ -748,10 +778,38 @@ namespace jeanf.tooltip
         #endregion
 
         #region Public API for Manager
+        /// <summary>
+        /// Check if tooltips are currently being shown
+        /// </summary>
         public bool IsShowingTooltip => showToolTip;
+        
+        /// <summary>
+        /// Check if this is a permanent tooltip (interaction marker) or punctual help
+        /// </summary>
+        public bool IsPermanentTooltip => isPermanentTooltip;
+        
+        /// <summary>
+        /// Check if this tooltip controller has an incomplete tooltip that should resume after iPad interruption
+        /// </summary>
         public bool HasIncompleteTooltip()
         {
             return _currentTooltip != null && !_currentTooltipCompleted && _wasInterruptedByIpad;
+        }
+        
+        public void CheckAndUpdateTooltipVisibility()
+        {
+            if (!isPermanentTooltip) return;
+            
+        }
+        
+        public void ResumeTooltipAfterInterruption()
+        {
+            if (isPermanentTooltip) return;
+            if (!HasIncompleteTooltip()) return;
+            
+            showToolTip = true;
+            _wasInterruptedByIpad = false;
+            _tooltipWasShowingBeforeIpad = false;
         }
         #endregion
 
