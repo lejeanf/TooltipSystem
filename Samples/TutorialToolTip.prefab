@@ -159,8 +159,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 90.399994, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 90.399994, y: 500}
+  m_SizeDelta: {x: 250, y: 250}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8436195851531603555
 CanvasRenderer:
@@ -630,6 +630,9 @@ MonoBehaviour:
   helpSwitchCooldown: 0.75
   helpGameObject: {fileID: 4948646899419296847}
   successGameObject: {fileID: 3539096212235990325}
+  helpToolTipText: {fileID: 4940525672720013630}
+  helpToolTipImage: {fileID: 8022771472621239827}
+  helpToolTipSlider: {fileID: 4916397774308519274}
   helpToolTipControlIconSo: {fileID: 11400000, guid: 6391ef2d29f592b4bbef8af9a252c9a7,
     type: 2}
   startingControlScheme: 0
@@ -650,6 +653,58 @@ MonoBehaviour:
       m_Action: Input To Continue
       m_Flags: 0
     m_Flags: 0
+  helpCanvasGroup: {fileID: 0}
+  successCanvasGroup: {fileID: 0}
+  fadeInDuration: 0.3
+  fadeOutDuration: 0.2
+  fadeInCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  fadeOutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &8985171380057169926
 GameObject:
   m_ObjectHideFlags: 0
