@@ -8,7 +8,7 @@ namespace jeanf.tooltip
     public class InteractableToolTipController : ToolTip
     {
         [Header("Tooltip Behavior")]
-        [SerializeField] private bool isPermanentTooltip = true; // True for permanent markers, false for punctual help
+        [SerializeField] private bool isPermanentTooltip = true;
         
         [Header("Debug")]
         [SerializeField] private bool bypassPermissionSystem = false;
@@ -47,10 +47,9 @@ namespace jeanf.tooltip
         private bool _isToolTipDisplayed;
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
         
-        // NEW: iPad interruption tracking for punctual tooltips
         private bool _wasInterruptedByIpad;
         private bool _tooltipWasShowingBeforeIpad;
-        private bool _wasDisplayedBeforeInterruption;
+        private bool _ipadIsShowing = false;
 
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
@@ -179,17 +178,16 @@ namespace jeanf.tooltip
         
         private void HandlePermanentTooltipUpdate()
         {
-            if (!showToolTip || !isPlayerInZone) 
+            bool effectiveShowToolTip = isPermanentTooltip ? _originalShowToolTipState : showToolTip;
+            
+            if (!effectiveShowToolTip || !isPlayerInZone) 
             { 
-                if (!showToolTip) Debug.Log("showToolTip is false");
-                if (!isPlayerInZone) Debug.Log($"Player not in zone. Current zone check: {isPlayerInZone}");
                 HideToolTipWithoutAnimation(); 
                 return; 
             }
             
             if (!_isPlayerNear)
             {
-                Debug.Log("Player not near tooltip");
                 if (_isToolTipDisplayed)
                 {
                     WarnHideToolTip?.Invoke(this);
@@ -199,14 +197,8 @@ namespace jeanf.tooltip
                 return;
             }
             
-            bool isLooking = CheckIfPlayerIsLooking();
-            bool hasPermission = RequestPermissionToShowToolTip();
-            
-            Debug.Log($"Player looking: {isLooking}, Dot: {_playerLookingDirectionDot}, Permission: {hasPermission}");
-            
-            if (isLooking && hasPermission)
+            if (CheckIfPlayerIsLooking() && RequestPermissionToShowToolTip())
             {
-                Debug.Log("Showing tooltip");
                 ShowToolTip();
             }
             else
@@ -281,6 +273,16 @@ namespace jeanf.tooltip
             ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
             ToolTipManager.DisableToolTip += DisableToolTip;
             WorldManager.PublishCurrentZoneId += CheckIfPlayerInZone;
+        }
+        
+        private new void UpdateIsShowingToolTip(bool isShowing)
+        {
+            _ipadIsShowing = !isShowing;
+            
+            if (!isPermanentTooltip)
+            {
+                showToolTip = isShowing;
+            }
         }
 
         private void UnSubscribe()
