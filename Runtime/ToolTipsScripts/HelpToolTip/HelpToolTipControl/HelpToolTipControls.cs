@@ -617,7 +617,6 @@ namespace jeanf.tooltip
             _currentTooltip = null;
             _currentService = null;
             
-            // NEW: Reset iPad interruption state when stopping tooltip
             _wasInterruptedByIpad = false;
             _tooltipWasShowingBeforeIpad = false;
         }
@@ -745,6 +744,14 @@ namespace jeanf.tooltip
         {
             var scheme = hmdStatus ? BroadcastControlsStatus.ControlScheme.XR : BroadcastControlsStatus.ControlScheme.KeyboardMouse;
             UpdateControlScheme(scheme);
+        }
+        #endregion
+
+        #region Public API for Manager
+        public bool IsShowingTooltip => showToolTip;
+        public bool HasIncompleteTooltip()
+        {
+            return _currentTooltip != null && !_currentTooltipCompleted && _wasInterruptedByIpad;
         }
         #endregion
 
