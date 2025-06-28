@@ -178,9 +178,7 @@ namespace jeanf.tooltip
         
         private void HandlePermanentTooltipUpdate()
         {
-            bool effectiveShowToolTip = isPermanentTooltip ? _originalShowToolTipState : showToolTip;
-            
-            if (!effectiveShowToolTip || !isPlayerInZone) 
+            if (_ipadIsShowing || !isPlayerInZone) 
             { 
                 HideToolTipWithoutAnimation(); 
                 return; 
@@ -220,7 +218,6 @@ namespace jeanf.tooltip
                 {
                     _wasInterruptedByIpad = true;
                     _tooltipWasShowingBeforeIpad = true;
-                    _wasDisplayedBeforeInterruption = true;
                 }
                 
                 HideToolTipWithoutAnimation();
@@ -231,7 +228,6 @@ namespace jeanf.tooltip
             {
                 _wasInterruptedByIpad = false;
                 _tooltipWasShowingBeforeIpad = false;
-                _wasDisplayedBeforeInterruption = false;
             }
             
             if (!isPlayerInZone) 
