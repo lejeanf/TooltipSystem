@@ -46,6 +46,11 @@ namespace jeanf.tooltip
         private Queue<HelpToolTipControlSo> _tooltipQueue = new Queue<HelpToolTipControlSo>();
         private bool _isSequentialMode;
         
+        // NEW: Track completion state and iPad interruption
+        private bool _wasInterruptedByIpad;
+        private bool _currentTooltipCompleted;
+        private bool _tooltipWasShowingBeforeIpad;
+        
         // Services cache
         private Dictionary<HelpToolTipControlType, IHelpToolTipService> _services = new Dictionary<HelpToolTipControlType, IHelpToolTipService>();
         private Dictionary<HelpToolTipControlType, HelpToolTipControlSo> _tooltipLookup = new Dictionary<HelpToolTipControlType, HelpToolTipControlSo>();
@@ -112,10 +117,34 @@ namespace jeanf.tooltip
 
         private void Update()
         {
+            // NEW: Handle iPad interruption logic
             if (!showToolTip)
             {
                 if (_isCurrentlyVisible) // Only hide if currently visible
+                {
+                    // Track if tooltip was showing when iPad was opened
+                    if (!_wasInterruptedByIpad && _currentTooltip != null && !_currentTooltipCompleted)
+                    {
+                        _wasInterruptedByIpad = true;
+                        _tooltipWasShowingBeforeIpad = true;
+                    }
                     HideTooltipAsync().Forget();
+                }
+                return;
+            }
+
+            // NEW: Check if we should resume after iPad interruption
+            if (_wasInterruptedByIpad && _tooltipWasShowingBeforeIpad && !_currentTooltipCompleted)
+            {
+                // Resume the tooltip since the action wasn't completed
+                _wasInterruptedByIpad = false;
+                _tooltipWasShowingBeforeIpad = false;
+            }
+            else if (_wasInterruptedByIpad && _currentTooltipCompleted)
+            {
+                // Don't resume if the action was already completed
+                _wasInterruptedByIpad = false;
+                _tooltipWasShowingBeforeIpad = false;
                 return;
             }
 
@@ -220,6 +249,10 @@ namespace jeanf.tooltip
             if (_tooltipLookup.TryGetValue(tooltipType, out var tooltip))
             {
                 _currentTooltip = tooltip;
+                // NEW: Reset completion state for new tooltip
+                _currentTooltipCompleted = false;
+                _wasInterruptedByIpad = false;
+                _tooltipWasShowingBeforeIpad = false;
             }
     
             if (_services.TryGetValue(tooltipType, out var service))
@@ -321,6 +354,9 @@ namespace jeanf.tooltip
 
         private void OnTooltipCompleted()
         {
+            // NEW: Mark tooltip as completed
+            _currentTooltipCompleted = true;
+            
             if (_isSequentialMode)
                 StartTransitionAsync().Forget();
             else
@@ -376,6 +412,10 @@ namespace jeanf.tooltip
             }
             
             _currentTooltip = _tooltipQueue.Dequeue();
+            // NEW: Reset completion state for next tooltip
+            _currentTooltipCompleted = false;
+            _wasInterruptedByIpad = false;
+            _tooltipWasShowingBeforeIpad = false;
             
             if (_services.TryGetValue(_currentTooltip.helpToolTipControlType, out var service))
             {
@@ -576,6 +616,10 @@ namespace jeanf.tooltip
             showToolTip = false;
             _currentTooltip = null;
             _currentService = null;
+            
+            // NEW: Reset iPad interruption state when stopping tooltip
+            _wasInterruptedByIpad = false;
+            _tooltipWasShowingBeforeIpad = false;
         }
 
         private void StopAllTooltips()
