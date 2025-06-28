@@ -114,16 +114,18 @@ namespace jeanf.tooltip
         {
             if (!showToolTip)
             {
-                HideTooltipAsync().Forget();
+                if (_isCurrentlyVisible) // Only hide if currently visible
+                    HideTooltipAsync().Forget();
                 return;
             }
 
-            ShowTooltipAsync().Forget();
-            
+            if (!_isCurrentlyVisible) // Only show if not currently visible
+                ShowTooltipAsync().Forget();
+    
             // Face camera
             if (_cameraTransform != null)
                 transform.forward = _cameraTransform.forward;
-            
+    
             // Handle VR skipping
             if (_currentControlScheme == BroadcastControlsStatus.ControlScheme.XR 
                 && _currentTooltip != null 
@@ -457,48 +459,48 @@ namespace jeanf.tooltip
         private async UniTask CrossFadeToSuccessAsync(CancellationToken cancellationToken)
         {
             if (successCanvasGroup == null || _isTransitioningVisibility) return;
-            
+    
             _isTransitioningVisibility = true;
-            
+    
             try
             {
                 helpGameObject?.SetActive(true);
                 successGameObject?.SetActive(true);
-                
+        
                 successCanvasGroup.alpha = 0f;
                 successCanvasGroup.interactable = false;
                 successCanvasGroup.blocksRaycasts = false;
-                
+        
                 if (helpCanvasGroup != null)
                 {
                     helpCanvasGroup.interactable = false;
                     helpCanvasGroup.blocksRaycasts = false;
                 }
-                
+        
                 var crossFadeTasks = new List<UniTask>();
-                
+        
                 if (helpCanvasGroup != null && helpCanvasGroup.alpha > 0)
                 {
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
                         .Bind(value => helpCanvasGroup.alpha = value);
-                    
+            
                     crossFadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
-                
+        
                 var successFadeIn = LMotion.Create(0f, 1f, fadeInDuration)
                     .WithEase(Ease.OutQuad)
-                    .Bind(value => helpCanvasGroup.alpha = value);;
-                
+                    .Bind(value => successCanvasGroup.alpha = value);
+        
                 crossFadeTasks.Add(successFadeIn.ToUniTask(cancellationToken));
-                
+        
                 await UniTask.WhenAll(crossFadeTasks);
-                
+        
                 helpGameObject?.SetActive(false);
-                
+        
                 successCanvasGroup.interactable = true;
                 successCanvasGroup.blocksRaycasts = true;
-                
+        
                 _isCurrentlyVisible = true;
             }
             catch (OperationCanceledException)
@@ -510,89 +512,48 @@ namespace jeanf.tooltip
                 _isTransitioningVisibility = false;
             }
         }
-
-        private async UniTask FadeToSuccessAsync(CancellationToken cancellationToken)
-        {
-            if (successCanvasGroup == null || _isTransitioningVisibility) return;
-            
-            _isTransitioningVisibility = true;
-            
-            try
-            {
-                helpGameObject?.SetActive(false);
-                successGameObject?.SetActive(true);
-                
-                if (helpCanvasGroup != null && helpCanvasGroup.alpha > 0)
-                {
-                    helpCanvasGroup.interactable = false;
-                    helpCanvasGroup.blocksRaycasts = false;
-                    
-                    await LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
-                        .WithEase(Ease.InQuad)
-                        .Bind(value => helpCanvasGroup.alpha = value)
-                        .ToUniTask(cancellationToken);
-                }
-                
-                await LMotion.Create(successCanvasGroup.alpha, 1f, fadeInDuration)
-                    .WithEase(Ease.OutQuad)
-                    .Bind(value => helpCanvasGroup.alpha = value)
-                    .ToUniTask(cancellationToken);
-                
-                successCanvasGroup.interactable = true;
-                successCanvasGroup.blocksRaycasts = true;
-                
-                _isCurrentlyVisible = true;
-            }
-            catch (OperationCanceledException)
-            {
-                // Fade was cancelled
-            }
-            finally
-            {
-                _isTransitioningVisibility = false;
-            }
-        }
+        
 
         private async UniTask FadeOutAllAsync(CancellationToken cancellationToken)
         {
             if (_isTransitioningVisibility) return;
-            
+    
             _isTransitioningVisibility = true;
-            
+    
             try
             {
                 var fadeTasks = new List<UniTask>();
-                
+        
                 if (helpCanvasGroup != null && helpCanvasGroup.alpha > 0)
                 {
                     helpCanvasGroup.interactable = false;
                     helpCanvasGroup.blocksRaycasts = false;
-                    
+            
                     var helpFadeOut = LMotion.Create(helpCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
                         .Bind(value => helpCanvasGroup.alpha = value);
-                    
+            
                     fadeTasks.Add(helpFadeOut.ToUniTask(cancellationToken));
                 }
-                
+        
                 if (successCanvasGroup != null && successCanvasGroup.alpha > 0)
                 {
                     successCanvasGroup.interactable = false;
                     successCanvasGroup.blocksRaycasts = false;
-                    
+            
                     var successFadeOut = LMotion.Create(successCanvasGroup.alpha, 0f, fadeOutDuration)
                         .WithEase(Ease.InQuad)
-                        .Bind(value => helpCanvasGroup.alpha = value);
-                    
+                        .Bind(value => successCanvasGroup.alpha = value);
+            
                     fadeTasks.Add(successFadeOut.ToUniTask(cancellationToken));
                 }
-                
+        
                 if (fadeTasks.Count > 0)
                     await UniTask.WhenAll(fadeTasks);
-                
+        
                 helpGameObject?.SetActive(false);
                 successGameObject?.SetActive(false);
-                
+        
                 _isCurrentlyVisible = false;
             }
             catch (OperationCanceledException)
