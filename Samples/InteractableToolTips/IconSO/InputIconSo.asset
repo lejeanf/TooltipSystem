@@ -16,4 +16,4 @@ MonoBehaviour:
   xrPoke: {fileID: 21300000, guid: 17c263f6077f14b218b13656aacd9551, type: 3}
   gamepadRT: {fileID: 1316201675, guid: 566bdd7ad9050894189c40df19e05aee, type: 3}
   keyboardLMB: {fileID: 21300000, guid: 94358c13c541dd641a83f434d3a8ef5b, type: 3}
-  keyboardE: {fileID: 1743483114, guid: 68e4f8e94ce2d3e4fac1657cde403793, type: 3}
+  keyboardE: {fileID: 21300000, guid: 546745c623c1ba54ca926fb8666996ce, type: 3}

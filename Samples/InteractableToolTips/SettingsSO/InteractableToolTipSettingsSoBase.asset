@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tooltipName: Tooltip
   description: Description
-  fieldOfViewThreshold: 0.9855
+  fieldOfViewThreshold: 0.9
   animationSo: {fileID: 11400000, guid: 005dc3186a9be1341b21f348e020d944, type: 2}

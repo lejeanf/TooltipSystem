@@ -194,7 +194,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -212,13 +212,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e40726f190342bbac3633e3a8ca2b47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fontSizeModifierWhenHidden: 0.5
-  animationDuration: 1
-  interactableToolTipSo: {fileID: 11400000, guid: 1638fd69923c2ce4998ab634236abeb1,
-    type: 2}
-  objectReference: {fileID: 0}
-  fieldOfViewThreshold: 0.8
-  animationType: 0
+  showToolTip: 0
+  isPermanentTooltip: 1
+  tooltipGameObjectPrefab: {fileID: 0}
+  objectToBeViewed: {fileID: 0}
+  interactableToolTipSettingsSo: {fileID: 0}
+  inputIconSo: {fileID: 0}
+  interactableToolTipInputSo: {fileID: 0}
+  currentZone: {fileID: 0}
 --- !u!1 &4362234525738092562
 GameObject:
   m_ObjectHideFlags: 0
