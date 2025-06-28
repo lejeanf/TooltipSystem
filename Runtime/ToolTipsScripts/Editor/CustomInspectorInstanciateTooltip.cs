@@ -1,6 +1,8 @@
+#if UNITY_EDITOR
 using jeanf.tooltip;
 using UnityEditor;
 using UnityEngine;
+
 
 [CustomEditor(typeof(InteractableToolTipController))]
 public class CustomInspectorInstanciateTooltip : Editor
@@ -24,3 +26,4 @@ public class CustomInspectorInstanciateTooltip : Editor
         DrawDefaultInspector();
     }
 }
+#endif
