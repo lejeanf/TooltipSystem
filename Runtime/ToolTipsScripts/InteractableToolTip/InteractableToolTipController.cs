@@ -92,6 +92,7 @@ namespace jeanf.tooltip
         #region Start
         private void Awake()
         {
+            _cameraTransform = Camera.main.transform;
             if (interactableToolTipSettingsSo == null)
             {
                 gameObject.SetActive(false);
