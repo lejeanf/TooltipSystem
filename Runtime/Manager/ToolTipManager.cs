@@ -26,6 +26,7 @@ namespace jeanf.tooltip
         public delegate void DisableTipDelegate();
         public static DisableTipDelegate DisableToolTip;
         
+        // NEW: Track tooltip state before iPad interruption
         private bool _punctualTooltipsWereActiveBeforeIpad = false;
         
         private void OnEnable() => Subscribe();
@@ -66,11 +67,13 @@ namespace jeanf.tooltip
         {
             if (ipadState)
             {
+                // iPad is being shown - remember if punctual tooltips were active and hide ALL tooltips
                 _punctualTooltipsWereActiveBeforeIpad = ArePunctualTooltipsCurrentlyActive();
                 UpdateShowToolTip?.Invoke(false);
             }
             else
             {
+                // iPad is being hidden - handle different tooltip types differently
                 HandleTooltipResumption();
             }
         }
@@ -80,13 +83,19 @@ namespace jeanf.tooltip
             var helpTooltipControls = FindObjectsOfType<HelpToolTipControls>();
             var interactableTooltipControls = FindObjectsOfType<InteractableToolTipController>();
             
-            foreach (var control in helpTooltipControls)
+            // Handle permanent tooltips
+            foreach (var control in interactableTooltipControls)
             {
                 if (control.IsPermanentTooltip)
                 {
-                    control.CheckAndUpdateTooltipVisibility();
+                    control.NotifyIpadHidden();
                 }
-                else
+            }
+            
+            // Handle punctual tooltips
+            foreach (var control in helpTooltipControls)
+            {
+                if (!control.IsPermanentTooltip)
                 {
                     if (_punctualTooltipsWereActiveBeforeIpad && control.HasIncompleteTooltip())
                     {
@@ -97,11 +106,7 @@ namespace jeanf.tooltip
             
             foreach (var control in interactableTooltipControls)
             {
-                if (control.IsPermanentTooltip)
-                {
-                    control.CheckAndUpdateTooltipVisibility();
-                }
-                else
+                if (!control.IsPermanentTooltip)
                 {
                     if (_punctualTooltipsWereActiveBeforeIpad && control.HasIncompleteTooltip())
                     {

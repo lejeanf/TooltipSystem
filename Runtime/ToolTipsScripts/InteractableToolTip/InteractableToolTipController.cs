@@ -47,6 +47,7 @@ namespace jeanf.tooltip
         private bool _isToolTipDisplayed;
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
         
+        // NEW: iPad interruption tracking for punctual tooltips
         private bool _wasInterruptedByIpad;
         private bool _tooltipWasShowingBeforeIpad;
         private bool _ipadIsShowing = false;
@@ -79,15 +80,37 @@ namespace jeanf.tooltip
             _wasInterruptedByIpad = false;
             _tooltipWasShowingBeforeIpad = false;
         }
+        
+        public void NotifyIpadHidden()
+        {
+            if (!isPermanentTooltip) return;
+            
+            _ipadIsShowing = false;
+        }
         #endregion
 
         #region Start
         private void Awake()
         {
-            if (interactableToolTipSettingsSo == null ||
-                interactableToolTipInputSo == null ||
-                interactableToolTipSettingsSo.animationSo == null ||
-                inputIconSo == null)
+            if (interactableToolTipSettingsSo == null)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            
+            if (interactableToolTipInputSo == null)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            
+            if (interactableToolTipSettingsSo.animationSo == null)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            
+            if (inputIconSo == null)
             {
                 gameObject.SetActive(false);
                 return;
@@ -95,25 +118,15 @@ namespace jeanf.tooltip
             
             if (tooltipGameObjectPrefab == null)
             {
-                Debug.LogError("tooltipGameObjectPrefab is null in InteractableToolTipController");
                 gameObject.SetActive(false);
                 return;
             }
                
-            _cameraTransform = Camera.main?.transform;
-            if (_cameraTransform == null)
-            {
-                Debug.LogError("Camera.main is null in InteractableToolTipController");
-                gameObject.SetActive(false);
-                return;
-            }
-            
             _parent = transform.parent?.gameObject;
             
             _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
             if (_tooltip == null)
             {
-                Debug.LogError("Failed to instantiate tooltip prefab");
                 gameObject.SetActive(false);
                 return;
             }
@@ -123,7 +136,6 @@ namespace jeanf.tooltip
             
             if (_interactableToolTip == null)
             {
-                Debug.LogError("InteractableToolTip component not found on instantiated tooltip");
                 gameObject.SetActive(false);
                 return;
             }
@@ -165,7 +177,6 @@ namespace jeanf.tooltip
         
         private void Update()
         {
-            // Handle different behavior for permanent vs punctual tooltips
             if (isPermanentTooltip)
             {
                 HandlePermanentTooltipUpdate();
@@ -195,7 +206,10 @@ namespace jeanf.tooltip
                 return;
             }
             
-            if (CheckIfPlayerIsLooking() && RequestPermissionToShowToolTip())
+            bool isLooking = CheckIfPlayerIsLooking();
+            bool hasPermission = RequestPermissionToShowToolTip();
+            
+            if (isLooking && hasPermission)
             {
                 ShowToolTip();
             }
@@ -273,9 +287,17 @@ namespace jeanf.tooltip
         
         private new void UpdateIsShowingToolTip(bool isShowing)
         {
+            bool wasIpadShowing = _ipadIsShowing;
             _ipadIsShowing = !isShowing;
             
-            if (!isPermanentTooltip)
+            if (isPermanentTooltip)
+            {
+                if (_ipadIsShowing && !wasIpadShowing)
+                {
+                    HideToolTipWithoutAnimation();
+                }
+            }
+            else
             {
                 showToolTip = isShowing;
             }
@@ -297,7 +319,6 @@ namespace jeanf.tooltip
         {
             if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                Debug.Log("Player entered tooltip trigger");
                 _isPlayerNear = true;
             }
         }
@@ -306,7 +327,6 @@ namespace jeanf.tooltip
         {
             if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                Debug.Log("Player exited tooltip trigger");
                 _isPlayerNear = false;
             }
         }
@@ -384,19 +404,16 @@ namespace jeanf.tooltip
         {
             if (bypassPermissionSystem)
             {
-                Debug.Log("Permission system bypassed - returning true");
                 return true;
             }
             
             bool? permission = RequestShowToolTip?.Invoke(_playerLookingDirectionDot, this);
             if (permission.HasValue)
             {
-                Debug.Log($"Permission system returned: {permission.Value}");
                 return permission.Value;
             }
             else
             {
-                Debug.Log("No permission delegate assigned - returning false");
                 return false;
             }
         }
@@ -430,17 +447,11 @@ namespace jeanf.tooltip
         {
             if(currentZone == null) 
             {
-                Debug.Log("currentZone is null");
                 return;
             }
             
             bool wasInZone = isPlayerInZone;
             isPlayerInZone = (zoneId == currentZone.id.id);
-            
-            if (wasInZone != isPlayerInZone)
-            {
-                Debug.Log($"Zone changed. Player in zone: {isPlayerInZone}, Current zone: {zoneId}, Required zone: {currentZone.id.id}");
-            }
         }
     }
 }
