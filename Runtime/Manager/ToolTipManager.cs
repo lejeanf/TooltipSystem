@@ -41,7 +41,7 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised += UpdateControlScheme;
             hmdState.OnEventRaised += UpdateTooltip;
-            ipadState.OnEventRaised += OnIpadState;
+            //ipadState.OnEventRaised += OnIpadState;
         }
 
         private void UnSubscribe()
@@ -51,7 +51,7 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised -= UpdateControlScheme;
             hmdState.OnEventRaised -= UpdateTooltip;
-            ipadState.OnEventRaised -= OnIpadState;
+            //ipadState.OnEventRaised -= OnIpadState;
         }
 
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
