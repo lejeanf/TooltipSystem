@@ -7,6 +7,7 @@ namespace jeanf.tooltip
 {
     public class ToolTipManager : MonoBehaviour
     {
+        public bool isDebug = false;
         [Tooltip("If disable all tooltips then no tooltip will be displayed except NavigationToolTip.")]
         [SerializeField] private bool _disableAllTooltips = false;
         
@@ -60,6 +61,7 @@ namespace jeanf.tooltip
 
         private void UpdateTooltip(bool hmdState)
         {
+            if(isDebug) Debug.Log($"[ToolTipManager] - UpdateTooltip: hmdState: {hmdState}, invoke event UpdateToolTipControlSchemeWithHmd.");
             UpdateToolTipControlSchemeWithHmd?.Invoke(hmdState);
         }
 
@@ -69,6 +71,7 @@ namespace jeanf.tooltip
             {
                 // iPad is being shown - remember if punctual tooltips were active and hide ALL tooltips
                 _punctualTooltipsWereActiveBeforeIpad = ArePunctualTooltipsCurrentlyActive();
+                if(isDebug) Debug.Log($"[ToolTipManager] - OnIpadState: invoke event UpdateShowToolTip.");
                 UpdateShowToolTip?.Invoke(false);
             }
             else
@@ -80,6 +83,7 @@ namespace jeanf.tooltip
 
         private void HandleTooltipResumption()
         {
+            if(isDebug) Debug.Log($"[ToolTipManager] - HandleTooltipResumption");
             var helpTooltipControls = FindObjectsOfType<HelpToolTipControls>();
             var interactableTooltipControls = FindObjectsOfType<InteractableToolTipController>();
             
@@ -88,6 +92,7 @@ namespace jeanf.tooltip
             {
                 if (control.IsPermanentTooltip)
                 {
+                    if(isDebug) Debug.Log($"[ToolTipManager] - control.NotifyIpadHidden()");
                     control.NotifyIpadHidden();
                 }
             }
@@ -99,6 +104,7 @@ namespace jeanf.tooltip
                 {
                     if (_punctualTooltipsWereActiveBeforeIpad && control.HasIncompleteTooltip())
                     {
+                        if(isDebug) Debug.Log($"[ToolTipManager] - control.ResumeTooltipAfterInterruption()");
                         control.ResumeTooltipAfterInterruption();
                     }
                 }
@@ -110,6 +116,7 @@ namespace jeanf.tooltip
                 {
                     if (_punctualTooltipsWereActiveBeforeIpad && control.HasIncompleteTooltip())
                     {
+                        if(isDebug) Debug.Log($"[ToolTipManager] - control.ResumeTooltipAfterInterruption()");
                         control.ResumeTooltipAfterInterruption();
                     }
                 }

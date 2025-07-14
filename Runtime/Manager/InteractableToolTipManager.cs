@@ -4,6 +4,7 @@ namespace jeanf.tooltip
 {
     public class InteractableToolTipManager : MonoBehaviour
     {
+        public bool isDebug = false;
         private float _currentDot = 0;
         private bool _isToolTipDisplayed = false;
         private InteractableToolTipController _interactableToolTipController;
@@ -45,6 +46,7 @@ namespace jeanf.tooltip
         private void WarnHideToolTip(InteractableToolTipController interactableToolTipController)
         {
             if (_interactableToolTipController != interactableToolTipController) return;
+            if(isDebug) Debug.Log($"[InteractableToolTipManager] - WarnHideToolTip");
             _isToolTipDisplayed = false;
             _interactableToolTipController = null;
             _currentDot = 0;
@@ -52,6 +54,7 @@ namespace jeanf.tooltip
 
         private void ReplaceCurrentInteractableController(float dot, InteractableToolTipController interactableToolTipController)
         {
+            if(isDebug) Debug.Log($"[InteractableToolTipManager] - ReplaceCurrentInteractableController");
             _isToolTipDisplayed = true;
             _interactableToolTipController = interactableToolTipController;
             _currentDot = dot;

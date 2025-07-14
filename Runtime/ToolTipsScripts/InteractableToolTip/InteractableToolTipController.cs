@@ -7,6 +7,8 @@ namespace jeanf.tooltip
 {
     public class InteractableToolTipController : ToolTip
     {
+        [Header("Tooltip debug")]
+        public bool isDebug = false;
         [Header("Tooltip Behavior")]
         [SerializeField] private bool isPermanentTooltip = true;
         
@@ -83,6 +85,7 @@ namespace jeanf.tooltip
         
         public void NotifyIpadHidden()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTipController] - NotifyIpadHidden: isPermanentTooltip = {isPermanentTooltip}");
             if (!isPermanentTooltip) return;
             
             _ipadIsShowing = false;
@@ -334,6 +337,7 @@ namespace jeanf.tooltip
 
         public void InstanciateTooltip()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTipController] - InstanciateTooltip", this);
             _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
             _tooltip.name = interactableToolTipSettingsSo.tooltipName;
             _interactableToolTip = _tooltip.GetComponent<InteractableToolTip>();
@@ -357,7 +361,7 @@ namespace jeanf.tooltip
         public void ShowToolTip()
         {
             if (_interactableToolTip == null) return;
-            
+            if(isDebug) Debug.Log($"[InteractableToolTipController] - ShowToolTip", this);
             _isToolTipDisplayed = true;
             _interactableToolTip.ShowCloseTooltip();
             _interactableToolTipService?.ShowIcons();
@@ -367,6 +371,7 @@ namespace jeanf.tooltip
         public void HideToolTip()
         {
             if (_interactableToolTip == null) return;
+            if(isDebug) Debug.Log($"[InteractableToolTipController] - HideToolTip", this);
             
             _isToolTipDisplayed = false;
             
@@ -381,6 +386,7 @@ namespace jeanf.tooltip
         private void HideToolTipWithoutAnimation()
         {
             if (_interactableToolTip == null) return;
+            if(isDebug) Debug.Log($"[InteractableToolTipController] - HideToolTipWithoutAnimation", this);
             
             _isToolTipDisplayed = false;
             _interactableToolTip.HideCloseTooltip();

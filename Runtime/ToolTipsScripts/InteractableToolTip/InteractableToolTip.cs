@@ -5,7 +5,8 @@ namespace jeanf.tooltip
 {
     public class InteractableToolTip : MonoBehaviour
     {
-        
+        [Header("Tooltip debug")]
+        public bool isDebug = false;
         [SerializeField] private InteractableToolTipFar _tooltipFar;
         [SerializeField] private GameObject _tooltipClose;
         
@@ -29,23 +30,27 @@ namespace jeanf.tooltip
         
         public void ShowFarTooltip()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTip] - ShowFarTooltip", this);
             _tooltipFar.UnFreeze();
             _tooltipFar.ShowImage();
         }
 
         public void ShowCloseTooltip()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTip] - ShowCloseTooltip", this);
             _tooltipClose.SetActive(true);
         }
 
         public void HideFarTooltip()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTip] - HideFarTooltip", this);
             _tooltipFar.HideImage();
             _tooltipFar.Freeze();
         }
 
         public void HideCloseTooltip()
         {
+            if(isDebug) Debug.Log($"[InteractableToolTip] - HideCloseTooltip", this);
             _tooltipClose.SetActive(false);
         }
 
