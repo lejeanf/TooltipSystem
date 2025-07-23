@@ -70,7 +70,6 @@ namespace jeanf.tooltip
                     _canvasGroup.alpha = 0f;
                     break;
             }
-            
         }
 
         public void ShowIcons()
@@ -118,7 +117,12 @@ namespace jeanf.tooltip
                 _motionHandle = LMotion
                     .Create(_tooltip.transform.localScale, _originalToolTipSize, _animationDuration)
                     .WithEase(Ease.InOutSine)
-                    .Bind(x => _tooltip.transform.localScale = x);
+                    .Bind(x =>
+                    {
+                        if (_tooltip == null) return;
+                            _tooltip.transform.localScale = x;
+                    })
+                    ;
         }
 
         private void PlayPopOutAnimation()
@@ -128,7 +132,11 @@ namespace jeanf.tooltip
                 _motionHandle = LMotion
                     .Create(_tooltip.transform.localScale, _tooltipSizeWhenHidden, _animationDuration)
                     .WithEase(Ease.InOutSine)
-                    .Bind(x => _tooltip.transform.localScale = x);
+                    .Bind(x =>
+                    {
+                        if (_tooltip == null) return;
+                        _tooltip.transform.localScale = x;
+                    });
         }
 
         private void PlayFadeInAnimation()
@@ -137,7 +145,11 @@ namespace jeanf.tooltip
             _motionHandle = LMotion
                 .Create(_canvasGroup.alpha, 1f, _animationDuration * 1.75f)
                 .WithEase(Ease.Linear)
-                .Bind(x => _canvasGroup.alpha = x);
+                .Bind(x =>
+                {
+                    if (_canvasGroup == null) return;
+                    _canvasGroup.alpha = x;
+                });
         }
 
         private void PlayFadeOutAnimation()
@@ -146,7 +158,11 @@ namespace jeanf.tooltip
             _motionHandle = LMotion
                 .Create(_canvasGroup.alpha, 0f, _animationDuration)
                 .WithEase(Ease.Linear)
-                .Bind(x => _canvasGroup.alpha = x);
+                .Bind(x =>
+                {
+                    if (_canvasGroup == null) return;
+                    _canvasGroup.alpha = x;
+                });
         }
         
         public void Destroy()
