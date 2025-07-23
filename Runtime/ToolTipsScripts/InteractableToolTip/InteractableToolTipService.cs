@@ -1,3 +1,4 @@
+using System;
 using LitMotion;
 using TMPro;
 using UnityEngine;
@@ -139,8 +140,15 @@ namespace jeanf.tooltip
         
         public void Destroy()
         {
-            if(!_motionHandle.IsActive()) return;
-            _motionHandle.Cancel();
+            try 
+            {
+                if (!_motionHandle.IsActive()) return; 
+                _motionHandle.Cancel(); 
+            }
+            catch (NullReferenceException)
+            {
+                return;
+            }
         }
     }
 }
