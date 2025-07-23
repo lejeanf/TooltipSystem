@@ -14,6 +14,7 @@ namespace jeanf.tooltip
 
         public void UpdateDescription(string description)
         {
+            if (_tooltipClose == null) return;
             var text = _tooltipClose.GetComponentInChildren<TMP_Text>();
             if (text != null)
             {
@@ -31,6 +32,7 @@ namespace jeanf.tooltip
         public void ShowFarTooltip()
         {
             if(isDebug) Debug.Log($"[InteractableToolTip] - ShowFarTooltip", this);
+            if (_tooltipFar == null) return;
             _tooltipFar.UnFreeze();
             _tooltipFar.ShowImage();
         }
@@ -38,12 +40,14 @@ namespace jeanf.tooltip
         public void ShowCloseTooltip()
         {
             if(isDebug) Debug.Log($"[InteractableToolTip] - ShowCloseTooltip", this);
+            if (_tooltipClose == null) return;
             _tooltipClose.SetActive(true);
         }
 
         public void HideFarTooltip()
         {
             if(isDebug) Debug.Log($"[InteractableToolTip] - HideFarTooltip", this);
+            if (_tooltipFar == null) return;
             _tooltipFar.HideImage();
             _tooltipFar.Freeze();
         }
@@ -51,11 +55,13 @@ namespace jeanf.tooltip
         public void HideCloseTooltip()
         {
             if(isDebug) Debug.Log($"[InteractableToolTip] - HideCloseTooltip", this);
+            if (_tooltipClose == null) return;
             _tooltipClose.SetActive(false);
         }
 
         public void LookTowardsTarget(Transform target)
         {
+            if (_tooltipFar == null || _tooltipClose == null) return;
             if(_tooltipClose.activeSelf)
                 _tooltipClose.transform.forward = target.forward;
             if(_tooltipFar.IsPlayerInRange)

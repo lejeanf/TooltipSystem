@@ -100,12 +100,20 @@ namespace jeanf.tooltip
                     break;
             }
             
-            if(_motionHandle.IsActive())
-                _motionHandle.GetAwaiter().OnCompleted(() => _interactableToolTip.ShowCloseTooltip());
+            try 
+            {
+                if(_motionHandle.IsActive())
+                    _motionHandle.GetAwaiter().OnCompleted(() => _interactableToolTip.ShowCloseTooltip());
+            }
+            catch (NullReferenceException)
+            {
+                return;
+            }
         }
 
         private void PlayPopInAnimation()
         {
+            if (_tooltip == null) return;
             if (_tooltip.transform.localScale != _originalToolTipSize)
                 _motionHandle = LMotion
                     .Create(_tooltip.transform.localScale, _originalToolTipSize, _animationDuration)
@@ -115,6 +123,7 @@ namespace jeanf.tooltip
 
         private void PlayPopOutAnimation()
         {
+            if (_tooltip == null) return;
             if (_tooltip.transform.localScale != _tooltipSizeWhenHidden)
                 _motionHandle = LMotion
                     .Create(_tooltip.transform.localScale, _tooltipSizeWhenHidden, _animationDuration)
@@ -124,6 +133,7 @@ namespace jeanf.tooltip
 
         private void PlayFadeInAnimation()
         {
+            if (_canvasGroup == null) return;
             _motionHandle = LMotion
                 .Create(_canvasGroup.alpha, 1f, _animationDuration * 1.75f)
                 .WithEase(Ease.Linear)
@@ -132,6 +142,7 @@ namespace jeanf.tooltip
 
         private void PlayFadeOutAnimation()
         {
+            if (_canvasGroup == null) return;
             _motionHandle = LMotion
                 .Create(_canvasGroup.alpha, 0f, _animationDuration)
                 .WithEase(Ease.Linear)
