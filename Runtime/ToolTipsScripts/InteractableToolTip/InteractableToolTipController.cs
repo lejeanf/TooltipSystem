@@ -21,7 +21,7 @@ namespace jeanf.tooltip
         [SerializeField] private InteractableToolTipSettingsSo interactableToolTipSettingsSo;
         [SerializeField] private InputIconSo inputIconSo;
         [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
-        [SerializeField] private Zone currentZone;
+        public Zone currentZone;
         
         
         public delegate bool RequestShowToolTipDelegate(float playerDirectionDot, InteractableToolTipController interactableToolTipController);
