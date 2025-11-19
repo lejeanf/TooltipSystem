@@ -1,5 +1,8 @@
+using System.ComponentModel;
+using jeanf.propertyDrawer;
 using jeanf.scenemanagement;
 using jeanf.universalplayer;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -56,6 +59,11 @@ namespace jeanf.tooltip
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
         public bool IsShowingTooltip => showToolTip;
         public bool IsPermanentTooltip => isPermanentTooltip;
+        
+        private float validationTime = 0.75f;
+        
+        private string timerName = "NoLongerLooksTheObjectToBeViewed";
+        bool enableCountDown = false;
         
         #region Unity Lifecycle
         
@@ -247,11 +255,27 @@ namespace jeanf.tooltip
         {
             bool isLooking = CheckIfPlayerIsLooking();
             bool hasPermission = RequestPermissionToShowToolTip();
-            
+
             if (isLooking && hasPermission)
+            {
                 ShowToolTip();
+                enableCountDown = false;
+                FunctionTimer.StopTimer(timerName);
+            }
             else
-                NotifyAndHideToolTip();
+            {
+                if (!enableCountDown)
+                {
+                    enableCountDown = true;
+                    Debug.Log($"validationTime = {validationTime}");
+                    FunctionTimer.Create(
+                        delegate
+                        {
+                            NotifyAndHideToolTip();
+                        }, 
+                        validationTime, timerName);
+                }
+            }
         }
 
         private void NotifyAndHideToolTip()
