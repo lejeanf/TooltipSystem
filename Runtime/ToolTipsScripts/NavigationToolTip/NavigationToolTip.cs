@@ -59,9 +59,30 @@ namespace jeanf.tooltip
 
         private Vector3 _lastPlayerPosition;
         
+        //Cache to avoid allocations in DrawLine
+        private Vector3[] _elevatedPathCache;
+        
+        //Cache for NavMeshHit (avoids boxing)
+        private NavMeshHit _navMeshHit;
+        
+        //Constants to avoid recalculations
+        private const float MOVEMENT_THRESHOLD = 0.005f;
+        private const float MIN_MOVEMENT_DETECTION = 0.01f;
+        private const float DOT_PRODUCT_THRESHOLD = 0.5f;
+        private const float SPRITE_REMOVAL_MULTIPLIER = 0.5f;
+        private const float ELEVATION_OFFSET = 0.1f;
+        
+        //Cache for squared distance calculations (faster than Distance)
+        private float _destinationThresholdSqr;
+        private float _playerDistanceThresholdFirstSpriteSqr;
+        private float _playerDistanceThresholdSpritePathSqr;
+        private float _spacingSqr;
+        private float _movementThresholdSqr;
+        private float _minMovementDetectionSqr;
+        
         private void Awake()
         {
-            _worldPath = new List<Vector3>();
+            _worldPath = new List<Vector3>(128); // Pré-allouer avec capacité
             _normalisedPath = null;
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
@@ -70,7 +91,8 @@ namespace jeanf.tooltip
             _playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
             _lastPlayerPosition = _playerTransform.position;
             
-            _sprites = new List<GameObject>();
+            _sprites = new List<GameObject>(128); // Pré-allouer avec capacité
+            _elevatedPathCache = new Vector3[128]; // Pré-allouer le cache
 
             _lineRenderer.startWidth = lineWidth;
             _lineRenderer.endWidth = lineWidth;
@@ -79,6 +101,19 @@ namespace jeanf.tooltip
             _lineRenderer.endColor = endColor;
             
             _lineRenderer.enabled = false;
+            
+            //Pre-calculate the distances squared
+            CacheSquaredDistances();
+        }
+
+        private void CacheSquaredDistances()
+        {
+            _destinationThresholdSqr = destinationThreshold * destinationThreshold;
+            _playerDistanceThresholdFirstSpriteSqr = playerDistanceThresholdFirstSprite * playerDistanceThresholdFirstSprite;
+            _playerDistanceThresholdSpritePathSqr = playerDistanceThresholdSpritePath * playerDistanceThresholdSpritePath;
+            _spacingSqr = spacing * spacing;
+            _movementThresholdSqr = MOVEMENT_THRESHOLD * MOVEMENT_THRESHOLD;
+            _minMovementDetectionSqr = MIN_MOVEMENT_DETECTION * MIN_MOVEMENT_DETECTION;
         }
 
         private void OnEnable() => Subscribe();
@@ -159,12 +194,12 @@ namespace jeanf.tooltip
                 NavMesh.AllAreas, _path);
         }
         
+        //Use ref to avoid copying struct
         Vector3 GetNearestNavMeshPoint(Vector3 position)
         {
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(position, out hit, navmeshDetectionDistance, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(position, out _navMeshHit, navmeshDetectionDistance, NavMesh.AllAreas))
             {
-                return hit.position;
+                return _navMeshHit.position;
             }
             return position;
         }
@@ -172,14 +207,23 @@ namespace jeanf.tooltip
         private void DrawLine()
         {
             _lineRenderer.enabled = true;
-            Vector3[] elevatedPath = new Vector3[_path.corners.Length];
-            for (int i = 0; i < _path.corners.Length; i++)
+            
+            int cornerCount = _path.corners.Length;
+            
+            if (_elevatedPathCache.Length < cornerCount)
             {
-                elevatedPath[i] = _path.corners[i] + Vector3.up * 0.1f;
+                _elevatedPathCache = new Vector3[cornerCount * 2]; // Double to avoid frequent reallocations
+            }
+            
+            for (int i = 0; i < cornerCount; i++)
+            {
+                Vector3 corner = _path.corners[i];
+                corner.y += ELEVATION_OFFSET;
+                _elevatedPathCache[i] = corner;
             }
 
-            _lineRenderer.positionCount = elevatedPath.Length;
-            _lineRenderer.SetPositions(elevatedPath);
+            _lineRenderer.positionCount = cornerCount;
+            _lineRenderer.SetPositions(_elevatedPathCache);
         }
 
         private void HideLine()
@@ -211,12 +255,12 @@ namespace jeanf.tooltip
             {
                 DrawSpritesFromZero();
             }
-            
         }
-
+        
         private bool PlayerArrivedToDestination()
         {
-            return Vector3.Distance(_playerTransform.position, target.position) <= destinationThreshold;
+            Vector3 delta = _playerTransform.position - target.position;
+            return delta.sqrMagnitude <= _destinationThresholdSqr;
         }
 
         private void CheckAndRemoveFirstSprite()
@@ -225,7 +269,10 @@ namespace jeanf.tooltip
 
             GameObject firstSprite = _sprites[0];
 
-            if (Vector3.Distance(_playerTransform.position, firstSprite.transform.position) < spacing * 0.5f)
+            Vector3 delta = _playerTransform.position - firstSprite.transform.position;
+            float spacingThresholdSqr = _spacingSqr * (SPRITE_REMOVAL_MULTIPLIER * SPRITE_REMOVAL_MULTIPLIER);
+            
+            if (delta.sqrMagnitude < spacingThresholdSqr)
             {
                 _navigationObjectPool.Release(firstSprite);
                 _sprites.RemoveAt(0);
@@ -242,12 +289,26 @@ namespace jeanf.tooltip
             if (_sprites.Count > 0)
             {
                 GameObject nextSprite = _sprites[0];
-                Vector3 toNextSprite = (nextSprite.transform.position - _playerTransform.position).normalized;
-                Vector3 playerMovement = (_playerTransform.position - _lastPlayerPosition).normalized;
+                
+                Vector3 toNextSprite = nextSprite.transform.position - _playerTransform.position;
+                Vector3 playerMovement = _playerTransform.position - _lastPlayerPosition;
+                
+                float movementSqrMag = playerMovement.sqrMagnitude;
+                if (movementSqrMag <= _minMovementDetectionSqr) 
+                    return false;
+                
+                float toNextSpriteMag = toNextSprite.magnitude;
+                float playerMovementMag = Mathf.Sqrt(movementSqrMag);
+                
+                if (toNextSpriteMag < 0.0001f || playerMovementMag < 0.0001f)
+                    return false;
+                
+                toNextSprite /= toNextSpriteMag;
+                playerMovement /= playerMovementMag;
 
                 float movementSimilarity = Vector3.Dot(playerMovement, toNextSprite);
 
-                return Vector3.Distance(_playerTransform.position, _lastPlayerPosition) > 0.01f && movementSimilarity > 0.5f;
+                return movementSimilarity > DOT_PRODUCT_THRESHOLD;
             }
             return false;
         }
@@ -257,20 +318,16 @@ namespace jeanf.tooltip
             if (_sprites.Count == 0 || _playerTransform == null) return false;
                 
             GameObject firstSprite = _sprites[0];
-            float distance = Vector3.Distance(_playerTransform.position, firstSprite.transform.position);
-
-            return distance < playerDistanceThresholdFirstSprite;
+            Vector3 delta = _playerTransform.position - firstSprite.transform.position;
+            return delta.sqrMagnitude < _playerDistanceThresholdFirstSpriteSqr;
         }
         
         private bool IsPlayerInMovement()
         {
-            float movementThreshold = 0.005f;
-            
             if (_playerTransform == null) return false;
             
-            float distanceMoved = Vector3.Distance(_playerTransform.position, _lastPlayerPosition);
-
-            return distanceMoved > movementThreshold;
+            Vector3 delta = _playerTransform.position - _lastPlayerPosition;
+            return delta.sqrMagnitude > _movementThresholdSqr;
         }
 
         private bool IsPlayerOnSpritePath()
@@ -278,9 +335,12 @@ namespace jeanf.tooltip
             if (_sprites.Count == 0 || _playerTransform == null)
                 return false;
 
+            Vector3 playerPos = _playerTransform.position;
+            
             for (int i = 0; i < _sprites.Count; i++)
             {
-                if (Vector3.Distance(_playerTransform.position, _sprites[i].transform.position) < playerDistanceThresholdSpritePath)
+                Vector3 delta = playerPos - _sprites[i].transform.position;
+                if (delta.sqrMagnitude < _playerDistanceThresholdSpritePathSqr)
                 {
                     return true;
                 }
@@ -297,12 +357,15 @@ namespace jeanf.tooltip
             
             _worldPath.Clear();
 
-            for (int i = 1; i < _path.corners.Length; i++)
+            int cornerCount = _path.corners.Length;
+            
+            for (int i = 1; i < cornerCount; i++)
             {
                 Vector3 start = _path.corners[i - 1];
                 Vector3 end = _path.corners[i];
 
-                float segmentLength = Vector3.Distance(start, end);
+                Vector3 segmentVec = end - start;
+                float segmentLength = segmentVec.magnitude;
 
                 while (distanceCovered + spacing <= segmentLength)
                 {
@@ -331,15 +394,15 @@ namespace jeanf.tooltip
         private void ChangeLastSpriteColor()
         {
             int index = _sprites.Count - 1;
-            SpriteRenderer lastSpriteRenderer;
 
             if (index >= 0 && _sprites[index] != null)
             {
-                lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
+                SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
                 if (lastSpriteRenderer != null)
                 {
-                    lastSpriteColor.a = 1f;
-                    lastSpriteRenderer.color = lastSpriteColor;
+                    Color color = lastSpriteColor;
+                    color.a = 1f;
+                    lastSpriteRenderer.color = color;
                 }
             }
         }
@@ -350,9 +413,9 @@ namespace jeanf.tooltip
     
             for (int i = count - 1; i >= 0; i--)
             {
-                GameObject sprite = transform.GetChild(i).gameObject;
-                if(sprite.activeSelf)
-                    _navigationObjectPool.Release(transform.GetChild(i).gameObject);
+                Transform child = transform.GetChild(i);
+                if(child.gameObject.activeSelf)
+                    _navigationObjectPool.Release(child.gameObject);
             }
             
             _sprites.Clear();
@@ -360,27 +423,40 @@ namespace jeanf.tooltip
         
         private void NormalisePath()
         {
-            if (_path.corners == null || _path.corners.Length == 0) return;
+            int cornerCount = _path.corners.Length;
+            
+            if (cornerCount == 0) return;
             if (topLeft == null || topRight == null || bottomRight == null || bottomLeft == null) return;
 
-            float width = topLeft.position.x - topRight.position.x;
-            float height = topLeft.position.z - bottomLeft.position.z;
-
-            float[][] result = new float[_path.corners.Length][];
+            Vector3 topLeftPos = topLeft.position;
+            Vector3 topRightPos = topRight.position;
+            Vector3 bottomLeftPos = bottomLeft.position;
             
-            for (int i = 0; i < _path.corners.Length; i++)
+            float width = topLeftPos.x - topRightPos.x;
+            float height = topLeftPos.z - bottomLeftPos.z;
+            
+            float invWidth = 1f / width;
+            float invHeight = 1f / height;
+
+            if (_normalisedPath == null || _normalisedPath.Length < cornerCount)
             {
-                result[i] = new float[2];
-                Vector3 pos = _path.corners[i];
-                
-                float distanceFromTopLeftX = (topLeft.position.x - pos.x) / width;
-                float distanceFromTopLeftY = 1 - (1 - (topLeft.position.z - pos.z) / height);
-                
-                result[i][0] = distanceFromTopLeftX;
-                result[i][1] = distanceFromTopLeftY;
+                _normalisedPath = new float[cornerCount][];
+                for (int i = 0; i < cornerCount; i++)
+                {
+                    _normalisedPath[i] = new float[2];
+                }
             }
             
-            _normalisedPath = result;
+            for (int i = 0; i < cornerCount; i++)
+            {
+                Vector3 pos = _path.corners[i];
+                
+                float distanceFromTopLeftX = (topLeftPos.x - pos.x) * invWidth;
+                float distanceFromTopLeftY = 1f - (1f - (topLeftPos.z - pos.z) * invHeight);
+                
+                _normalisedPath[i][0] = distanceFromTopLeftX;
+                _normalisedPath[i][1] = distanceFromTopLeftY;
+            }
         }
 
         private void SetDestination(Transform targetTransform)
@@ -408,6 +484,11 @@ namespace jeanf.tooltip
                     bottomRight = newCorner;
                     break;
             }
+        }
+        
+        public void RefreshDistanceThresholds()
+        {
+            CacheSquaredDistances();
         }
     }
 }

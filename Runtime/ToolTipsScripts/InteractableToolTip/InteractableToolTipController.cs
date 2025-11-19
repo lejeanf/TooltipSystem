@@ -9,6 +9,7 @@ namespace jeanf.tooltip
     {
         [Header("Tooltip debug")]
         public bool isDebug = false;
+        
         [Header("Tooltip Behavior")]
         [SerializeField] private bool isPermanentTooltip = true;
         
@@ -23,111 +24,94 @@ namespace jeanf.tooltip
         [SerializeField] private InteractableToolTipInputSo interactableToolTipInputSo;
         public Zone currentZone;
         
-        
+        //Delegates
         public delegate bool RequestShowToolTipDelegate(float playerDirectionDot, InteractableToolTipController interactableToolTipController);
         public static RequestShowToolTipDelegate RequestShowToolTip;
         
         public delegate void WarnHideToolTipDelegate(InteractableToolTipController interactableToolTipController);
         public static WarnHideToolTipDelegate WarnHideToolTip;
         
+        //States
         private bool isPlayerInZone = false;
-        
-        private InteractableToolTipService _interactableToolTipService;
-        
         private bool _isPlayerNear;
-        private Transform _cameraTransform;
-        
-        private Image _image;
-
-        private float _playerLookingDirectionDot;
-
-        private GameObject _parent;
-        private GameObject _tooltip;
-        
-        private InteractableToolTip _interactableToolTip;
-
         private bool _isToolTipDisplayed;
-        public bool IsToolTipDisplayed => _isToolTipDisplayed;
-        
-        // NEW: iPad interruption tracking for punctual tooltips
         private bool _wasInterruptedByIpad;
         private bool _tooltipWasShowingBeforeIpad;
         private bool _ipadIsShowing = false;
+        
+        //Components and services
+        private InteractableToolTipService _interactableToolTipService;
+        private Transform _cameraTransform;
+        private Image _image;
+        private GameObject _tooltip;
+        private InteractableToolTip _interactableToolTip;
+        
+        //Calculated values
+        private float _playerLookingDirectionDot;
+        
+        //Layer mask in cache to avoid repeated calls
+        private int _playerLayerMask;
+
+        //Public properties
+        public bool IsToolTipDisplayed => _isToolTipDisplayed;
+        public bool IsShowingTooltip => showToolTip;
+        public bool IsPermanentTooltip => isPermanentTooltip;
+        
+        #region Unity Lifecycle
+        
+        private void Awake()
+        {
+            _playerLayerMask = LayerMask.NameToLayer("Player");
+            _cameraTransform = Camera.main.transform;
+            
+            if (!ValidateComponents())
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            
+            InitializeTooltip();
+        }
 
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
         private void OnDestroy() => UnSubscribe();
+        
+        private void Update()
+        {
+            if (isPermanentTooltip)
+                HandlePermanentTooltipUpdate();
+            else
+                HandlePunctualTooltipUpdate();
+        }
 
-        #region Public API for Manager
-        public bool IsShowingTooltip => showToolTip;
-        public bool IsPermanentTooltip => isPermanentTooltip;
-        
-        public bool HasIncompleteTooltip()
+        private void OnTriggerEnter(Collider other)
         {
-            return _wasInterruptedByIpad && _tooltipWasShowingBeforeIpad && 
-                   _isPlayerNear && isPlayerInZone && CheckIfPlayerIsLooking();
+            if (other.gameObject.layer == _playerLayerMask)
+                _isPlayerNear = true;
         }
         
-        public void CheckAndUpdateTooltipVisibility()
+        private void OnTriggerExit(Collider other)
         {
-            if (!isPermanentTooltip) return;
+            if (other.gameObject.layer == _playerLayerMask)
+                _isPlayerNear = false;
         }
         
-        public void ResumeTooltipAfterInterruption()
-        {
-            if (isPermanentTooltip) return;
-            if (!HasIncompleteTooltip()) return;
-            
-            showToolTip = true;
-            _wasInterruptedByIpad = false;
-            _tooltipWasShowingBeforeIpad = false;
-        }
-        
-        public void NotifyIpadHidden()
-        {
-            if(isDebug) Debug.Log($"[InteractableToolTipController] - NotifyIpadHidden: isPermanentTooltip = {isPermanentTooltip}");
-            if (!isPermanentTooltip) return;
-            
-            _ipadIsShowing = false;
-        }
         #endregion
 
-        #region Start
-        private void Awake()
+        #region Initialization
+        
+        private bool ValidateComponents()
         {
-            _cameraTransform = Camera.main.transform;
-            if (interactableToolTipSettingsSo == null)
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-            
-            if (interactableToolTipInputSo == null)
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-            
-            if (interactableToolTipSettingsSo.animationSo == null)
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-            
-            if (inputIconSo == null)
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-            
-            if (tooltipGameObjectPrefab == null)
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-               
-            _parent = transform.parent?.gameObject;
-            
+            return interactableToolTipSettingsSo != null &&
+                   interactableToolTipInputSo != null &&
+                   interactableToolTipSettingsSo.animationSo != null &&
+                   inputIconSo != null &&
+                   tooltipGameObjectPrefab != null;
+        }
+        
+        private void InitializeTooltip()
+        {
             _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
             if (_tooltip == null)
             {
@@ -146,50 +130,75 @@ namespace jeanf.tooltip
             
             _interactableToolTip.ArrangeRotation();
             _interactableToolTip.UpdateDescription(interactableToolTipSettingsSo.description);
-
-            var images = _tooltip.GetComponentsInChildren<Image>();
-            if (images.Length > 2)
-                _image = images[2];
-            else if (images.Length > 0)
-                _image = images[0];
-            else
-                _image = null;
+            
+            CacheImageComponent();
             
             _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
             SetIcon();
-
-            _tooltip.transform.localPosition = Vector3.zero;
-            _tooltip.transform.localRotation = Quaternion.Euler(0,0,0);
+            
+            ResetTooltipTransform();
         }
 
-        #region Setup
+        private void CacheImageComponent()
+        {
+            var images = _tooltip.GetComponentsInChildren<Image>();
+            _image = images.Length > 2 ? images[2] : (images.Length > 0 ? images[0] : null);
+        }
+
+        private void ResetTooltipTransform()
+        {
+            _tooltip.transform.localPosition = Vector3.zero;
+            _tooltip.transform.localRotation = Quaternion.identity;
+        }
 
         private void SetIcon()
         {
             string inputName = interactableToolTipInputSo.GetBindingName(BroadcastControlsStatus.ControlScheme.KeyboardMouse);
-            
             Sprite sprite = inputIconSo.GetInputIcon(inputName);
             
-            if(_image != null)
+            if (_image != null)
                 _image.sprite = sprite;
-            
-            _tooltip.transform.localPosition = Vector3.zero;
         }
-        #endregion
         
         #endregion
         
-        private void Update()
+        #region Public API for Manager
+        
+        public bool HasIncompleteTooltip()
         {
-            if (isPermanentTooltip)
-            {
-                HandlePermanentTooltipUpdate();
-            }
-            else
-            {
-                HandlePunctualTooltipUpdate();
-            }
+            return _wasInterruptedByIpad && 
+                   _tooltipWasShowingBeforeIpad && 
+                   _isPlayerNear && 
+                   isPlayerInZone && 
+                   CheckIfPlayerIsLooking();
         }
+        
+        public void CheckAndUpdateTooltipVisibility()
+        {
+            //Method for future extension if necessary
+        }
+        
+        public void ResumeTooltipAfterInterruption()
+        {
+            if (isPermanentTooltip || !HasIncompleteTooltip()) 
+                return;
+            
+            showToolTip = true;
+            ResetInterruptionState();
+        }
+        
+        public void NotifyIpadHidden()
+        {
+            if (isDebug) 
+                Debug.Log($"[InteractableToolTipController] NotifyIpadHidden: isPermanentTooltip = {isPermanentTooltip}");
+            
+            if (isPermanentTooltip)
+                _ipadIsShowing = false;
+        }
+        
+        #endregion
+
+        #region Tooltip Update Logic
         
         private void HandlePermanentTooltipUpdate()
         {
@@ -201,52 +210,23 @@ namespace jeanf.tooltip
             
             if (!_isPlayerNear)
             {
-                if (_isToolTipDisplayed)
-                {
-                    WarnHideToolTip?.Invoke(this);
-                }
-                
-                HideToolTip();
+                NotifyAndHideToolTip();
                 return;
             }
             
-            bool isLooking = CheckIfPlayerIsLooking();
-            bool hasPermission = RequestPermissionToShowToolTip();
-            
-            if (isLooking && hasPermission)
-            {
-                ShowToolTip();
-            }
-            else
-            {
-                if (_isToolTipDisplayed)
-                {
-                    WarnHideToolTip?.Invoke(this);
-                }
-                
-                HideToolTip();
-            }
+            UpdateTooltipVisibility();
         }
         
         private void HandlePunctualTooltipUpdate()
         {
             if (!showToolTip)
             {
-                if (!_wasInterruptedByIpad && _isToolTipDisplayed)
-                {
-                    _wasInterruptedByIpad = true;
-                    _tooltipWasShowingBeforeIpad = true;
-                }
-                
+                HandleInterruptionByIpad();
                 HideToolTipWithoutAnimation();
                 return;
             }
             
-            if (_wasInterruptedByIpad && _tooltipWasShowingBeforeIpad)
-            {
-                _wasInterruptedByIpad = false;
-                _tooltipWasShowingBeforeIpad = false;
-            }
+            ResetInterruptionStateIfNeeded();
             
             if (!isPlayerInZone) 
             { 
@@ -256,112 +236,64 @@ namespace jeanf.tooltip
             
             if (!_isPlayerNear)
             {
-                if (_isToolTipDisplayed)
-                {
-                    WarnHideToolTip?.Invoke(this);
-                }
-                
-                HideToolTip();
+                NotifyAndHideToolTip();
                 return;
             }
             
-            if (CheckIfPlayerIsLooking() && RequestPermissionToShowToolTip())
-            {
+            UpdateTooltipVisibility();
+        }
+
+        private void UpdateTooltipVisibility()
+        {
+            bool isLooking = CheckIfPlayerIsLooking();
+            bool hasPermission = RequestPermissionToShowToolTip();
+            
+            if (isLooking && hasPermission)
                 ShowToolTip();
-            }
             else
+                NotifyAndHideToolTip();
+        }
+
+        private void NotifyAndHideToolTip()
+        {
+            if (_isToolTipDisplayed)
+                WarnHideToolTip?.Invoke(this);
+            
+            HideToolTip();
+        }
+
+        private void HandleInterruptionByIpad()
+        {
+            if (!_wasInterruptedByIpad && _isToolTipDisplayed)
             {
-                if (_isToolTipDisplayed)
-                {
-                    WarnHideToolTip?.Invoke(this);
-                }
-                
-                HideToolTip();
+                _wasInterruptedByIpad = true;
+                _tooltipWasShowingBeforeIpad = true;
             }
         }
 
-        private void Subscribe()
+        private void ResetInterruptionStateIfNeeded()
         {
-            ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
-            ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlScheme;
-            ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
-            ToolTipManager.DisableToolTip += DisableToolTip;
-            WorldManager.PublishCurrentZoneId += CheckIfPlayerInZone;
-        }
-        
-        private new void UpdateIsShowingToolTip(bool isShowing)
-        {
-            bool wasIpadShowing = _ipadIsShowing;
-            _ipadIsShowing = !isShowing;
-            
-            if (isPermanentTooltip)
-            {
-                if (_ipadIsShowing && !wasIpadShowing)
-                {
-                    HideToolTipWithoutAnimation();
-                }
-            }
-            else
-            {
-                showToolTip = isShowing;
-            }
+            if (_wasInterruptedByIpad && _tooltipWasShowingBeforeIpad)
+                ResetInterruptionState();
         }
 
-        private void UnSubscribe()
+        private void ResetInterruptionState()
         {
-            ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
-            ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlScheme;
-            ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
-            ToolTipManager.DisableToolTip -= DisableToolTip;
-            _interactableToolTipService?.Destroy();
-            
             _wasInterruptedByIpad = false;
             _tooltipWasShowingBeforeIpad = false;
         }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
-            {
-                _isPlayerNear = true;
-            }
-        }
         
-        private void OnTriggerExit(Collider other)
-        {
-            if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
-            {
-                _isPlayerNear = false;
-            }
-        }
+        #endregion
 
-        public void InstanciateTooltip()
-        {
-            if(isDebug) Debug.Log($"[InteractableToolTipController] - InstanciateTooltip", this);
-            _tooltip = Instantiate(tooltipGameObjectPrefab, transform, false);
-            _tooltip.name = interactableToolTipSettingsSo.tooltipName;
-            _interactableToolTip = _tooltip.GetComponent<InteractableToolTip>();
-            _interactableToolTip.ArrangeRotation();
-            _interactableToolTip.UpdateDescription(interactableToolTipSettingsSo.description);
-
-            _image = _tooltip.GetComponentsInChildren<Image>().Length > 1 ? _tooltip.GetComponentsInChildren<Image>()[2] : _tooltip.GetComponentsInChildren<Image>()[0];
-            
-            _interactableToolTipService = new InteractableToolTipService(_interactableToolTip, interactableToolTipSettingsSo);
-            SetIcon();
-
-            _tooltip.transform.localPosition = Vector3.zero;
-            _tooltip.transform.localRotation = Quaternion.Euler(0,0,0);
-        }
-
-        public void DestroyInstanciateToolTip()
-        {
-            DestroyImmediate(_tooltip);
-        }
+        #region Tooltip Display Methods
         
         public void ShowToolTip()
         {
             if (_interactableToolTip == null) return;
-            if(isDebug) Debug.Log($"[InteractableToolTipController] - ShowToolTip", this);
+            
+            if (isDebug) 
+                Debug.Log("[InteractableToolTipController] ShowToolTip", this);
+            
             _isToolTipDisplayed = true;
             _interactableToolTip.ShowCloseTooltip();
             _interactableToolTipService?.ShowIcons();
@@ -371,13 +303,14 @@ namespace jeanf.tooltip
         public void HideToolTip()
         {
             if (_interactableToolTip == null) return;
-            if(isDebug) Debug.Log($"[InteractableToolTipController] - HideToolTip", this);
+            
+            if (isDebug) 
+                Debug.Log("[InteractableToolTipController] HideToolTip", this);
             
             _isToolTipDisplayed = false;
-            
             _interactableToolTipService?.HideIcons();
             
-            if(showToolTip)
+            if (showToolTip)
                 _interactableToolTip.ShowFarTooltip();
             else
                 _interactableToolTip.HideFarTooltip();
@@ -386,79 +319,124 @@ namespace jeanf.tooltip
         private void HideToolTipWithoutAnimation()
         {
             if (_interactableToolTip == null) return;
-            if(isDebug) Debug.Log($"[InteractableToolTipController] - HideToolTipWithoutAnimation", this);
+            
+            if (isDebug) 
+                Debug.Log("[InteractableToolTipController] HideToolTipWithoutAnimation", this);
             
             _isToolTipDisplayed = false;
             _interactableToolTip.HideCloseTooltip();
             _interactableToolTip.HideFarTooltip();
         }
         
+        #endregion
+
+        #region Player Detection
+        
         private bool CheckIfPlayerIsLooking()
         {
-            if (_cameraTransform is null) return false;
+            if (_cameraTransform == null) return false;
             
-            var isLooking = false;
-            
-            var directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
-
+            Vector3 directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
             _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
-            isLooking = _playerLookingDirectionDot > interactableToolTipSettingsSo.fieldOfViewThreshold;
-            return isLooking;
+            return _playerLookingDirectionDot > interactableToolTipSettingsSo.fieldOfViewThreshold;
         }
         
         private bool RequestPermissionToShowToolTip()
         {
             if (bypassPermissionSystem)
-            {
                 return true;
-            }
             
             bool? permission = RequestShowToolTip?.Invoke(_playerLookingDirectionDot, this);
-            if (permission.HasValue)
+            return permission ?? false;
+        }
+        
+        #endregion
+
+        #region Event Subscription
+        
+        private void Subscribe()
+        {
+            ToolTipManager.UpdateShowToolTip += UpdateIsShowingToolTip;
+            ToolTipManager.UpdateToolTipControlSchemeWithHmd += UpdateControlSchemeWithHmd;
+            ToolTipManager.UpdateToolTipControlScheme += UpdateControlScheme;
+            ToolTipManager.DisableToolTip += DisableToolTip;
+            WorldManager.PublishCurrentZoneId += CheckIfPlayerInZone;
+        }
+        
+        private void UnSubscribe()
+        {
+            ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
+            ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlSchemeWithHmd;
+            ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
+            ToolTipManager.DisableToolTip -= DisableToolTip;
+            WorldManager.PublishCurrentZoneId -= CheckIfPlayerInZone;
+            
+            _interactableToolTipService?.Destroy();
+            ResetInterruptionState();
+        }
+
+        private new void UpdateIsShowingToolTip(bool isShowing)
+        {
+            bool wasIpadShowing = _ipadIsShowing;
+            _ipadIsShowing = !isShowing;
+            
+            if (isPermanentTooltip)
             {
-                return permission.Value;
+                if (_ipadIsShowing && !wasIpadShowing)
+                    HideToolTipWithoutAnimation();
             }
             else
             {
-                return false;
+                showToolTip = isShowing;
             }
         }
-        
-        private void ToolTipLookTowardsPlayer()
-        {
-            _interactableToolTip.LookTowardsTarget(_cameraTransform);
-        }
-        
+
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
         {
-            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
+            if (_image == null) return;
             
-            Sprite icon = inputIconSo.GetInputIcon(inputName);
-            _image.sprite = icon;
+            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
+            _image.sprite = inputIconSo.GetInputIcon(inputName);
         }
 
-        private void UpdateControlScheme(bool hmdStatus)
+        private void UpdateControlSchemeWithHmd(bool hmdStatus)
         {
-            string inputName;
-
-            inputName = interactableToolTipInputSo.GetBindingName(hmdStatus ? BroadcastControlsStatus.ControlScheme.XR : BroadcastControlsStatus.ControlScheme.KeyboardMouse);
-
-            if (_interactableToolTipService is null) return;
+            if (_interactableToolTipService == null || _image == null) return;
             
-            var icon = inputIconSo.GetInputIcon(inputName);
-            _image.sprite = icon;
+            var controlScheme = hmdStatus ? 
+                BroadcastControlsStatus.ControlScheme.XR : 
+                BroadcastControlsStatus.ControlScheme.KeyboardMouse;
+            
+            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
+            _image.sprite = inputIconSo.GetInputIcon(inputName);
         }
 
         private void CheckIfPlayerInZone(string zoneId)
         {
-            if(currentZone == null) 
-            {
-                return;
-            }
+            if (currentZone == null) return;
             
-            bool wasInZone = isPlayerInZone;
             isPlayerInZone = (zoneId == currentZone.id.id);
         }
+        
+        #endregion
+
+        #region Editor/Debug Methods
+        
+        public void InstanciateTooltip()
+        {
+            if (isDebug) 
+                Debug.Log("[InteractableToolTipController] InstanciateTooltip", this);
+            
+            InitializeTooltip();
+        }
+
+        public void DestroyInstanciateToolTip()
+        {
+            if (_tooltip != null)
+                DestroyImmediate(_tooltip);
+        }
+        
+        #endregion
     }
 }

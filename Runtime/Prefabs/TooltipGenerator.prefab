@@ -47,12 +47,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   showToolTip: 1
-  tooltipGameObjectPrefab: {fileID: 4073338003328646981, guid: dcd912ad423651040a99c1a3dabf873e,
+  isDebug: 0
+  isPermanentTooltip: 1
+  bypassPermissionSystem: 0
+  tooltipGameObjectPrefab: {fileID: 4073338003328646981, guid: b663c163ce3c12d49b895cc835ed060e,
     type: 3}
   objectToBeViewed: {fileID: 0}
-  interactableToolTipSettingsSo: {fileID: 11400000, guid: 33e15a9128f0cb344ad79646875c0d07,
+  interactableToolTipSettingsSo: {fileID: 11400000, guid: c1529d2ff6357354980580394f28ad76,
     type: 2}
-  inputIconSo: {fileID: 11400000, guid: 5fb8766124690fd4ea7ed5b6f7ad2dd7, type: 2}
+  inputIconSo: {fileID: 11400000, guid: bde1c948ca51a1642946461b1ff1177f, type: 2}
   interactableToolTipInputSo: {fileID: 11400000, guid: dcee806ba0dfa3e41a642a15a21900ef,
     type: 2}
   currentZone: {fileID: 0}
