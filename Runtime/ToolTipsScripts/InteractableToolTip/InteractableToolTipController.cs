@@ -267,7 +267,6 @@ namespace jeanf.tooltip
                 if (!enableCountDown)
                 {
                     enableCountDown = true;
-                    Debug.Log($"validationTime = {validationTime}");
                     FunctionTimer.Create(
                         delegate
                         {
