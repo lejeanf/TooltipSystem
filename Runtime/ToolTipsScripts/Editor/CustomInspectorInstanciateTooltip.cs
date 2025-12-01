@@ -15,11 +15,11 @@ public class CustomInspectorInstanciateTooltip : Editor
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Instantiate Tooltip"))
         {
-            interactableToolTipController.InstanciateTooltip();
+            interactableToolTipController.InstantiateTooltip();
         }
         if (GUILayout.Button("Destroy Tooltip"))
         {
-            interactableToolTipController.DestroyInstanciateToolTip();
+            interactableToolTipController.DestroyInstantiateToolTip();
         }
         GUILayout.EndHorizontal();
         

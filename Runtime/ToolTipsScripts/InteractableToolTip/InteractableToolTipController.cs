@@ -42,20 +42,16 @@ namespace jeanf.tooltip
         private bool _tooltipWasShowingBeforeIpad;
         private bool _ipadIsShowing = false;
         
-        //Components and services
         private InteractableToolTipService _interactableToolTipService;
         private Transform _cameraTransform;
         private Image _image;
         private GameObject _tooltip;
         private InteractableToolTip _interactableToolTip;
         
-        //Calculated values
         private float _playerLookingDirectionDot;
         
-        //Layer mask in cache to avoid repeated calls
         private int _playerLayerMask;
 
-        //Public properties
         public bool IsToolTipDisplayed => _isToolTipDisplayed;
         public bool IsShowingTooltip => showToolTip;
         public bool IsPermanentTooltip => isPermanentTooltip;
@@ -197,9 +193,6 @@ namespace jeanf.tooltip
         
         public void NotifyIpadHidden()
         {
-            if (isDebug) 
-                Debug.Log($"[InteractableToolTipController] NotifyIpadHidden: isPermanentTooltip = {isPermanentTooltip}");
-            
             if (isPermanentTooltip)
                 _ipadIsShowing = false;
         }
@@ -314,9 +307,6 @@ namespace jeanf.tooltip
         {
             if (_interactableToolTip == null) return;
             
-            if (isDebug) 
-                Debug.Log("[InteractableToolTipController] ShowToolTip", this);
-            
             _isToolTipDisplayed = true;
             _interactableToolTip.ShowCloseTooltip();
             _interactableToolTipService?.ShowIcons();
@@ -326,9 +316,6 @@ namespace jeanf.tooltip
         public void HideToolTip()
         {
             if (_interactableToolTip == null) return;
-            
-            if (isDebug) 
-                Debug.Log("[InteractableToolTipController] HideToolTip", this);
             
             _isToolTipDisplayed = false;
             _interactableToolTipService?.HideIcons();
@@ -343,9 +330,6 @@ namespace jeanf.tooltip
         {
             if (_interactableToolTip == null) return;
             
-            if (isDebug) 
-                Debug.Log("[InteractableToolTipController] HideToolTipWithoutAnimation", this);
-            
             _isToolTipDisplayed = false;
             _interactableToolTip.HideCloseTooltip();
             _interactableToolTip.HideFarTooltip();
@@ -359,7 +343,7 @@ namespace jeanf.tooltip
         {
             if (_cameraTransform == null) return false;
             
-            Vector3 directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
+            var directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
             _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
             
             return _playerLookingDirectionDot > interactableToolTipSettingsSo.fieldOfViewThreshold;
@@ -370,7 +354,7 @@ namespace jeanf.tooltip
             if (bypassPermissionSystem)
                 return true;
             
-            bool? permission = RequestShowToolTip?.Invoke(_playerLookingDirectionDot, this);
+            var permission = RequestShowToolTip?.Invoke(_playerLookingDirectionDot, this);
             return permission ?? false;
         }
         
@@ -401,7 +385,7 @@ namespace jeanf.tooltip
 
         private new void UpdateIsShowingToolTip(bool isShowing)
         {
-            bool wasIpadShowing = _ipadIsShowing;
+            var wasIpadShowing = _ipadIsShowing;
             _ipadIsShowing = !isShowing;
             
             if (isPermanentTooltip)
@@ -419,8 +403,7 @@ namespace jeanf.tooltip
         {
             if (_image == null) return;
             
-            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
-            _image.sprite = inputIconSo.GetInputIcon(inputName);
+            _image.sprite = inputIconSo.GetInputIcon(interactableToolTipInputSo.GetBindingName(controlScheme));
         }
 
         private void UpdateControlSchemeWithHmd(bool hmdStatus)
@@ -431,8 +414,7 @@ namespace jeanf.tooltip
                 BroadcastControlsStatus.ControlScheme.XR : 
                 BroadcastControlsStatus.ControlScheme.KeyboardMouse;
             
-            string inputName = interactableToolTipInputSo.GetBindingName(controlScheme);
-            _image.sprite = inputIconSo.GetInputIcon(inputName);
+            _image.sprite = inputIconSo.GetInputIcon(interactableToolTipInputSo.GetBindingName(controlScheme));
         }
 
         private void CheckIfPlayerInZone(string zoneId)
@@ -446,15 +428,12 @@ namespace jeanf.tooltip
 
         #region Editor/Debug Methods
         
-        public void InstanciateTooltip()
+        public void InstantiateTooltip()
         {
-            if (isDebug) 
-                Debug.Log("[InteractableToolTipController] InstanciateTooltip", this);
-            
             InitializeTooltip();
         }
 
-        public void DestroyInstanciateToolTip()
+        public void DestroyInstantiateToolTip()
         {
             if (_tooltip != null)
                 DestroyImmediate(_tooltip);
