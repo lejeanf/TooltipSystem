@@ -58,13 +58,20 @@ namespace jeanf.tooltip
         
         private float validationTime = 0.75f;
         
-        private string timerName = "NoLongerLooksTheObjectToBeViewed";
-        bool enableCountDown = false;
+        private string timerName;
+        private bool enableCountDown = false;
+        
+        private FunctionTimer _activeTimer;
         
         #region Unity Lifecycle
         
         private void Awake()
         {
+            timerName = $"TooltipTimer_{GetInstanceID()}";
+            
+            if (isDebug)
+                Debug.Log($"[InteractableToolTip] Created with timer name: {timerName}", this);
+            
             _playerLayerMask = LayerMask.NameToLayer("Player");
             _cameraTransform = Camera.main.transform;
             
@@ -79,7 +86,11 @@ namespace jeanf.tooltip
 
         private void OnEnable() => Subscribe();
         private void OnDisable() => UnSubscribe();
-        private void OnDestroy() => UnSubscribe();
+        private void OnDestroy()
+        {
+            StopActiveTimer();
+            UnSubscribe();
+        }
         
         private void Update()
         {
@@ -98,7 +109,10 @@ namespace jeanf.tooltip
         private void OnTriggerExit(Collider other)
         {
             if (other.gameObject.layer == _playerLayerMask)
+            {
                 _isPlayerNear = false;
+                StopActiveTimer();
+            }
         }
         
         #endregion
@@ -205,7 +219,8 @@ namespace jeanf.tooltip
         {
             if (_ipadIsShowing || !isPlayerInZone) 
             { 
-                HideToolTipWithoutAnimation(); 
+                HideToolTipWithoutAnimation();
+                StopActiveTimer();
                 return; 
             }
             
@@ -224,6 +239,7 @@ namespace jeanf.tooltip
             {
                 HandleInterruptionByIpad();
                 HideToolTipWithoutAnimation();
+                StopActiveTimer();
                 return;
             }
             
@@ -231,7 +247,8 @@ namespace jeanf.tooltip
             
             if (!isPlayerInZone) 
             { 
-                HideToolTipWithoutAnimation(); 
+                HideToolTipWithoutAnimation();
+                StopActiveTimer();
                 return; 
             }
             
@@ -252,22 +269,50 @@ namespace jeanf.tooltip
             if (isLooking && hasPermission)
             {
                 ShowToolTip();
+                
+                StopActiveTimer();
                 enableCountDown = false;
-                FunctionTimer.StopTimer(timerName);
+                
+                if (isDebug)
+                    Debug.Log($"[InteractableToolTip] Player looking - Stopped timer {timerName}", this);
             }
             else
             {
                 if (!enableCountDown)
                 {
                     enableCountDown = true;
-                    FunctionTimer.Create(
+                    
+                    _activeTimer = FunctionTimer.Create(
                         delegate
                         {
+                            if (isDebug)
+                                Debug.Log($"[InteractableToolTip] Timer {timerName} completed - Hiding tooltip", this);
+                            
                             NotifyAndHideToolTip();
+                            enableCountDown = false;
+                            _activeTimer = null;
                         }, 
-                        validationTime, timerName);
+                        validationTime, 
+                        timerName
+                    );
+                    
+                    if (isDebug)
+                        Debug.Log($"[InteractableToolTip] Player not looking - Created timer {timerName} for {validationTime}s", this);
                 }
             }
+        }
+
+        private void StopActiveTimer()
+        {
+            if (_activeTimer != null && _activeTimer.IsActive)
+            {
+                if (isDebug)
+                    Debug.Log($"[InteractableToolTip] Manually stopping timer {timerName}", this);
+                
+                FunctionTimer.StopTimer(timerName);
+                _activeTimer = null;
+            }
+            enableCountDown = false;
         }
 
         private void NotifyAndHideToolTip()
@@ -276,6 +321,7 @@ namespace jeanf.tooltip
                 WarnHideToolTip?.Invoke(this);
             
             HideToolTip();
+            StopActiveTimer();
         }
 
         private void HandleInterruptionByIpad()
@@ -373,6 +419,8 @@ namespace jeanf.tooltip
         
         private void UnSubscribe()
         {
+            StopActiveTimer();
+            
             ToolTipManager.UpdateShowToolTip -= UpdateIsShowingToolTip;
             ToolTipManager.UpdateToolTipControlSchemeWithHmd -= UpdateControlSchemeWithHmd;
             ToolTipManager.UpdateToolTipControlScheme -= UpdateControlScheme;
@@ -391,7 +439,10 @@ namespace jeanf.tooltip
             if (isPermanentTooltip)
             {
                 if (_ipadIsShowing && !wasIpadShowing)
+                {
                     HideToolTipWithoutAnimation();
+                    StopActiveTimer();
+                }
             }
             else
             {
@@ -435,6 +486,8 @@ namespace jeanf.tooltip
 
         public void DestroyInstantiateToolTip()
         {
+            StopActiveTimer();
+            
             if (_tooltip != null)
                 DestroyImmediate(_tooltip);
         }
