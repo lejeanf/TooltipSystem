@@ -39,8 +39,8 @@ namespace jeanf.tooltip
         [SerializeField] private Transform bottomLeft;
         [SerializeField] private Transform bottomRight;
         
-        public delegate void UpdateNormalisedPathDelegate(float[][] normalisedPath);
-        public static UpdateNormalisedPathDelegate UpdateNormalisedPath;
+        public delegate void BroadcastPathDelegate(NavMeshPath path);
+        public static BroadcastPathDelegate OnBroadcastPath;
         
         private List<Vector3> _worldPath;
         private float[][] _normalisedPath;
@@ -82,7 +82,7 @@ namespace jeanf.tooltip
         
         private void Awake()
         {
-            _worldPath = new List<Vector3>(128); // Pré-allouer avec capacité
+            _worldPath = new List<Vector3>(128);
             _normalisedPath = null;
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
@@ -91,8 +91,8 @@ namespace jeanf.tooltip
             _playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
             _lastPlayerPosition = _playerTransform.position;
             
-            _sprites = new List<GameObject>(128); // Pré-allouer avec capacité
-            _elevatedPathCache = new Vector3[128]; // Pré-allouer le cache
+            _sprites = new List<GameObject>(128);
+            _elevatedPathCache = new Vector3[128];
 
             _lineRenderer.startWidth = lineWidth;
             _lineRenderer.endWidth = lineWidth;
@@ -143,7 +143,7 @@ namespace jeanf.tooltip
                 return;
             }
             
-            if (IsPathFound())
+            if (UpdatePath())
             {
                 switch (navigationToolTipType)
                 {
@@ -173,25 +173,19 @@ namespace jeanf.tooltip
             _lastPlayerPosition = _playerTransform.position;
         }
 
-        private bool IsPathFound()
+        private bool UpdatePath()
         {
             _playerNavMeshPosition = GetNearestNavMeshPoint(_playerTransform.position);
             _targetNavMeshPosition = GetNearestNavMeshPoint(target.position);
+            
+            var isPath = NavMesh.CalculatePath(_playerNavMeshPosition, 
+                             _targetNavMeshPosition, 
+                             NavMesh.AllAreas, _path) &&
+                         _path.corners.Length > 0;
 
-            return NavMesh.CalculatePath(_playerNavMeshPosition, 
-                                            _targetNavMeshPosition, 
-                                            NavMesh.AllAreas, _path) &&
-                    _path.corners.Length > 0;
-        }
-
-        private void UpdatePath()
-        {
-            _playerNavMeshPosition = GetNearestNavMeshPoint(_playerTransform.position);
-            _targetNavMeshPosition = GetNearestNavMeshPoint(target.position);
-
-            NavMesh.CalculatePath(_playerNavMeshPosition,
-                _targetNavMeshPosition,
-                NavMesh.AllAreas, _path);
+            if(isPath) OnBroadcastPath?.Invoke(_path);
+            
+            return isPath;
         }
         
         //Use ref to avoid copying struct
@@ -212,7 +206,7 @@ namespace jeanf.tooltip
             
             if (_elevatedPathCache.Length < cornerCount)
             {
-                _elevatedPathCache = new Vector3[cornerCount * 2]; // Double to avoid frequent reallocations
+                _elevatedPathCache = new Vector3[cornerCount * 2]; 
             }
             
             for (int i = 0; i < cornerCount; i++)
@@ -278,9 +272,6 @@ namespace jeanf.tooltip
                 _sprites.RemoveAt(0);
                 
                 if(_worldPath.Count > 0) _worldPath.RemoveAt(0);
-                
-                NormalisePath();
-                UpdateNormalisedPath?.Invoke(_normalisedPath);
             }
         }
 
@@ -386,9 +377,6 @@ namespace jeanf.tooltip
             
             if(changeLastSpriteColor)
                 ChangeLastSpriteColor();
-            
-            NormalisePath();
-            UpdateNormalisedPath?.Invoke(_normalisedPath);
         }
 
         private void ChangeLastSpriteColor()
@@ -419,44 +407,6 @@ namespace jeanf.tooltip
             }
             
             _sprites.Clear();
-        }
-        
-        private void NormalisePath()
-        {
-            int cornerCount = _path.corners.Length;
-            
-            if (cornerCount == 0) return;
-            if (topLeft == null || topRight == null || bottomRight == null || bottomLeft == null) return;
-
-            Vector3 topLeftPos = topLeft.position;
-            Vector3 topRightPos = topRight.position;
-            Vector3 bottomLeftPos = bottomLeft.position;
-            
-            float width = topLeftPos.x - topRightPos.x;
-            float height = topLeftPos.z - bottomLeftPos.z;
-            
-            float invWidth = 1f / width;
-            float invHeight = 1f / height;
-
-            if (_normalisedPath == null || _normalisedPath.Length < cornerCount)
-            {
-                _normalisedPath = new float[cornerCount][];
-                for (int i = 0; i < cornerCount; i++)
-                {
-                    _normalisedPath[i] = new float[2];
-                }
-            }
-            
-            for (int i = 0; i < cornerCount; i++)
-            {
-                Vector3 pos = _path.corners[i];
-                
-                float distanceFromTopLeftX = (topLeftPos.x - pos.x) * invWidth;
-                float distanceFromTopLeftY = 1f - (1f - (topLeftPos.z - pos.z) * invHeight);
-                
-                _normalisedPath[i][0] = distanceFromTopLeftX;
-                _normalisedPath[i][1] = distanceFromTopLeftY;
-            }
         }
 
         private void SetDestination(Transform targetTransform)
