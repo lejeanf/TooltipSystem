@@ -289,6 +289,8 @@ namespace jeanf.tooltip
         
         private bool PlayerArrivedToDestination()
         {
+            if(target is null) return true;
+            if(_playerTransform is null) return true;
             Vector3 delta = _playerTransform.position - target.position;
             return delta.sqrMagnitude <= _destinationThresholdSqr;
         }
