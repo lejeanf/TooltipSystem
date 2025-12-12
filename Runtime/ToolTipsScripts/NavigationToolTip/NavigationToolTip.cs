@@ -143,7 +143,7 @@ namespace jeanf.tooltip
         private void Update()
         {
             if (!showToolTip) { HideLine(); HideSprites(); return; }
-            if (_playerTransform is null || target is null) return;
+            if (_playerTransform == null || target == null) return;
             
             if (PlayerArrivedToDestination())
             {
@@ -289,8 +289,8 @@ namespace jeanf.tooltip
         
         private bool PlayerArrivedToDestination()
         {
-            if(target is null) return true;
-            if(_playerTransform is null) return true;
+            if(target == null) return true;
+            if(_playerTransform == null) return true;
             Vector3 delta = _playerTransform.position - target.position;
             return delta.sqrMagnitude <= _destinationThresholdSqr;
         }
