@@ -18,6 +18,8 @@ namespace jeanf.tooltip
         [SerializeField] private float destinationThreshold = 1f;
         [Tooltip("Distance at which the player and the target is considered on navmesh even if not on it")]
         [SerializeField] private float navmeshDetectionDistance = 10f;
+        [Tooltip("Time interval in seconds between path recalculations (0 = every frame)")]
+        [SerializeField] private float pathSamplingRate = 0.2f;
         [Header("Line Settings")]
         [SerializeField] private Color startColor = Color.yellow;
         [SerializeField] private Color endColor = Color.yellow;
@@ -59,11 +61,18 @@ namespace jeanf.tooltip
 
         private Vector3 _lastPlayerPosition;
         
+        //Timer for path sampling rate
+        private float _pathUpdateTimer = 0f;
+        
         //Cache to avoid allocations in DrawLine
         private Vector3[] _elevatedPathCache;
         
         //Cache for NavMeshHit (avoids boxing)
         private NavMeshHit _navMeshHit;
+        
+        //Performance optimization: track if path/visuals need update
+        private bool _pathNeedsRedraw = false;
+        private int _lastPathCornerCount = 0;
         
         //Constants to avoid recalculations
         private const float MOVEMENT_THRESHOLD = 0.005f;
@@ -102,7 +111,6 @@ namespace jeanf.tooltip
             
             _lineRenderer.enabled = false;
             
-            //Pre-calculate the distances squared
             CacheSquaredDistances();
         }
 
@@ -135,7 +143,7 @@ namespace jeanf.tooltip
         private void Update()
         {
             if (!showToolTip) { HideLine(); HideSprites(); return; }
-            if (_playerTransform == null || target == null) return;
+            if (_playerTransform is null || target is null) return;
             
             if (PlayerArrivedToDestination())
             {
@@ -143,34 +151,64 @@ namespace jeanf.tooltip
                 return;
             }
             
-            if (UpdatePath())
+            _pathUpdateTimer += Time.deltaTime;
+            
+            bool shouldUpdatePath = pathSamplingRate <= 0f || _pathUpdateTimer >= pathSamplingRate;
+            
+            if (shouldUpdatePath)
             {
-                switch (navigationToolTipType)
+                _pathUpdateTimer = 0f;
+                
+                if (UpdatePath())
                 {
-                    case NavigationToolTipType.LineRenderer:
-                        HideSprites();
-                        DrawLine();
-                        break;
-                    case NavigationToolTipType.SpriteLine:
-                        HideLine();
-                        DrawSpritesPath();
-                        break;
+                    bool pathChanged = _path.corners.Length != _lastPathCornerCount;
+                    _lastPathCornerCount = _path.corners.Length;
+                    
+                    if (pathChanged)
+                    {
+                        _pathNeedsRedraw = true;
+                    }
                 }
-            }
-            else
-            {
-                switch (navigationToolTipType)
+                else
                 {
-                    case NavigationToolTipType.LineRenderer:
+                    if (navigationToolTipType == NavigationToolTipType.LineRenderer)
                         HideLine();
-                        break;
-                    case NavigationToolTipType.SpriteLine:
+                    else
                         HideSprites();
-                        break;
+                    return;
                 }
             }
             
+            if (navigationToolTipType == NavigationToolTipType.LineRenderer)
+            {
+                UpdateLineRenderer();
+            }
+            else
+            {
+                UpdateSpriteLine();
+            }
+            
             _lastPlayerPosition = _playerTransform.position;
+        }
+
+        private void UpdateLineRenderer()
+        {
+            HideSprites();
+            
+            if (_pathNeedsRedraw)
+            {
+                DrawLine();
+                _pathNeedsRedraw = false;
+            }
+        }
+
+        private void UpdateSpriteLine()
+        {
+            HideLine();
+            
+            if (_path.corners.Length == 0) return;
+            
+            DrawSpritesPath();
         }
 
         private bool UpdatePath()
@@ -188,7 +226,6 @@ namespace jeanf.tooltip
             return isPath;
         }
         
-        //Use ref to avoid copying struct
         Vector3 GetNearestNavMeshPoint(Vector3 position)
         {
             if (NavMesh.SamplePosition(position, out _navMeshHit, navmeshDetectionDistance, NavMesh.AllAreas))
@@ -215,17 +252,17 @@ namespace jeanf.tooltip
                 corner.y += ELEVATION_OFFSET;
                 _elevatedPathCache[i] = corner;
             }
-
+            
             _lineRenderer.positionCount = cornerCount;
             _lineRenderer.SetPositions(_elevatedPathCache);
         }
 
         private void HideLine()
         {
-            _lineRenderer.positionCount = 0;
-            _lineRenderer.enabled = false;
+            if(_lineRenderer.enabled)
+                _lineRenderer.enabled = false;
         }
-        
+
         private void DrawSpritesPath()
         {
             if (_path.corners.Length == 0) return;
@@ -233,7 +270,6 @@ namespace jeanf.tooltip
             if (IsPlayerGoingTowardPath())
             {
                 CheckAndRemoveFirstSprite();
-                _lastPlayerPosition = _playerTransform.position;
                 _isPlayerOnPath = true;
                 return;
             }
@@ -306,7 +342,7 @@ namespace jeanf.tooltip
 
         private bool IsPlayerNearFirstSprite()
         {
-            if (_sprites.Count == 0 || _playerTransform == null) return false;
+            if (_sprites.Count == 0 || _playerTransform is null) return false;
                 
             GameObject firstSprite = _sprites[0];
             Vector3 delta = _playerTransform.position - firstSprite.transform.position;
@@ -315,7 +351,7 @@ namespace jeanf.tooltip
         
         private bool IsPlayerInMovement()
         {
-            if (_playerTransform == null) return false;
+            if (_playerTransform is null) return false;
             
             Vector3 delta = _playerTransform.position - _lastPlayerPosition;
             return delta.sqrMagnitude > _movementThresholdSqr;
@@ -323,12 +359,22 @@ namespace jeanf.tooltip
 
         private bool IsPlayerOnSpritePath()
         {
-            if (_sprites.Count == 0 || _playerTransform == null)
+            if (_sprites.Count == 0 || _playerTransform is null)
                 return false;
 
             Vector3 playerPos = _playerTransform.position;
             
-            for (int i = 0; i < _sprites.Count; i++)
+            int checkCount = Mathf.Min(_sprites.Count, 5);
+            for (int i = 0; i < checkCount; i++)
+            {
+                Vector3 delta = playerPos - _sprites[i].transform.position;
+                if (delta.sqrMagnitude < _playerDistanceThresholdSpritePathSqr)
+                {
+                    return true;
+                }
+            }
+            
+            for (int i = checkCount; i < _sprites.Count; i++)
             {
                 Vector3 delta = playerPos - _sprites[i].transform.position;
                 if (delta.sqrMagnitude < _playerDistanceThresholdSpritePathSqr)
@@ -383,10 +429,10 @@ namespace jeanf.tooltip
         {
             int index = _sprites.Count - 1;
 
-            if (index >= 0 && _sprites[index] != null)
+            if (index >= 0 && _sprites[index] is not null)
             {
                 SpriteRenderer lastSpriteRenderer = _navigationObjectPool.GetSpriteRenderer(_sprites[index]);
-                if (lastSpriteRenderer != null)
+                if (lastSpriteRenderer is not null)
                 {
                     Color color = lastSpriteColor;
                     color.a = 1f;
@@ -397,13 +443,10 @@ namespace jeanf.tooltip
 
         private void HideSprites()
         {
-            int count = transform.childCount;
-    
-            for (int i = count - 1; i >= 0; i--)
+            for (int i = _sprites.Count - 1; i >= 0; i--)
             {
-                Transform child = transform.GetChild(i);
-                if(child.gameObject.activeSelf)
-                    _navigationObjectPool.Release(child.gameObject);
+                if(_sprites[i] is not null && _sprites[i].activeSelf)
+                    _navigationObjectPool.Release(_sprites[i]);
             }
             
             _sprites.Clear();
@@ -413,8 +456,12 @@ namespace jeanf.tooltip
         {
             target = targetTransform;
             showToolTip = true;
+            _pathUpdateTimer = pathSamplingRate; // Force immediate update
             UpdatePath();
-            DrawSpritesFromZero();
+            _pathNeedsRedraw = true;
+            
+            if (navigationToolTipType == NavigationToolTipType.SpriteLine)
+                DrawSpritesFromZero();
         }
 
         private void SetNewMapCorner(Transform newCorner, NavigationMapCornerType cornerType)
