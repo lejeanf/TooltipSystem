@@ -195,6 +195,18 @@ namespace jeanf.tooltip
         {
             //Method for future extension if necessary
         }
+
+        public void EnableTooltipVisibility()
+        {
+            UpdateIsShowingToolTip(true);
+            isPermanentTooltip = true;
+        }
+        
+        public void DisableTooltipVisibility()
+        {
+            UpdateIsShowingToolTip(false);
+            isPermanentTooltip = false;
+        }
         
         public void ResumeTooltipAfterInterruption()
         {
