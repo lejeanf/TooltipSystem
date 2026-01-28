@@ -28,6 +28,9 @@ namespace jeanf.tooltip
             
             string keyboardMouseInputName = GetBindingName(KeyboardMouseInput, BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             inputsDictionnary.Add(BroadcastControlsStatus.ControlScheme.KeyboardMouse, keyboardMouseInputName);
+
+            string freeCamInputName = GetBindingName(KeyboardMouseInput, BroadcastControlsStatus.ControlScheme.Freecam);
+            inputsDictionnary.Add(BroadcastControlsStatus.controlScheme, freeCamInputName);
         }
 
         public string GetBindingName(BroadcastControlsStatus.ControlScheme controlScheme)
@@ -61,6 +64,8 @@ namespace jeanf.tooltip
                     return "Gamepad";
                 case BroadcastControlsStatus.ControlScheme.XR:
                     return "XR";
+                case BroadcastControlsStatus.ControlScheme.Freecam:
+                    return "FreeCam";
                 default:
                     return null;
             }
