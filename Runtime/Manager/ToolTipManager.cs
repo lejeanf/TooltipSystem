@@ -26,8 +26,6 @@ namespace jeanf.tooltip
         
         public delegate void DisableTipDelegate();
         public static DisableTipDelegate DisableToolTip;
-        
-        // NEW: Track tooltip state before iPad interruption
         private bool _punctualTooltipsWereActiveBeforeIpad = false;
         
         private void OnEnable() => Subscribe();
@@ -41,7 +39,6 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised += UpdateControlScheme;
             hmdState.OnEventRaised += UpdateTooltip;
-            //ipadState.OnEventRaised += OnIpadState;
         }
 
         private void UnSubscribe()
@@ -51,7 +48,6 @@ namespace jeanf.tooltip
             
             controlSchemeChannelSo.OnEventRaised -= UpdateControlScheme;
             hmdState.OnEventRaised -= UpdateTooltip;
-            //ipadState.OnEventRaised -= OnIpadState;
         }
 
         private void UpdateControlScheme(BroadcastControlsStatus.ControlScheme controlScheme)
@@ -69,14 +65,12 @@ namespace jeanf.tooltip
         {
             if (ipadState)
             {
-                // iPad is being shown - remember if punctual tooltips were active and hide ALL tooltips
                 _punctualTooltipsWereActiveBeforeIpad = ArePunctualTooltipsCurrentlyActive();
                 if(isDebug) Debug.Log($"[ToolTipManager] - OnIpadState: invoke event UpdateShowToolTip.");
                 UpdateShowToolTip?.Invoke(false);
             }
             else
             {
-                // iPad is being hidden - handle different tooltip types differently
                 HandleTooltipResumption();
             }
         }
@@ -84,10 +78,9 @@ namespace jeanf.tooltip
         private void HandleTooltipResumption()
         {
             if(isDebug) Debug.Log($"[ToolTipManager] - HandleTooltipResumption");
-            var helpTooltipControls = FindObjectsOfType<HelpToolTipControls>();
-            var interactableTooltipControls = FindObjectsOfType<InteractableToolTipController>();
+            var helpTooltipControls = FindObjectsByType<HelpToolTipControls>(FindObjectsSortMode.None);;
+            var interactableTooltipControls = FindObjectsByType<InteractableToolTipController>(FindObjectsSortMode.None);;
             
-            // Handle permanent tooltips
             foreach (var control in interactableTooltipControls)
             {
                 if (control.IsPermanentTooltip)
@@ -97,7 +90,6 @@ namespace jeanf.tooltip
                 }
             }
             
-            // Handle punctual tooltips
             foreach (var control in helpTooltipControls)
             {
                 if (!control.IsPermanentTooltip)
@@ -127,14 +119,14 @@ namespace jeanf.tooltip
 
         private bool ArePunctualTooltipsCurrentlyActive()
         {
-            var helpTooltipControls = FindObjectsOfType<HelpToolTipControls>();
+            var helpTooltipControls = FindObjectsByType<HelpToolTipControls>(FindObjectsSortMode.None);
             foreach (var control in helpTooltipControls)
             {
                 if (!control.IsPermanentTooltip && control.IsShowingTooltip)
                     return true;
             }
             
-            var interactableTooltipControls = FindObjectsOfType<InteractableToolTipController>();
+            var interactableTooltipControls = FindObjectsByType<InteractableToolTipController>(FindObjectsSortMode.None);
             foreach (var control in interactableTooltipControls)
             {
                 if (!control.IsPermanentTooltip && control.IsShowingTooltip)
