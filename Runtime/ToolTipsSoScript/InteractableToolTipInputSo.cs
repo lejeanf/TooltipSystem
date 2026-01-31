@@ -13,7 +13,7 @@ namespace jeanf.tooltip
         public InputActionReference XrInput;
         public InputActionReference GamepadInput;
         public InputActionReference KeyboardMouseInput;
-
+        public InputActionReference freeCamInput;
         private Dictionary<BroadcastControlsStatus.ControlScheme, string> inputsDictionnary;
         
         private void OnEnable()
@@ -29,7 +29,7 @@ namespace jeanf.tooltip
             string keyboardMouseInputName = GetBindingName(KeyboardMouseInput, BroadcastControlsStatus.ControlScheme.KeyboardMouse);
             inputsDictionnary.Add(BroadcastControlsStatus.ControlScheme.KeyboardMouse, keyboardMouseInputName);
 
-            string freeCamInputName = GetBindingName(KeyboardMouseInput, BroadcastControlsStatus.ControlScheme.Freecam);
+            string freeCamInputName = GetBindingName(freeCamInput, BroadcastControlsStatus.ControlScheme.Freecam);
             inputsDictionnary.Add(BroadcastControlsStatus.controlScheme, freeCamInputName);
         }
 
