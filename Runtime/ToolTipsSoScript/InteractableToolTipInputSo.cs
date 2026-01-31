@@ -30,7 +30,7 @@ namespace jeanf.tooltip
             inputsDictionnary.Add(BroadcastControlsStatus.ControlScheme.KeyboardMouse, keyboardMouseInputName);
 
             string freeCamInputName = GetBindingName(freeCamInput, BroadcastControlsStatus.ControlScheme.Freecam);
-            inputsDictionnary.Add(BroadcastControlsStatus.controlScheme, freeCamInputName);
+            inputsDictionnary.Add(BroadcastControlsStatus.ControlScheme.Freecam, freeCamInputName);
         }
 
         public string GetBindingName(BroadcastControlsStatus.ControlScheme controlScheme)
