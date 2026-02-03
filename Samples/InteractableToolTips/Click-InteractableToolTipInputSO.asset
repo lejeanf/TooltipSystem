@@ -17,4 +17,5 @@ MonoBehaviour:
     type: 3}
   KeyboardMouseInput: {fileID: 873782351341311617, guid: 110d9016d6486d84697b9d7a66a57d45,
     type: 3}
-  followingMessage: clicker
+  freeCamInput: {fileID: 873782351341311617, guid: 110d9016d6486d84697b9d7a66a57d45,
+    type: 3}
