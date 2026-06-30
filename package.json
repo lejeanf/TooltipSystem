@@ -1,9 +1,9 @@
 {
   "name":"fr.jeanf.tooltipsystem",
-  "version":"1.5.35",
+  "version":"1.6.0",
   "displayName":"Tooltip System",
-  "description":"This package contains a Tooltip System that will display useful UI information for players",
-  "unity": "2021.3",
+  "description":"A Tooltip System for in-world player hints, featuring a Canvas-free pooled renderer (VR-ready): zone-, proximity-, and gaze-driven visibility, per-control-scheme content, smart repositioning, and clickable actions.",
+  "unity": "6000.4.2f1",
   "keywords": [
     "jeanf",
     "Tooltip System"
