@@ -21,6 +21,14 @@ namespace jeanf.tooltip
         [Tooltip("Billboarding when this position is used. Inherit = use the tooltip's Auto-orient mode.")]
         public Billboard billboard = Billboard.Inherit;
 
+        [Tooltip("Use per-position billboard axis limits for this candidate instead of the controller's. Off = inherit. " +
+                 "Each position sits at its own orientation, so the allowed facing arc is usually position-specific.")]
+        public bool overrideBillboardConstraints = false;
+        public BillboardConstraints billboardConstraints = new BillboardConstraints();
+
+        /// <summary>null = inherit the controller's; otherwise this position's own billboard axis limits.</summary>
+        public BillboardConstraints ConstraintsOverride => overrideBillboardConstraints ? billboardConstraints : null;
+
         /// <summary>null = inherit; otherwise the forced icon side (true = right).</summary>
         public bool? IconOnRightOverride =>
             iconSide == IconSide.Inherit ? (bool?)null : iconSide == IconSide.Right;

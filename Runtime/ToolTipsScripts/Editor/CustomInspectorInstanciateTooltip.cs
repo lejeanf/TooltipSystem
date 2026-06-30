@@ -62,10 +62,29 @@ public class CustomInspectorInstanciateTooltip : Editor
 
         EditorGUILayout.Space();
         // Repositioning, candidate list, and legacy refs are drawn below in their own collapsible blocks.
-        DrawPropertiesExcluding(serializedObject, "m_Script", "candidateAnchors", "showToolTip",
+        var exclude = new List<string>
+        {
+            "m_Script", "candidateAnchors", "showToolTip",
             "enableRepositioning", "evaluationInterval", "repositionHysteresis", "distanceWeight",
             "rejectOccluded", "obstacleMask",
-            "tooltipGameObjectPrefab", "inputIconSo", "interactableToolTipInputSo");
+            "tooltipGameObjectPrefab", "inputIconSo", "interactableToolTipInputSo"
+        };
+        // The general (controller-level) billboard mode + limits apply only to the "self" position. Once the
+        // tooltip repositions across candidates, each position owns its own (via ToolTipAnchor), so hide both.
+        if (controller.UsesCandidatesEditor)
+        {
+            exclude.Add("billboardConstraints");
+            exclude.Add("billboardMode");
+        }
+
+        DrawPropertiesExcluding(serializedObject, exclude.ToArray());
+
+        if (controller.UsesCandidatesEditor)
+            EditorGUILayout.HelpBox(
+                "Billboarding and its limits are set per candidate position (select one below — the Billboard dropdown, " +
+                "and \"Override billboard limits\"). The general billboard settings apply only when there are no candidates.",
+                MessageType.None);
+
         DrawRepositioning();
         DrawCandidatePositions(controller);
         DrawLegacyReferences();
@@ -279,6 +298,50 @@ public class CustomInspectorInstanciateTooltip : Editor
             EditorUtility.SetDirty(anchor);
             if (_preview != null) ConfigurePreview(controller); // flip the live preview immediately
         }
+
+        // Per-position billboard axis limits (optional). Each candidate has its own orientation, so its allowed
+        // facing arc is usually position-specific; off = inherit the controller's constraints.
+        EditorGUI.BeginChangeCheck();
+        bool ov = EditorGUILayout.ToggleLeft(new GUIContent("Override billboard limits",
+            "Give this position its own yaw/pitch/roll limits instead of the controller's."), anchor.overrideBillboardConstraints);
+        if (EditorGUI.EndChangeCheck())
+        {
+            Undo.RecordObject(anchor, "Edit Tooltip Anchor");
+            anchor.overrideBillboardConstraints = ov;
+            EditorUtility.SetDirty(anchor);
+            if (_preview != null) ConfigurePreview(controller);
+        }
+        if (anchor.overrideBillboardConstraints)
+        {
+            var aso = new SerializedObject(anchor);
+            EditorGUI.indentLevel++;
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(aso.FindProperty("billboardConstraints"), true);
+            EditorGUI.indentLevel--;
+            if (EditorGUI.EndChangeCheck())
+            {
+                aso.ApplyModifiedProperties();
+                if (_preview != null) ConfigurePreview(controller);
+            }
+
+            // The centre offset is the same DOF as this position's rotation: fold it into the Transform so the
+            // candidate's own orientation becomes the limit's home and the scene handles line up with the world.
+            var c = anchor.billboardConstraints;
+            bool hasCenter = c.yawCenter != 0f || c.pitchCenter != 0f || c.rollCenter != 0f;
+            using (new EditorGUI.DisabledScope(!hasCenter))
+            {
+                if (GUILayout.Button(new GUIContent("Align position to limit centre",
+                    "Rotate this candidate's transform by the centre offsets and zero them — the band is unchanged but its home becomes the position's own forward, so the gizmo aligns with the world.")))
+                {
+                    Undo.RecordObject(anchorTf, "Align tooltip limit to position");
+                    Undo.RecordObject(anchor, "Align tooltip limit to position");
+                    anchorTf.rotation = anchorTf.rotation * Quaternion.Euler(c.pitchCenter, c.yawCenter, c.rollCenter);
+                    c.yawCenter = c.pitchCenter = c.rollCenter = 0f;
+                    EditorUtility.SetDirty(anchor);
+                    if (_preview != null) ConfigurePreview(controller);
+                }
+            }
+        }
     }
 
     private Transform GetPreviewAnchorTransform()
@@ -320,6 +383,8 @@ public class CustomInspectorInstanciateTooltip : Editor
         }
 
         if (_showRanges) DrawRangeGizmos(controller);
+
+        DrawBillboardConstraintHandles(controller);
 
         // Script root (Base) — just a marker (the object's own transform tool moves it).
         DrawTargetMarker(controller, 1, basePos, "root", Color.cyan);
@@ -427,6 +492,173 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (controller.EnableRepositioning) AppendCandidateScores(controller, eye, lines);
 
         DrawReadoutPanel(lines);
+    }
+
+    // --- Billboard axis-limit handles ------------------------------------------------------------------
+    // Visualises the per-axis billboard constraints around the (previewed) tooltip, in the rest frame: a
+    // faint full ring for a free axis, a "locked" label for a disabled one, and a solid sector with two
+    // draggable endpoint handles for a clamped one (drag writes the min/max straight back to the inspector).
+    private void DrawBillboardConstraintHandles(InteractableToolTipController controller)
+    {
+        if (controller.BillboardModeEditor == BillboardMode.Never) return; // not billboarding -> nothing to limit
+
+        Transform anchorTf = _previewPos >= 2 ? GetPreviewAnchorTransform() : null;
+
+        // Effective constraints for the previewed position, and the object that OWNS them (the candidate's
+        // ToolTipAnchor when it overrides, else the controller) so handle drags write to the right place.
+        var c = controller.BillboardConstraintsForEditor(anchorTf);
+        Object owner = controller;
+        if (anchorTf != null)
+        {
+            var a = anchorTf.GetComponent<ToolTipAnchor>();
+            if (a != null && a.ConstraintsOverride != null) owner = a;
+        }
+        if (c == null || c.IsUnconstrained) return; // free + upright: don't clutter the view
+
+        var so = new SerializedObject(owner);
+
+        Vector3 pos = _preview != null ? _preview.transform.position
+                    : anchorTf != null ? anchorTf.position
+                    : controller.transform.position;
+
+        Quaternion rest = controller.BillboardRestForEditor(anchorTf);
+        Vector3 fwd = rest * Vector3.forward;
+        Vector3 up = rest * Vector3.up;
+        Vector3 right = rest * Vector3.right;
+        float radius = HandleUtility.GetHandleSize(pos) * 1.3f;
+
+        // Chain the frames like the runtime gimbal (rest * Euler(pitch, yaw, roll)): yaw turns about rest up,
+        // THEN pitch about the yaw-rotated right, THEN roll about the yaw+pitch-rotated forward. So the pitch
+        // (red) and roll (blue) arcs sit in front of where the tooltip actually faces after the yaw/pitch
+        // centre, instead of floating around the raw rest forward.
+        Quaternion qYaw = Quaternion.AngleAxis(c.yawCenter, up);
+        Vector3 fwdYaw = qYaw * fwd;       // yaw-centred forward (pitch's reference)
+        Vector3 rightYaw = qYaw * right;   // yaw-rotated right  (pitch's axis)
+        Quaternion qPitch = Quaternion.AngleAxis(c.pitchCenter, rightYaw);
+        Vector3 fwdYP = qPitch * fwdYaw;   // yaw+pitch-centred forward (roll's axis = the home face dir)
+        Vector3 upYP = qPitch * up;        // up after yaw (unchanged) then pitch (roll's reference)
+
+        // The "home" facing the limits are measured from (rest forward).
+        Handles.color = new Color(0.3f, 0.9f, 1f, 0.9f);
+        Handles.DrawLine(pos, pos + fwd * radius);
+
+        // Axis colours match Unity's rotation gizmo: yaw=Y (green), pitch=X (red), roll=Z (blue) — same as the
+        // coloured titles in the inspector.
+        DrawBillboardAxis(so, "Yaw",   "yawCenter",   "yawMin",   "yawMax",   pos, up,       fwd,    radius,         Handles.yAxisColor, c.yawAxis,   c.clampYaw,   c.yawCenter,   c.yawMin,   c.yawMax,   c.limitEaseDegrees);
+        DrawBillboardAxis(so, "Pitch", "pitchCenter", "pitchMin", "pitchMax", pos, rightYaw, fwdYaw, radius * 0.85f, Handles.xAxisColor, c.pitchAxis, c.clampPitch, c.pitchCenter, c.pitchMin, c.pitchMax, c.limitEaseDegrees);
+        DrawBillboardAxis(so, "Roll",  "rollCenter",  "rollMin",  "rollMax",  pos, fwdYP,    upYP,   radius * 0.7f,  Handles.zAxisColor, c.rollAxis,  c.clampRoll,  c.rollCenter,  c.rollMin,  c.rollMax,   c.limitEaseDegrees);
+
+        // Hint that Alt mirrors an end-handle drag onto the opposite end (highlighted while Alt is held).
+        bool mirroring = Event.current != null && Event.current.alt;
+        if (_billboardHintStyle == null) _billboardHintStyle = new GUIStyle(EditorStyles.miniLabel);
+        _billboardHintStyle.normal.textColor = mirroring ? new Color(1f, 0.9f, 0.3f) : new Color(1f, 1f, 1f, 0.6f);
+        Handles.Label(pos - up * radius * 1.35f,
+            mirroring ? "Alt: mirroring min/max" : "Hold Alt to mirror min/max", _billboardHintStyle);
+        if (mirroring) SceneView.RepaintAll(); // keep the hint state live as Alt is pressed/released
+    }
+
+    private GUIStyle _billboardHintStyle;
+
+    private static float Wrap180(float a) => Mathf.Repeat(a + 180f, 360f) - 180f;
+
+    private void DrawBillboardAxis(SerializedObject so, string label, string centerProp, string minProp, string maxProp,
+        Vector3 center, Vector3 axis, Vector3 fromDir, float radius, Color col,
+        bool enabled, bool clamped, float bandCenter, float min, float max, float ease)
+    {
+        if (!enabled)
+        {
+            Handles.color = new Color(col.r, col.g, col.b, 0.7f);
+            Handles.Label(center + fromDir * radius * 1.02f, $"{label}: locked");
+            return;
+        }
+
+        if (!clamped)
+        {
+            Handles.color = new Color(col.r, col.g, col.b, 0.18f);
+            Handles.DrawWireDisc(center, axis, radius);
+            Handles.color = new Color(col.r, col.g, col.b, 0.7f);
+            Handles.Label(center + fromDir * radius * 1.02f, $"{label}: free");
+            return;
+        }
+
+        // The band is [center+min, center+max] around the (movable) band center, drawn in wrapped space.
+        Vector3 startDir = Quaternion.AngleAxis(bandCenter + min, axis) * fromDir;
+        Handles.color = new Color(col.r, col.g, col.b, 0.12f);
+        Handles.DrawSolidArc(center, axis, startDir, max - min, radius);
+        Handles.color = col;
+        Handles.DrawWireArc(center, axis, startDir, max - min, radius);
+
+        // The eased "resistance" band before each limit: a denser fill + a radial tick where softening begins.
+        float zone = BillboardConstraints.SoftZone(min, max, ease);
+        if (zone > 0.01f)
+        {
+            Handles.color = new Color(col.r, col.g, col.b, 0.22f);
+            Handles.DrawSolidArc(center, axis, Quaternion.AngleAxis(bandCenter + max - zone, axis) * fromDir, zone, radius);
+            Handles.DrawSolidArc(center, axis, Quaternion.AngleAxis(bandCenter + min, axis) * fromDir, zone, radius);
+
+            Handles.color = new Color(col.r, col.g, col.b, 0.55f);
+            foreach (float a in new[] { bandCenter + min + zone, bandCenter + max - zone })
+            {
+                Vector3 d = Quaternion.AngleAxis(a, axis) * fromDir;
+                Handles.DrawLine(center + d * radius * 0.9f, center + d * radius);
+            }
+        }
+
+        // A line from the tooltip to the band center marks the "home" of the limit.
+        Handles.color = new Color(col.r, col.g, col.b, 0.5f);
+        Vector3 centerDir = Quaternion.AngleAxis(bandCenter, axis) * fromDir;
+        Handles.DrawLine(center, center + centerDir * radius);
+
+        // Handles: a cube at the band center rotates the whole band; spheres at the ends set min/max (relative).
+        float newCenterAbs = DragAngle(center, axis, fromDir, radius, bandCenter, col, Handles.CubeHandleCap, 0.09f);
+        float minAbs = DragAngle(center, axis, fromDir, radius, bandCenter + min, col);
+        float maxAbs = DragAngle(center, axis, fromDir, radius, bandCenter + max, col);
+
+        bool centerMoved = !Mathf.Approximately(newCenterAbs, bandCenter);
+        float newMin = Mathf.DeltaAngle(bandCenter, minAbs); // ends are read relative to the OLD center
+        float newMax = Mathf.DeltaAngle(bandCenter, maxAbs);
+        bool minMoved = !Mathf.Approximately(newMin, min);
+        bool maxMoved = !Mathf.Approximately(newMax, max);
+
+        // Alt = mirror: dragging one end sets the other to its negative, keeping the band symmetric about the centre.
+        if (Event.current != null && Event.current.alt)
+        {
+            if (minMoved && !maxMoved) { newMax = -newMin; maxMoved = true; }
+            else if (maxMoved && !minMoved) { newMin = -newMax; minMoved = true; }
+        }
+
+        if (centerMoved || minMoved || maxMoved)
+        {
+            so.Update();
+            var cp = so.FindProperty("billboardConstraints");
+            if (centerMoved) cp.FindPropertyRelative(centerProp).floatValue = Wrap180(newCenterAbs);
+            cp.FindPropertyRelative(minProp).floatValue = Mathf.Clamp(Mathf.Min(newMin, newMax), -180f, 180f);
+            cp.FindPropertyRelative(maxProp).floatValue = Mathf.Clamp(Mathf.Max(newMin, newMax), -180f, 180f);
+            so.ApplyModifiedProperties(); // updates the inspector + records Undo
+        }
+
+        Handles.color = col;
+        Handles.Label(center + centerDir * radius * 1.06f, $"{label} ctr {Wrap180(bandCenter):0}°");
+        Handles.Label(center + (Quaternion.AngleAxis(bandCenter + min, axis) * fromDir) * radius * 1.06f, $"{Wrap180(bandCenter + min):0}°");
+        Handles.Label(center + (Quaternion.AngleAxis(bandCenter + max, axis) * fromDir) * radius * 1.06f, $"{Wrap180(bandCenter + max):0}°");
+    }
+
+    // A handle at `angle` on the arc; dragging it returns the new signed angle around `axis`.
+    private static float DragAngle(Vector3 center, Vector3 axis, Vector3 fromDir, float radius, float angle, Color col,
+        Handles.CapFunction cap = null, float sizeScale = 0.07f)
+    {
+        Vector3 p = center + (Quaternion.AngleAxis(angle, axis) * fromDir) * radius;
+        float size = HandleUtility.GetHandleSize(p) * sizeScale;
+        Handles.color = col;
+        EditorGUI.BeginChangeCheck();
+        Vector3 moved = Handles.FreeMoveHandle(p, size, Vector3.zero, cap ?? Handles.SphereHandleCap);
+        if (EditorGUI.EndChangeCheck())
+        {
+            Vector3 v = Vector3.ProjectOnPlane(moved - center, axis);
+            if (v.sqrMagnitude > 1e-6f)
+                return Vector3.SignedAngle(fromDir, v.normalized, axis);
+        }
+        return angle;
     }
 
     // Mirrors InteractableToolTipController.EvaluateBestAnchor: a colour-coded line to each candidate
@@ -659,6 +891,10 @@ public class CustomInspectorInstanciateTooltip : Editor
         so.ApplyModifiedProperties();
 
         view.SetEditorBillboard(GetPreviewBillboard(controller));
+        // Push the live per-axis constraints (this position's override if any) + rest so clamped previews match
+        // runtime while authoring.
+        var restAnchor = _previewPos >= 2 ? GetPreviewAnchorTransform() : null;
+        view.SetBillboardConstraints(controller.BillboardConstraintsForEditor(restAnchor), controller.BillboardRestForEditor(restAnchor));
         view.SetEditorExpanded(expanded); // drives the expand/collapse morph (and keeps the editor tick alive)
 
         bool firstApply = _appliedPreviewPos == -1;
@@ -685,6 +921,9 @@ public class CustomInspectorInstanciateTooltip : Editor
         {
             var a = GetPreviewAnchorTransform()?.GetComponent<ToolTipAnchor>();
             if (a != null && a.BillboardOverride.HasValue) return a.BillboardOverride.Value;
+            // Candidate without override -> manager default (the general Auto-orient mode is self-only).
+            var poolC = Object.FindFirstObjectByType<ToolTipPoolManager>();
+            return poolC == null || poolC.BillboardDefault;
         }
 
         switch (controller.BillboardModeDefault)

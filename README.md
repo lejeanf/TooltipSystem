@@ -70,7 +70,18 @@ score = facing + distanceWeight · 1/(1 + distance)
 facing = dot( dir(object → camera), dir(object → candidate) )   // which side faces the player
 ```
 
-So walking around the object moves the tooltip to the side facing you; turning your head does not. A `ToolTipAnchor` can override the icon side and billboard per position. `Reposition Hysteresis` keeps it from flip-flopping between near-equal spots.
+So walking around the object moves the tooltip to the side facing you; turning your head does not. A `ToolTipAnchor` can override the icon side, billboard on/off, **and the billboard limits** per position. `Reposition Hysteresis` keeps it from flip-flopping between near-equal spots.
+
+---
+
+## Billboard limits (optional)
+
+By default a billboarding tooltip faces the camera freely. You can constrain that per **axis** — measured from a **rest** orientation (the tooltip's, or the candidate position's, authored facing):
+
+- **Yaw** (horizontal), **Pitch** (vertical), **Roll** (lean to match camera tilt) — each can be **free**, **locked**, or **clamped** to a degree range.
+- Each clamp has a **centre** (move the band anywhere, even across ±180°) and a **soft ease** so the motion glides to a stop instead of hitting a wall.
+
+Edit it in the inspector or directly in the **Scene view**: axis-coloured arcs (X/Y/Z = red/green/blue) with a draggable centre handle (rotates the band) and end handles (set min/max). Hold **Alt** while dragging an end to mirror it onto the opposite side. Limits are set on the tooltip itself when it has **no candidate positions** ("self"); once it repositions across candidates, each position owns its own limits via its `ToolTipAnchor` (turn on *Override billboard limits*).
 
 ---
 
@@ -111,11 +122,13 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 
 ---
 
-## What's new in 1.8.0
+## What's new in 1.7.0
 
 - New **Canvas-free pooled renderer** (`PooledTooltipView` + `ToolTipPoolManager`): minimized-disc ↔ pill morph, central billboarding, occlusion.
 - **Per-control-scheme content** via `ToolTipActionContentSo`.
 - **Position-based repositioning** across candidate anchors (gaze-independent) with per-anchor overrides.
+- **Per-axis constrained billboarding** — limit **yaw / pitch / roll** independently (free, locked, or clamped to a degree range with a movable **centre** and a soft-ease approach to the limit). Set it on the tooltip (self) or **per candidate position**, with full scene-view tooling: axis-coloured arcs (X/Y/Z = red/green/blue), draggable centre + end handles, and **Alt to mirror** min/max.
+- **Per-render-pipeline prefab variant** hook on the pool manager (one click makes a linked URP/HDRP `PooledTooltip` variant with the matching material).
 - **Built-in clicking** (auto collider + `OnMouseDown` / XR) raising an SO event, with **flash → minimize → re-grow** feedback.
 - **Editor preview, force-show, and live debug panel.**
 - Allocation-free steady-state runtime path (cached delegates, reused MaterialPropertyBlock).

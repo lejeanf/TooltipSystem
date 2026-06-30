@@ -5,7 +5,9 @@ using Cysharp.Threading.Tasks;
 using jeanf.universalplayer;
 using LitMotion;
 using TMPro;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;

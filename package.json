@@ -1,8 +1,8 @@
 {
   "name":"fr.jeanf.tooltipsystem",
-  "version":"1.6.2",
+  "version":"1.7.0",
   "displayName":"Tooltip System",
-  "description":"A Tooltip System for in-world player hints, featuring a Canvas-free pooled renderer (VR-ready): zone-, proximity-, and gaze-driven visibility, per-control-scheme content, smart repositioning, and clickable actions.",
+  "description":"A Tooltip System for in-world player hints, featuring a Canvas-free pooled renderer (VR-ready): zone-, proximity-, and gaze-driven visibility, per-control-scheme content, smart repositioning, clickable actions, and per-axis constrained billboarding.",
   "unity": "6000.4",
   "keywords": [
     "jeanf",

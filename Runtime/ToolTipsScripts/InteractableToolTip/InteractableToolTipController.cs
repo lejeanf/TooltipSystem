@@ -40,6 +40,8 @@ namespace jeanf.tooltip
         public bool isDebug = false;
         [Tooltip("Per-tooltip billboarding. UseManagerDefault: follow the ToolTipPoolManager's global setting (pooled) / off (legacy). Always / Never: force this tooltip on or off regardless of the manager.")]
         [SerializeField] private BillboardMode billboardMode = BillboardMode.UseManagerDefault;
+        [Tooltip("Per-axis limits on the billboarding: free/locked/clamped yaw, pitch and roll, measured from this tooltip's (or the chosen candidate's) authored facing. Defaults = the classic free, world-upright billboard.")]
+        [SerializeField] private BillboardConstraints billboardConstraints = new BillboardConstraints();
         [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a ToolTipAnchor can override this.")]
         [SerializeField] private bool iconOnRight = true;
 
@@ -847,8 +849,8 @@ namespace jeanf.tooltip
 
                 if (anchorChanged)
                 {
-                    // The new position may carry its own billboard override.
-                    if (_pooled) _view?.SetBillboardOverride(BillboardOverrideForPooled());
+                    // The new position may carry its own billboard override + a new rest frame.
+                    if (_pooled) PushBillboardToView();
 
                     if (_pooled && _view != null && _view.IsExpanded)
                     {
@@ -953,8 +955,10 @@ namespace jeanf.tooltip
             Vector3 dir = _tooltip.transform.position - _cameraTransform.position;
             if (dir.sqrMagnitude < 0.0001f) return;
 
-            // Front face of the world-space UI points toward the camera.
-            _tooltip.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+            // Front face of the world-space UI points toward the camera, within the per-axis constraints
+            // (rest = the tooltip's own authored rotation in legacy mode).
+            _tooltip.transform.rotation =
+                billboardConstraints.Apply(transform.rotation, dir, _cameraTransform.up);
         }
 
         #endregion
@@ -1023,7 +1027,7 @@ namespace jeanf.tooltip
             // also avoids the SetClickHandler delegate alloc.)
             if (_pooledShow != PooledShowState.Expanded)
             {
-                _view.SetBillboardOverride(BillboardOverrideForPooled());
+                PushBillboardToView();
                 _view.SetClickHandler(_pooledClickHandler);
                 _iconSprite = EffectiveIcon(_currentControlScheme);
                 _view.ShowExpanded(EffectiveDescription, _iconSprite, EffectiveIconSide());
@@ -1068,7 +1072,7 @@ namespace jeanf.tooltip
             // frame (avoids the per-frame SetClickHandler delegate alloc; ongoing moves are EnsurePlacement's).
             if (_pooledShow != PooledShowState.Minimized)
             {
-                _view.SetBillboardOverride(BillboardOverrideForPooled());
+                PushBillboardToView();
                 _view.SetClickHandler(_pooledClickHandler);
                 _view.ShowMinimized();
                 if (newlyAcquired) _view.SetPosition(GetVisualPosition());
@@ -1097,11 +1101,13 @@ namespace jeanf.tooltip
         // The current candidate position (ToolTipAnchor) can override the controller's own mode.
         private bool? BillboardOverrideForPooled()
         {
-            if (enableRepositioning && _currentAnchor != null)
+            // Repositioning to candidates: each position owns its on/off via its ToolTipAnchor; one without an
+            // override follows the manager default. The general Auto-orient mode is self-only (hidden then).
+            if (RepositioningActive && _currentAnchor != null)
             {
                 var anchor = _currentAnchor.GetComponent<ToolTipAnchor>();
-                if (anchor != null && anchor.BillboardOverride.HasValue)
-                    return anchor.BillboardOverride;
+                if (anchor != null && anchor.BillboardOverride.HasValue) return anchor.BillboardOverride;
+                return null; // UseManagerDefault
             }
 
             switch (billboardMode)
@@ -1111,6 +1117,65 @@ namespace jeanf.tooltip
                 default: return null; // UseManagerDefault
             }
         }
+
+        // The orientation the per-axis constraints are measured against: the chosen candidate's authored
+        // rotation when repositioning, otherwise this controller's transform. So designers set the "home"
+        // facing by rotating the controller (or the ToolTipAnchor), and the tooltip swings within its limits
+        // around that.
+        internal Quaternion BillboardRestRotation()
+        {
+            if (enableRepositioning && _currentAnchor != null)
+                return _currentAnchor.rotation;
+            return transform.rotation;
+        }
+
+        // Shared, never-mutated "no limits" constraints (default = free billboard) used as the candidate fallback.
+        private static readonly BillboardConstraints _freeConstraints = new BillboardConstraints();
+
+        // The constraints in effect. When repositioning to candidates, each position owns its limits via its
+        // ToolTipAnchor override; a position WITHOUT one billboards freely. The general controller constraints
+        // apply only in the no-candidate "self" case (and are hidden in the inspector when candidates exist).
+        private BillboardConstraints EffectiveBillboardConstraints()
+        {
+            if (RepositioningActive && _currentAnchor != null)
+            {
+                var anchor = _currentAnchor.GetComponent<ToolTipAnchor>();
+                if (anchor != null && anchor.ConstraintsOverride != null) return anchor.ConstraintsOverride;
+                return _freeConstraints;
+            }
+            return billboardConstraints;
+        }
+
+        // Push both the on/off override and the per-axis constraints + rest to the pooled view. Called wherever
+        // the view's billboard preference might have changed (show transitions, anchor switch).
+        private void PushBillboardToView()
+        {
+            if (_view == null) return;
+            _view.SetBillboardOverride(BillboardOverrideForPooled());
+            _view.SetBillboardConstraints(EffectiveBillboardConstraints(), BillboardRestRotation());
+        }
+
+#if UNITY_EDITOR
+        // Editor scene-GUI / preview access to the live constraint config and its rest frame.
+        internal BillboardMode BillboardModeEditor => billboardMode;
+        // Rest rotation for an explicitly previewed candidate (the inspector may preview a position that isn't
+        // the runtime-selected _currentAnchor). Falls back to the controller transform.
+        internal Quaternion BillboardRestForEditor(Transform previewAnchor) =>
+            previewAnchor != null ? previewAnchor.rotation : transform.rotation;
+        // Effective constraints for a previewed candidate: its ToolTipAnchor override if any, else FREE (the
+        // general controller constraints are self-only). Previewing the base/self position uses the general ones.
+        internal BillboardConstraints BillboardConstraintsForEditor(Transform previewAnchor)
+        {
+            if (previewAnchor != null)
+            {
+                var anchor = previewAnchor.GetComponent<ToolTipAnchor>();
+                return anchor != null && anchor.ConstraintsOverride != null ? anchor.billboardConstraints : _freeConstraints;
+            }
+            return billboardConstraints;
+        }
+        // True when the tooltip repositions across candidates (so the general billboard limits don't apply).
+        internal bool UsesCandidatesEditor => RepositioningActive;
+#endif
 
         private void ReleasePooledView()
         {

@@ -85,6 +85,23 @@ namespace jeanf.tooltip
         public void SetBillboardOverride(bool? enabled) => _billboardOverride = enabled;
         public bool ShouldBillboard(bool managerDefault) => _billboardOverride ?? managerDefault;
 
+        // Per-axis billboard limits + the rest orientation they're measured against, pushed by the owning
+        // controller alongside the on/off override. Defaults reproduce the original full world-up billboard.
+        private BillboardConstraints _billboardConstraints = new BillboardConstraints();
+        private Quaternion _billboardRest = Quaternion.identity;
+        public void SetBillboardConstraints(BillboardConstraints constraints, Quaternion rest)
+        {
+            _billboardConstraints = constraints ?? _billboardConstraints;
+            _billboardRest = rest;
+        }
+
+        /// <summary>Orient this view toward the camera, honoring its per-axis constraints. Called centrally
+        /// by the pool manager each LateUpdate for views whose <see cref="ShouldBillboard"/> is true.</summary>
+        public void ApplyBillboard(Vector3 camPos, Vector3 camUp)
+        {
+            transform.rotation = _billboardConstraints.Apply(_billboardRest, transform.position - camPos, camUp);
+        }
+
         private bool _expanded;
         private bool _iconOnRight = true;
         private float _morph;          // 0 = minimized, 1 = expanded (current)
@@ -358,6 +375,7 @@ namespace jeanf.tooltip
         {
             InUse = false;
             _billboardOverride = null;
+            _billboardRest = Quaternion.identity; // forget the previous owner's rest frame
             _onClick = null; // drop the previous owner's click route before recycling
             transform.rotation = Quaternion.identity; // so a recycled non-billboarding view doesn't keep a stale facing
             CancelMotion();
@@ -797,8 +815,11 @@ namespace jeanf.tooltip
                 var sv = UnityEditor.SceneView.lastActiveSceneView;
                 if (sv != null && sv.camera != null)
                 {
-                    Vector3 dir = transform.position - sv.camera.transform.position;
-                    if (dir.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                    // Same constrained path as runtime, with the Scene-view camera as the player proxy, so the
+                    // axis limits/clamps preview live while authoring.
+                    var camT = sv.camera.transform;
+                    if ((transform.position - camT.position).sqrMagnitude > 1e-4f)
+                        ApplyBillboard(camT.position, camT.up);
                 }
             }
             else

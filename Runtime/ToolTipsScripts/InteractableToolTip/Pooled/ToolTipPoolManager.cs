@@ -144,21 +144,16 @@ namespace jeanf.tooltip
             }
 
             Vector3 camPos = _cam.position;
+            Vector3 camUp = _cam.up; // only used by views whose roll axis follows camera tilt
 
-            // Billboard per view: each tooltip can override the global default (or follow it).
+            // Billboard per view: each tooltip can override the global default (or follow it), and applies its
+            // own per-axis constraints (free/locked/clamped yaw, pitch, roll) inside ApplyBillboard.
             for (int i = 0; i < _active.Count; i++)
                 if (_active[i].ShouldBillboard(billboardToCamera))
-                    FaceCamera(_active[i].T, camPos);
+                    _active[i].ApplyBillboard(camPos, camUp);
 
             if (checkOcclusion)
                 UpdateOcclusionStaggered(camPos);
-        }
-
-        private static void FaceCamera(Transform t, Vector3 camPos)
-        {
-            Vector3 dir = t.position - camPos;
-            if (dir.sqrMagnitude > 1e-6f)
-                t.rotation = Quaternion.LookRotation(dir, Vector3.up);
         }
 
         private void UpdateOcclusionStaggered(Vector3 camPos)
