@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7300000000000000002}
   - component: {fileID: 7300000000000000003}
   m_Layer: 0
-  m_Name: PooledTooltip
+  m_Name: PooledTooltip_HDRP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7300000000000000001}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23944375, y: 0.19975433, z: -0.050410904, w: 0.9488012}
+  m_LocalRotation: {x: 0.04838532, y: -0.1822686, z: 0.008980627, w: 0.9820165}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -63,8 +63,9 @@ MonoBehaviour:
   iconSize: 0.15
   color: {r: 1, g: 0.6588, b: 0, a: 1}
   contentColor: {r: 1, g: 1, b: 1, a: 1}
-  clickCollider: {fileID: 0}
   colliderDepth: 0.05
+  clickFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  clickFlashDuration: 0.12
   animationDuration: 0.2
   positionLerpDuration: 0.25
   previewExpandedInEditor: 1
@@ -195,8 +196,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -1.6399999, y: 0}
-  m_SizeDelta: {x: 3.4799998, y: 0.4}
+  m_AnchoredPosition: {x: -0.64883715, y: 0}
+  m_SizeDelta: {x: 1.4976743, y: 0.4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &299870569755064700
 MeshRenderer:
@@ -276,7 +277,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 3355443
+    rgba: 4294967295
   m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -294,8 +295,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 3
-  m_fontSizeBase: 1
+  m_fontSize: 1.25
+  m_fontSizeBase: 1.25
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -369,8 +370,8 @@ Transform:
   m_GameObject: {fileID: 7300000000000000060}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.6400001, y: 0, z: 0}
-  m_LocalScale: {x: 3.4800003, y: 0.2, z: 1}
+  m_LocalPosition: {x: -0.64883715, y: 0, z: 0}
+  m_LocalScale: {x: 1.4976743, y: 0.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7300000000000000002}
