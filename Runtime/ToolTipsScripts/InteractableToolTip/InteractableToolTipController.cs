@@ -39,7 +39,7 @@ namespace jeanf.tooltip
         [Tooltip("Log this tooltip's state changes to the console.")]
         public bool isDebug = false;
         [Tooltip("Per-tooltip billboarding. UseManagerDefault: follow the ToolTipPoolManager's global setting (pooled) / off (legacy). Always / Never: force this tooltip on or off regardless of the manager.")]
-        [SerializeField] private BillboardMode billboardMode = BillboardMode.UseManagerDefault;
+        [SerializeField] private BillboardMode billboardMode = BillboardMode.Never;
         [Tooltip("Per-axis limits on the billboarding: free/locked/clamped yaw, pitch and roll, measured from this tooltip's (or the chosen candidate's) authored facing. Defaults = the classic free, world-upright billboard.")]
         [SerializeField] private BillboardConstraints billboardConstraints = new BillboardConstraints();
         [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a ToolTipAnchor can override this.")]
