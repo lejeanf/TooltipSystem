@@ -145,7 +145,24 @@ namespace jeanf.tooltip
         private bool _ipadIsShowing = false;
         
         private InteractableTooltipService _interactableTooltipService;
+        // Cached main-camera transform, resolved lazily through CameraTransform so it survives additive scene
+        // loading (the real player camera can live in a scene that loads AFTER this tooltip's Awake) and camera
+        // swaps. TooltipPoolManager re-acquires its camera the same way rather than caching once at Awake.
         private Transform _cameraTransform;
+        private Transform CameraTransform
+        {
+            get
+            {
+                // Unity's overloaded == reports a destroyed camera (scene unloaded) as null too, so this
+                // re-acquires after a camera swap, not just on the very first access.
+                if (_cameraTransform == null)
+                {
+                    var cam = Camera.main;
+                    _cameraTransform = cam != null ? cam.transform : null;
+                }
+                return _cameraTransform;
+            }
+        }
         private Image _image;
         private GameObject _tooltip;
         private InteractableTooltip _interactableTooltip;
@@ -204,7 +221,7 @@ namespace jeanf.tooltip
         public string Dbg_ShowState => _pooledShow.ToString();
         public bool Dbg_InZone => isPlayerInZone;
         public bool Dbg_Near => IsNearForShow();
-        public bool Dbg_Looking => Application.isPlaying && _cameraTransform != null && objectToBeViewed != null && CheckIfPlayerIsLooking();
+        public bool Dbg_Looking => Application.isPlaying && CameraTransform != null && CheckIfPlayerIsLooking();
         public bool Dbg_Maximized => _isTooltipDisplayed;
         public bool Dbg_PermissionManagerPresent => RequestShowTooltip != null;
         public string Dbg_PlayerZone => WorldManager.CurrentPlayerZone != null ? WorldManager.CurrentPlayerZone.id.id : "-";
@@ -300,8 +317,10 @@ namespace jeanf.tooltip
                 Debug.Log($"[InteractableTooltip] Created with timer name: {timerName}", this);
             
             _playerLayerMask = LayerMask.NameToLayer("Player");
-            _cameraTransform = Camera.main.transform;
-            
+            // Warm the cache but don't hard-require Camera.main here: under additive scene loading the player
+            // camera may not exist yet at Awake. CameraTransform re-acquires it lazily, so a null now is fine.
+            _ = CameraTransform;
+
             if (!ValidateComponents())
             {
                 gameObject.SetActive(false);
@@ -727,11 +746,14 @@ namespace jeanf.tooltip
         
         private bool CheckIfPlayerIsLooking()
         {
-            if (_cameraTransform == null) return false;
-            
-            var directionToObject = (objectToBeViewed.transform.position - _cameraTransform.position).normalized;
-            _playerLookingDirectionDot = Vector3.Dot(_cameraTransform.forward, directionToObject);
-            
+            var cam = CameraTransform;
+            if (cam == null) return false;
+
+            // LookTarget falls back to this transform when objectToBeViewed is unassigned, so this can't NRE
+            // on a tooltip that hasn't had a look target wired up (as the shipped example prefab ships).
+            var directionToObject = (LookTarget.position - cam.position).normalized;
+            _playerLookingDirectionDot = Vector3.Dot(cam.forward, directionToObject);
+
             return _playerLookingDirectionDot > interactableTooltipSettingsSo.fieldOfViewThreshold;
         }
         
@@ -910,10 +932,11 @@ namespace jeanf.tooltip
         private bool EvaluateBestAnchor(out Transform best)
         {
             best = null;
-            if (_cameraTransform == null) return false;
+            var cam = CameraTransform;
+            if (cam == null) return false;
 
             float bestScore = float.NegativeInfinity;
-            Vector3 camPos = _cameraTransform.position;
+            Vector3 camPos = cam.position;
 
             // Score by the player's POSITION, not gaze: prefer the candidate on the side of the object that
             // faces where the player is standing. Using camera.forward here made turning your head drag the
@@ -972,15 +995,16 @@ namespace jeanf.tooltip
 
         private void ApplyBillboard()
         {
-            if (_tooltip == null || _cameraTransform == null) return;
+            var cam = CameraTransform;
+            if (_tooltip == null || cam == null) return;
 
-            Vector3 dir = _tooltip.transform.position - _cameraTransform.position;
+            Vector3 dir = _tooltip.transform.position - cam.position;
             if (dir.sqrMagnitude < 0.0001f) return;
 
             // Front face of the world-space UI points toward the camera, within the per-axis constraints
             // (rest = the tooltip's own authored rotation in legacy mode).
             _tooltip.transform.rotation =
-                billboardConstraints.Apply(transform.rotation, dir, _cameraTransform.up);
+                billboardConstraints.Apply(transform.rotation, dir, cam.up);
         }
 
         #endregion
@@ -1126,7 +1150,7 @@ namespace jeanf.tooltip
         private Transform PlayerReferenceTransform()
         {
             var playerTransform = TooltipPoolManager.Instance != null ? TooltipPoolManager.Instance.PlayerTransform : null;
-            return playerTransform != null ? playerTransform : _cameraTransform;
+            return playerTransform != null ? playerTransform : CameraTransform;
         }
 
         // Pooled billboard preference for this tooltip: null = follow the manager default, true/false = force.

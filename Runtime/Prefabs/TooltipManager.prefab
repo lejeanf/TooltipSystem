@@ -64,7 +64,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isDebug: 0
-  _disableAllTooltips: 1
+  _disableAllTooltips: 0
   hmdState: {fileID: 11400000, guid: 386d301c089a7c545adcdce484194ba9, type: 2}
   ipadState: {fileID: 11400000, guid: cce8767598dd925439339bf8bd4498e6, type: 2}
   controlSchemeChannelSo: {fileID: 11400000, guid: 5bb6d455a2b900e4b93fb0d0f846f77d,
