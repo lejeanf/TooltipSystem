@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5287811532179339022}
   - component: {fileID: 816267831075023466}
   m_Layer: 0
-  m_Name: InteractableToolTip
+  m_Name: InteractableTooltip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -119,7 +119,7 @@ PrefabInstance:
     - target: {fileID: 8304566673689660685, guid: a976159a4d7b4584da4668ea5a2f7e7e,
         type: 3}
       propertyPath: m_Name
-      value: FarToolTip
+      value: FarTooltip
       objectReference: {fileID: 0}
     - target: {fileID: 8304566673689660685, guid: a976159a4d7b4584da4668ea5a2f7e7e,
         type: 3}
@@ -160,7 +160,7 @@ PrefabInstance:
     - target: {fileID: 2836891067511029499, guid: 8e30cc74812396e4991dd4239ddd83ce,
         type: 3}
       propertyPath: m_Name
-      value: CloseToolTip
+      value: CloseTooltip
       objectReference: {fileID: 0}
     - target: {fileID: 5308807317733196884, guid: 8e30cc74812396e4991dd4239ddd83ce,
         type: 3}

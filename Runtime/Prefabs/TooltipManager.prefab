@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8024641783441479059}
   - component: {fileID: 6382112262400502202}
   - component: {fileID: 8591864237678484033}
+  - component: {fileID: 6863808652433812735}
   m_Layer: 0
   m_Name: TooltipManager
   m_TagString: Untagged
@@ -62,9 +63,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8089db2caf4c4c9980d63d21305bff86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isDebug: 0
   _disableAllTooltips: 1
-  hmdState: {fileID: 11400000, guid: 44ea25a8ed38d0d42adce90b108f52d4, type: 2}
-  ipadState: {fileID: 11400000, guid: 4b8e0c0e5165bce4087166fb8381e2b2, type: 2}
+  hmdState: {fileID: 11400000, guid: 386d301c089a7c545adcdce484194ba9, type: 2}
+  ipadState: {fileID: 11400000, guid: cce8767598dd925439339bf8bd4498e6, type: 2}
   controlSchemeChannelSo: {fileID: 11400000, guid: 5bb6d455a2b900e4b93fb0d0f846f77d,
     type: 2}
 --- !u!114 &8591864237678484033
@@ -79,6 +81,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9abb4558997241ca8efb094669745730, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isDebug: 0
+--- !u!114 &6863808652433812735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1500220020684219714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 021ccee0a5393f24491f4495008a4710, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipPoolManager
+  playerGameObject: {fileID: 0}
+  viewPrefab: {fileID: 7300000000000000001, guid: aa11bb22cc33dd44ee55ff6600778899,
+    type: 3}
+  capacity: 24
+  billboardToCamera: 1
+  checkOcclusion: 1
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 392
+  framesBetweenOcclusionChecks: 5
+  evaluationInterval: 0.2
+  repositionHysteresis: 0.05
 --- !u!1 &2051010259165557542
 GameObject:
   m_ObjectHideFlags: 0
@@ -299,6 +326,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

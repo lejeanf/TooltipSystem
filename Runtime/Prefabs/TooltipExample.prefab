@@ -43,7 +43,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7707aa8b76c3014419969f79369903c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.ToolTipAnchor
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 2
 --- !u!1 &1642013007770799351
@@ -95,9 +95,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0e40726f190342bbac3633e3a8ca2b47, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.InteractableToolTipController
-  showToolTip: 0
-  interactableToolTipSettingsSo: {fileID: 11400000, guid: c1529d2ff6357354980580394f28ad76,
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.InteractableTooltipController
+  showTooltip: 0
+  interactableTooltipSettingsSo: {fileID: 11400000, guid: c1529d2ff6357354980580394f28ad76,
     type: 2}
   actionContentSo: {fileID: 11400000, guid: 5003713770a717f4a825e4073f2b1a4c, type: 2}
   objectToBeViewed: {fileID: 0}
@@ -125,7 +125,7 @@ MonoBehaviour:
     m_Bits: 0
   tooltipGameObjectPrefab: {fileID: 0}
   inputIconSo: {fileID: 11400000, guid: bde1c948ca51a1642946461b1ff1177f, type: 2}
-  interactableToolTipInputSo: {fileID: 11400000, guid: b4277969991dce6438ae48a9268139ab,
+  interactableTooltipInputSo: {fileID: 11400000, guid: b4277969991dce6438ae48a9268139ab,
     type: 2}
   usePooledRendering: 1
   minimizedRange: 6.5348015
@@ -246,7 +246,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7707aa8b76c3014419969f79369903c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.ToolTipAnchor
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 0
 --- !u!1 &4139835830354172332
@@ -292,7 +292,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7707aa8b76c3014419969f79369903c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.ToolTipAnchor
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 1
   billboard: 0
 --- !u!1 &4324774589299401749
@@ -338,7 +338,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7707aa8b76c3014419969f79369903c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.ToolTipAnchor
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 0
 --- !u!1 &8118854422676337895
@@ -384,6 +384,6 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7707aa8b76c3014419969f79369903c7, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.ToolTipAnchor
+  m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 1
   billboard: 0
