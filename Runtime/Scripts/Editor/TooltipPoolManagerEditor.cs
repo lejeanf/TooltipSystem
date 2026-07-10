@@ -38,19 +38,6 @@ namespace jeanf.tooltip
             using (new EditorGUI.DisabledScope(true))
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
 
-            var playerGameObject = serializedObject.FindProperty("playerGameObject");
-            if (playerGameObject != null)
-            {
-                EditorGUILayout.PropertyField(playerGameObject);
-                if (playerGameObject.objectReferenceValue == null)
-                    EditorGUILayout.HelpBox(
-                        "Player is unassigned — tooltip proximity checks fall back to legacy \"Player\"-layer " +
-                        "detection, which silently fails to find the player if that layer isn't set up the same " +
-                        "way in every project. Assign the player GameObject for reliable proximity detection.",
-                        MessageType.Warning);
-                EditorGUILayout.Space();
-            }
-
             var viewPrefab = serializedObject.FindProperty("viewPrefab");
             if (viewPrefab != null)
             {
@@ -88,7 +75,7 @@ namespace jeanf.tooltip
                 EditorGUILayout.Space();
             }
 
-            DrawPropertiesExcluding(serializedObject, "m_Script", "playerGameObject", "viewPrefab");
+            DrawPropertiesExcluding(serializedObject, "m_Script", "viewPrefab");
             serializedObject.ApplyModifiedProperties();
 
             EditorGUILayout.Space();

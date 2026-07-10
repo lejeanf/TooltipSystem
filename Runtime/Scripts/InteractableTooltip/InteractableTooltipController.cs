@@ -227,16 +227,16 @@ namespace jeanf.tooltip
         public string Dbg_PlayerZone => WorldManager.CurrentPlayerZone != null ? WorldManager.CurrentPlayerZone.id.id : "-";
         public string Dbg_TargetZone => currentZone != null ? currentZone.id.id : "-";
 
-        // Distance from the tooltip to whatever proximity is measured against (assigned Player, else camera).
-        public float Dbg_DistanceToPlayer
+        // Distance from the tooltip to the player's viewpoint (the main camera / head), which is what the
+        // minimized-range proximity gate measures against. -1 when the camera isn't resolved yet.
+        public float Dbg_DistanceToViewpoint
         {
             get
             {
-                var reference = PlayerReferenceTransform();
-                return reference != null ? Vector3.Distance(transform.position, reference.position) : -1f;
+                var cam = CameraTransform;
+                return cam != null ? Vector3.Distance(transform.position, cam.position) : -1f;
             }
         }
-        public bool Dbg_UsingPlayerReference => TooltipPoolManager.Instance != null && TooltipPoolManager.Instance.PlayerTransform != null;
 
         // Editor-only "force show" testing override (Preview block). Not serialized — toggle it in play mode
         // to force the tooltip maximized regardless of zone / proximity / looking / permission. Compiled out
@@ -403,16 +403,17 @@ namespace jeanf.tooltip
             }
         }
 
-        // Prefers the player GameObject assigned on TooltipPoolManager (exact reference match, so it can't be
-        // fooled by a missing/misconfigured "Player" layer). Falls back to the layer check when no manager or
-        // no player is assigned, so existing layer-only setups keep working.
+        // Legacy (non-pooled) near-trigger only: the player's collider is identified by the layer mask
+        // configured on TooltipPoolManager when one is set, else by this project's "Player" layer name or the
+        // built-in "Player" tag (so a project that only sets one of them still detects). Pooled tooltips never
+        // get here — their proximity is a distance test to the camera (IsWithinMinimizedRange).
         private bool IsPlayerCollider(Collider other)
         {
-            var player = TooltipPoolManager.Instance != null ? TooltipPoolManager.Instance.PlayerGameObject : null;
-            if (player != null)
-                return other.transform == player.transform || other.transform.IsChildOf(player.transform);
+            var pool = TooltipPoolManager.Instance;
+            if (pool != null && pool.PlayerLayerMask.value != 0)
+                return (pool.PlayerLayerMask.value & (1 << other.gameObject.layer)) != 0;
 
-            return other.gameObject.layer == _playerLayerMask;
+            return other.gameObject.layer == _playerLayerMask || other.CompareTag("Player");
         }
         
         #endregion
@@ -792,12 +793,12 @@ namespace jeanf.tooltip
             TooltipControlSchemeManager.UpdateTooltipControlScheme += UpdateControlScheme;
             TooltipControlSchemeManager.DisableTooltip += DisableTooltip;
             WorldManager.PublishCurrentZoneId += CheckIfPlayerInZone;
+            WorldManager.InitComplete += OnWorldInitComplete;
 
             // PublishCurrentZoneId only fires on a zone CHANGE. If this tooltip is enabled while the player
             // is already inside its zone (the common case), it would never hear the broadcast and stay
             // hidden — so seed from the zone the player is currently in.
-            var playerZone = WorldManager.CurrentPlayerZone;
-            if (playerZone != null) CheckIfPlayerInZone(playerZone.id);
+            SeedZoneFromWorld();
         }
         
         private void UnSubscribe()
@@ -809,7 +810,8 @@ namespace jeanf.tooltip
             TooltipControlSchemeManager.UpdateTooltipControlScheme -= UpdateControlScheme;
             TooltipControlSchemeManager.DisableTooltip -= DisableTooltip;
             WorldManager.PublishCurrentZoneId -= CheckIfPlayerInZone;
-            
+            WorldManager.InitComplete -= OnWorldInitComplete;
+
             _interactableTooltipService?.Destroy();
             ResetInterruptionState();
 
@@ -863,10 +865,22 @@ namespace jeanf.tooltip
         private void CheckIfPlayerInZone(string zoneId)
         {
             if (currentZone == null) return;
-            
+
             isPlayerInZone = (zoneId == currentZone.id.id);
         }
-        
+
+        // Sync zone membership from the world's authoritative current zone (no-op when it isn't known yet).
+        private void SeedZoneFromWorld()
+        {
+            var playerZone = WorldManager.CurrentPlayerZone;
+            if (playerZone != null) CheckIfPlayerInZone(playerZone.id);
+        }
+
+        // Under additive loading a tooltip can come online AFTER the world's initial PublishCurrentZoneId has
+        // already fired, so it never hears which zone the player is in and stays hidden. Re-seed once the world
+        // signals it's initialized. Combined with the seed in Subscribe, this covers both load orders.
+        private void OnWorldInitComplete(bool status) => SeedZoneFromWorld();
+
         #endregion
 
         #region Placement (Repositioning + Billboard)
@@ -1138,19 +1152,15 @@ namespace jeanf.tooltip
         {
             if (minimizedRange <= 0f) return true; // 0 or negative -> no range limit
 
-            Transform reference = PlayerReferenceTransform();
-            if (reference == null) return true;
+            // Measure to the player's VIEWPOINT (main camera / head), not the player GameObject's root. In a VR
+            // or FPS rig the head is a moving child while the root sits at the feet/spawn and may not track the
+            // player at all, so a root-based distance reads a tooltip as permanently out of range. The head is
+            // the player's actual position and always resolves via Camera.main (self-healing CameraTransform).
+            var cam = CameraTransform;
+            if (cam == null) return true;
 
-            float sqr = (transform.position - reference.position).sqrMagnitude;
+            float sqr = (transform.position - cam.position).sqrMagnitude;
             return sqr <= minimizedRange * minimizedRange;
-        }
-
-        // The point proximity is measured from: the player GameObject assigned on TooltipPoolManager when
-        // present, else the main camera (the previous behaviour, kept as a fallback for scenes without one).
-        private Transform PlayerReferenceTransform()
-        {
-            var playerTransform = TooltipPoolManager.Instance != null ? TooltipPoolManager.Instance.PlayerTransform : null;
-            return playerTransform != null ? playerTransform : CameraTransform;
         }
 
         // Pooled billboard preference for this tooltip: null = follow the manager default, true/false = force.

@@ -94,7 +94,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 021ccee0a5393f24491f4495008a4710, type: 3}
   m_Name: 
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipPoolManager
-  playerGameObject: {fileID: 0}
   viewPrefab: {fileID: 7300000000000000001, guid: aa11bb22cc33dd44ee55ff6600778899,
     type: 3}
   capacity: 24

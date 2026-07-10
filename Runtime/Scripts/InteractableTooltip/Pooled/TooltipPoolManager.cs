@@ -14,13 +14,6 @@ namespace jeanf.tooltip
     {
         public static TooltipPoolManager Instance { get; private set; }
 
-        [Header("Player reference")]
-        [Tooltip("The player GameObject in this scene. Used for tooltip proximity checks (show/hide range and the legacy near-trigger) instead of relying solely on a \"Player\" layer, which can silently fail to match if that layer isn't set up the same way in every project. Falls back to layer-based detection when unassigned.")]
-        [SerializeField] private GameObject playerGameObject;
-
-        public GameObject PlayerGameObject => playerGameObject;
-        public Transform PlayerTransform => playerGameObject != null ? playerGameObject.transform : null;
-
         [Header("View prefab")]
         [Tooltip("The pooled tooltip prefab to instantiate (must have a PooledTooltipView on its root). Drag the PooledTooltip prefab from the project here.")]
         [SerializeField] private GameObject viewPrefab;
@@ -47,8 +40,14 @@ namespace jeanf.tooltip
         [Tooltip("Score bias kept for a tooltip's current candidate so it doesn't flip-flop between near-equal positions.")]
         [SerializeField] private float repositionHysteresis = 0.05f;
 
+        [Header("Player detection (legacy near-trigger)")]
+        [Tooltip("Layer(s) the player's collider is on, used by LEGACY (non-pooled) tooltips to recognize the player in their near-trigger. Pooled tooltips don't use this (their proximity is a distance test to the main camera). Leave as Nothing to use this project's \"Player\" layer by name, plus the built-in \"Player\" tag.")]
+        [SerializeField] private LayerMask playerLayerMask = 0;
+
         public float EvaluationInterval => evaluationInterval;
         public float RepositionHysteresis => repositionHysteresis;
+        /// <summary>Configured player layer(s) for the legacy near-trigger; 0 = not configured (name/tag fallback).</summary>
+        public LayerMask PlayerLayerMask => playerLayerMask;
 
         private readonly List<PooledTooltipView> _pool = new List<PooledTooltipView>();
         private readonly List<PooledTooltipView> _active = new List<PooledTooltipView>();
@@ -61,6 +60,14 @@ namespace jeanf.tooltip
         // self-contained (no editor-class reference) so it compiles whether or not Editor/ is a split assembly.
         private void Reset()
         {
+            // Pre-fill the legacy player layer with this project's "Player" layer when it exists (0 = keep the
+            // name/tag fallback at runtime, so an unset mask still behaves like before).
+            if (playerLayerMask == 0)
+            {
+                int player = LayerMask.NameToLayer("Player");
+                if (player >= 0) playerLayerMask = 1 << player;
+            }
+
             if (viewPrefab != null) return;
 
             foreach (var guid in UnityEditor.AssetDatabase.FindAssets("PooledTooltip t:Prefab"))

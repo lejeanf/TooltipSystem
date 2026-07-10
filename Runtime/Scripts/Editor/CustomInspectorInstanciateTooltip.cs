@@ -32,11 +32,15 @@ public class CustomInspectorInstanciateTooltip : Editor
         var controller = target as InteractableTooltipController;
         if (controller == null || Application.isPlaying) return;
 
-        // Auto-visualise on selection: default to the first candidate position, or the script root
-        // (Base) when none were added. The user can still switch via the "Preview at" dropdown.
+        // Auto-visualise on selection: default to the first ASSIGNED candidate position, or the script root
+        // (Base) when none are actually informed. Counting arraySize alone would preview an empty/placeholder
+        // slot (a candidate list with rows but no Transform assigned), so find the first non-null entry.
         var anchors = serializedObject.FindProperty("candidateAnchors");
-        int anchorCount = anchors != null && anchors.isArray ? anchors.arraySize : 0;
-        _previewPos = anchorCount > 0 ? 2 : 1;
+        int firstAssigned = -1;
+        if (anchors != null && anchors.isArray)
+            for (int i = 0; i < anchors.arraySize; i++)
+                if (anchors.GetArrayElementAtIndex(i).objectReferenceValue != null) { firstAssigned = i; break; }
+        _previewPos = firstAssigned >= 0 ? firstAssigned + 2 : 1; // 1 = Base (this object)
         BuildPreview(controller, false); // quiet: don't warn about a missing pool just for selecting
     }
 
@@ -136,10 +140,8 @@ public class CustomInspectorInstanciateTooltip : Editor
             EditorGUILayout.HelpBox("Enter Play mode for live gate state (zone / proximity / looking update each frame).", MessageType.None);
 
         EditorGUILayout.LabelField("Pooled", $"{controller.Dbg_Pooled}   ·   show state: {controller.Dbg_ShowState}");
-        EditorGUILayout.LabelField("Distance to player", controller.Dbg_DistanceToPlayer >= 0f
-            ? $"{controller.Dbg_DistanceToPlayer:0.0} m" + (controller.Dbg_UsingPlayerReference
-                ? ""
-                : " (camera fallback — no Player assigned on TooltipPoolManager)")
+        EditorGUILayout.LabelField("Distance to viewpoint", controller.Dbg_DistanceToViewpoint >= 0f
+            ? $"{controller.Dbg_DistanceToViewpoint:0.0} m   (to the head / main camera)"
             : "-");
         DrawDebugBool("In zone", controller.Dbg_InZone);
         DrawDebugBool("Near (within range)", controller.Dbg_Near);
