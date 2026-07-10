@@ -6,8 +6,13 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(InteractableTooltipController))]
+[CanEditMultipleObjects]
 public class CustomInspectorInstanciateTooltip : Editor
 {
+    // Multi-selection edits the shared serialized fields; the per-instance blocks (scene preview, candidate
+    // positions, live debug panel, scene handles) are single-selection only.
+    private bool Multi => targets.Length > 1;
+
     private const string PreviewName = "[TooltipPreview]";
 
     private GameObject _preview;
@@ -30,7 +35,7 @@ public class CustomInspectorInstanciateTooltip : Editor
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
 
         var controller = target as InteractableTooltipController;
-        if (controller == null || Application.isPlaying) return;
+        if (controller == null || Application.isPlaying || Multi) return;
 
         // Auto-visualise on selection: default to the first ASSIGNED candidate position, or the script root
         // (Base) when none are actually informed. Counting arraySize alone would preview an empty/placeholder
@@ -66,6 +71,24 @@ public class CustomInspectorInstanciateTooltip : Editor
         // here to open the script, which a fully custom OnInspectorGUI otherwise hides.
         using (new EditorGUI.DisabledScope(true))
             EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
+
+        // Multi-selection: edit the shared fields only. PropertyFields on a multi-target serializedObject
+        // already handle mixed values; the per-instance blocks below (preview, candidate list, debug) are
+        // meaningless across several tooltips at once, so skip them.
+        if (Multi)
+        {
+            EditorGUILayout.HelpBox(
+                $"Editing {targets.Length} tooltips — shared settings only. Scene preview, candidate positions " +
+                "and the debug panel need a single selection.", MessageType.None);
+
+            DrawPropertiesExcluding(serializedObject, "m_Script", "candidateAnchors", "showTooltip",
+                "enableRepositioning", "distanceWeight", "rejectOccluded", "obstacleMask",
+                "tooltipGameObjectPrefab", "inputIconSo", "interactableTooltipInputSo");
+            DrawRepositioning();
+            DrawLegacyReferences();
+            serializedObject.ApplyModifiedProperties();
+            return;
+        }
 
         DrawPreviewControls(controller);
 
@@ -370,6 +393,10 @@ public class CustomInspectorInstanciateTooltip : Editor
     // Scene-view authoring: place the tooltip and edit its candidate positions with handles.
     private void OnSceneGUI()
     {
+        // Single-selection only: the handles write through serializedObject (e.g. the range radius), which on
+        // a multi-target editor would silently stamp one tooltip's dragged value onto every selected tooltip.
+        if (Multi) return;
+
         var controller = target as InteractableTooltipController;
         if (controller == null) return;
 

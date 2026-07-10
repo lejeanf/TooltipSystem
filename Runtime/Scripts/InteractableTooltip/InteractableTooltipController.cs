@@ -420,20 +420,36 @@ namespace jeanf.tooltip
 
         #region Initialization
         
+        // Pooled mode NEVER hard-fails here: everything it reads has a runtime fallback (default gaze
+        // threshold, description from the settings SO or empty, icon optional), so a partially configured
+        // tooltip renders what it can. It used to SetActive(false) the whole GameObject instead, which read
+        // as "something is disabling all the tooltips" with no clue why — and since Awake never runs twice,
+        // re-enabling the object in the hierarchy could not revive it. Legacy (non-pooled) rendering is
+        // unusable without its prefab + animation, so that still disables — but says exactly what's missing.
         private bool ValidateComponents()
         {
-            if (interactableTooltipSettingsSo == null) return false; // field-of-view threshold lives here
-
             // Content source: the per-mode action SO, OR the legacy glyph-map + input SO.
             bool hasContent = actionContentSo != null ||
                               (inputIconSo != null && interactableTooltipInputSo != null);
-            if (!hasContent) return false;
 
-            // Legacy (non-pooled) rendering needs the prefab + an animation SO; pooled mode needs neither.
-            if (!usePooledRendering)
+            if (usePooledRendering)
             {
-                if (tooltipGameObjectPrefab == null) return false;
-                if (interactableTooltipSettingsSo.animationSo == null) return false;
+                if (interactableTooltipSettingsSo == null)
+                    Debug.LogWarning($"[InteractableTooltip '{name}'] No Settings SO assigned — using the default gaze threshold and an empty description.", this);
+                if (!hasContent)
+                    Debug.LogWarning($"[InteractableTooltip '{name}'] No content source (Action Content SO, or Input Icon SO + Input SO) — the expanded tooltip will have no icon.", this);
+                return true;
+            }
+
+            if (interactableTooltipSettingsSo == null || !hasContent ||
+                tooltipGameObjectPrefab == null || interactableTooltipSettingsSo.animationSo == null)
+            {
+                Debug.LogError($"[InteractableTooltip '{name}'] Legacy (non-pooled) rendering is missing required references — disabling this tooltip. " +
+                               $"Settings SO: {(interactableTooltipSettingsSo != null ? "ok" : "MISSING")}, " +
+                               $"content source (Action Content SO or Input Icon SO + Input SO): {(hasContent ? "ok" : "MISSING")}, " +
+                               $"tooltip prefab: {(tooltipGameObjectPrefab != null ? "ok" : "MISSING")}, " +
+                               $"animation SO: {(interactableTooltipSettingsSo != null && interactableTooltipSettingsSo.animationSo != null ? "ok" : "MISSING")}.", this);
+                return false;
             }
 
             return true;
@@ -755,7 +771,9 @@ namespace jeanf.tooltip
             var directionToObject = (LookTarget.position - cam.position).normalized;
             _playerLookingDirectionDot = Vector3.Dot(cam.forward, directionToObject);
 
-            return _playerLookingDirectionDot > interactableTooltipSettingsSo.fieldOfViewThreshold;
+            // FieldOfViewThreshold (not the SO directly): falls back to the default threshold when no
+            // settings SO is assigned, which pooled validation now allows.
+            return _playerLookingDirectionDot > FieldOfViewThreshold;
         }
         
         private bool RequestPermissionToShowTooltip()
