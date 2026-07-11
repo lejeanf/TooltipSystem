@@ -47,14 +47,11 @@ namespace jeanf.tooltip
         public static BroadcastPathDelegate OnBroadcastPath;
         
         private List<Vector3> _worldPath;
-        private float[][] _normalisedPath;
 
         private NavMeshPath _path;
         private Vector3 _playerNavMeshPosition;
         private Vector3 _targetNavMeshPosition;
 
-        private bool _isPlayerOnPath = false;
-        
         private LineRenderer _lineRenderer;
         private List<GameObject> _sprites;
         private NavigationObjectPool _navigationObjectPool;
@@ -94,7 +91,6 @@ namespace jeanf.tooltip
         private void Awake()
         {
             _worldPath = new List<Vector3>(128);
-            _normalisedPath = null;
             _path = new NavMeshPath();
             _lineRenderer = GetComponent<LineRenderer>();
             _navigationObjectPool = GetComponent<NavigationObjectPool>();
@@ -272,14 +268,12 @@ namespace jeanf.tooltip
             if (IsPlayerGoingTowardPath())
             {
                 CheckAndRemoveFirstSprite();
-                _isPlayerOnPath = true;
                 return;
             }
 
             if (!IsPlayerNearFirstSprite())
             {
                 DrawSpritesFromZero();
-                _isPlayerOnPath = false;
                 return;
             }
 

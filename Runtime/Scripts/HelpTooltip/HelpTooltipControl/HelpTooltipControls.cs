@@ -693,9 +693,9 @@ namespace jeanf.tooltip
             TooltipControlSchemeManager.UpdateTooltipControlScheme += UpdateControlScheme;
             TooltipControlSchemeManager.DisableTooltip += DisableTooltip;
             
-            ShowLookTooltipEvent += () => ShowSingleTooltip(HelpTooltipControlType.HowToLook);
-            ShowMoveTooltipEvent += () => ShowSingleTooltip(HelpTooltipControlType.HowToMove);
-            ShowInputTooltipEvent += () => ShowSingleTooltip(HelpTooltipControlType.InputPressed);
+            ShowLookTooltipEvent += OnShowLookTooltip;
+            ShowMoveTooltipEvent += OnShowMoveTooltip;
+            ShowInputTooltipEvent += OnShowInputTooltip;
             ShowSpecificTooltipEvent += ShowSingleTooltip;
             StopAllTooltipsEvent += StopAllTooltips;
             
@@ -711,10 +711,10 @@ namespace jeanf.tooltip
             TooltipControlSchemeManager.UpdateTooltipControlScheme -= UpdateControlScheme;
             TooltipControlSchemeManager.DisableTooltip -= DisableTooltip;
             
-            // Static events
-            ShowLookTooltipEvent -= () => ShowSingleTooltip(HelpTooltipControlType.HowToLook);
-            ShowMoveTooltipEvent -= () => ShowSingleTooltip(HelpTooltipControlType.HowToMove);
-            ShowInputTooltipEvent -= () => ShowSingleTooltip(HelpTooltipControlType.InputPressed);
+            // Static events (named handlers: unsubscribing a fresh lambda never detaches)
+            ShowLookTooltipEvent -= OnShowLookTooltip;
+            ShowMoveTooltipEvent -= OnShowMoveTooltip;
+            ShowInputTooltipEvent -= OnShowInputTooltip;
             ShowSpecificTooltipEvent -= ShowSingleTooltip;
             StopAllTooltipsEvent -= StopAllTooltips;
             
@@ -821,10 +821,16 @@ namespace jeanf.tooltip
         }
         #endregion
 
+        private void OnShowLookTooltip() => ShowSingleTooltip(HelpTooltipControlType.HowToLook);
+        private void OnShowMoveTooltip() => ShowSingleTooltip(HelpTooltipControlType.HowToMove);
+        private void OnShowInputTooltip() => ShowSingleTooltip(HelpTooltipControlType.InputPressed);
+
         #region Static API
         public static void TriggerLookTooltip() => ShowLookTooltipEvent?.Invoke();
         public static void TriggerMoveTooltip() => ShowMoveTooltipEvent?.Invoke();
         public static void TriggerInputTooltip() => ShowInputTooltipEvent?.Invoke();
+        public static void TriggerSpecificTooltip(HelpTooltipControlType tooltipType) => ShowSpecificTooltipEvent?.Invoke(tooltipType);
+        public static void TriggerStopAllTooltips() => StopAllTooltipsEvent?.Invoke();
         #endregion
     }
 
