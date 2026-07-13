@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using jeanf.EventSystem;
 using jeanf.scenemanagement;
 using jeanf.universalplayer;
+using jeanf.validationTools;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -20,12 +21,15 @@ namespace jeanf.tooltip
     {
         [Header("Tooltip Settings")]
         [FormerlySerializedAs("interactableToolTipSettingsSo")]
+        [Validation("Shared settings (gaze threshold…) are required for this tooltip to work.")]
         [SerializeField] private InteractableTooltipSettingsSo interactableTooltipSettingsSo;
         [Tooltip("Easiest setup: one SO with the icon + text per control scheme (M&K / Gamepad / VR) for this action. If set, it supplies the per-mode icon and text. Leave the legacy glyph SOs (below) empty when using this.")]
         [SerializeField] private TooltipActionContentSo actionContentSo;
         [Tooltip("The object the player must look at for this tooltip to maximize.")]
+        [Validation("Object To Be Viewed is required — without it the gaze test has no target and the tooltip can never maximize.")]
         [SerializeField] private GameObject objectToBeViewed;
         [Tooltip("The tooltip only shows while the player is in this zone.")]
+        [Validation("A zone is required — the tooltip is hidden unless the player is inside it.")]
         public Zone currentZone;
 
         // Permanent (default) = a zone/proximity/gaze-driven hint that persists. Punctual = one-shot,

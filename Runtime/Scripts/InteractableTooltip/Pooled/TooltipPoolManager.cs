@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using jeanf.validationTools;
 using UnityEngine;
 
 namespace jeanf.tooltip
@@ -16,6 +17,7 @@ namespace jeanf.tooltip
 
         [Header("View prefab")]
         [Tooltip("The pooled tooltip prefab to instantiate (must have a PooledTooltipView on its root). Drag the PooledTooltip prefab from the project here.")]
+        [Validation("The View Prefab is required — no pooled tooltip can render without it. Use the inspector's 'Find & assign' button (the ⊙ picker only lists scene objects).")]
         [SerializeField] private GameObject viewPrefab;
 
         public GameObject ViewPrefab => viewPrefab;
