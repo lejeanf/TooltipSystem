@@ -17,7 +17,8 @@ namespace jeanf.tooltip
         Never              // never billboard, ignoring the manager default
     }
 
-    public class InteractableTooltipController : Tooltip
+    // IReticleHoverable: anything with a tooltip makes the player's cursor react on hover.
+    public class InteractableTooltipController : Tooltip, IReticleHoverable
     {
         [Header("Tooltip Settings")]
         [FormerlySerializedAs("interactableToolTipSettingsSo")]
