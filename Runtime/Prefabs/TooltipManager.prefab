@@ -105,6 +105,9 @@ MonoBehaviour:
   framesBetweenOcclusionChecks: 5
   evaluationInterval: 0.2
   repositionHysteresis: 0.05
+  playerLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &2051010259165557542
 GameObject:
   m_ObjectHideFlags: 0
@@ -220,8 +223,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 778e35394e2b69f4ea1e40838522fcdd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stringBoolEventChannelSO: {fileID: 0}
-  TmpScreenUGUI: {fileID: 0}
+  stringBoolEventChannelSO: {fileID: 11400000, guid: 7a5652f597a81fd4ca94ec66fc30f490,
+    type: 2}
+  TmpScreenUGUI: {fileID: 1516089867616271002}
 --- !u!1 &4537231461841359768
 GameObject:
   m_ObjectHideFlags: 0
