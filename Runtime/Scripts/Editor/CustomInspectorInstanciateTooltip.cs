@@ -418,6 +418,13 @@ public class CustomInspectorInstanciateTooltip : Editor
 
         Vector3 basePos = controller.transform.position;
 
+        // Draw all authoring gizmos ON TOP regardless of scene depth. URP and HDRP apply different default
+        // Handles depth-tests, so under URP the range disc / radius handle were depth-occluded by geometry and
+        // read as "missing"; forcing zTest = Always makes both pipelines render them identically. Restored at
+        // every exit below.
+        var prevZTest = Handles.zTest;
+        Handles.zTest = UnityEngine.Rendering.CompareFunction.Always;
+
         // Live, scene-camera-driven preview: auto-follow the best candidate and/or Auto expand-collapse.
         if (_preview != null)
         {
@@ -449,7 +456,7 @@ public class CustomInspectorInstanciateTooltip : Editor
         DrawTargetMarker(controller, 1, basePos, "root", Color.cyan);
 
         var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray) return;
+        if (anchors == null || !anchors.isArray) { Handles.zTest = prevZTest; return; }
 
         for (int i = 0; i < anchors.arraySize; i++)
         {
@@ -476,6 +483,8 @@ public class CustomInspectorInstanciateTooltip : Editor
 
             DrawTargetMarker(controller, i + 2, anchor.position, $"pos {i}", Color.yellow);
         }
+
+        Handles.zTest = prevZTest;
     }
 
     // Visualises the runtime range/trigger logic using the Scene camera as a stand-in for the player, so
