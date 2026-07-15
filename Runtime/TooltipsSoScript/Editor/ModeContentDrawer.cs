@@ -48,7 +48,8 @@ namespace jeanf.tooltip
         }
 
         // Draw the sprite (using its atlas UVs) into r, with a faint backing box so an empty slot still reads
-        // as a preview area.
+        // as a preview area. Fit preserving the sprite's aspect ratio (letterbox / pillarbox), centered — the
+        // box is square, so never stretch a non-square glyph.
         private static void DrawSpritePreview(Rect r, Sprite sprite)
         {
             EditorGUI.DrawRect(r, new Color(0f, 0f, 0f, 0.2f));
@@ -57,7 +58,13 @@ namespace jeanf.tooltip
             var tex = sprite.texture;
             var tr = sprite.textureRect;
             var uv = new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height);
-            GUI.DrawTextureWithTexCoords(r, tex, uv, true);
+
+            float aspect = tr.height > 0f ? tr.width / tr.height : 1f;
+            Rect fit = r;
+            if (aspect >= 1f) { fit.height = r.width / aspect; fit.y = r.y + (r.height - fit.height) * 0.5f; }
+            else { fit.width = r.height * aspect; fit.x = r.x + (r.width - fit.width) * 0.5f; }
+
+            GUI.DrawTextureWithTexCoords(fit, tex, uv, true);
         }
     }
 }
