@@ -40,8 +40,12 @@ namespace jeanf.tooltip
         [Header("Rendering mode")]
         [Tooltip("Render via TooltipPoolManager (sprite minimized + pooled expanded canvas) instead of instantiating a per-tooltip canvas. Requires a TooltipPoolManager in the scene; falls back to the legacy per-tooltip canvas if none is present. Keep the legacy tooltip prefab (Legacy references) assigned for that fallback.")]
         [SerializeField] private bool usePooledRendering = false;
-        [Tooltip("Pooled mode only: distance within which the minimized indicator shows (replaces the FarTooltip range trigger, which isn't instantiated in pooled mode). Set this to your old far-trigger radius.")]
-        [SerializeField] private float minimizedRange = 15f;
+        [Tooltip("How close the player's viewpoint (camera / head) must be for this tooltip to appear at all. " +
+                 "Beyond this distance the tooltip is hidden; within it the minimized disc shows, and it maximizes " +
+                 "when the player looks at the target. 0 = no distance limit. (Pooled mode; replaces the old " +
+                 "FarTooltip trigger radius.)")]
+        [FormerlySerializedAs("minimizedRange")]
+        [SerializeField] private float showDistance = 15f;
 
         [Header("Appearance & orientation")]
         [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a TooltipAnchor can override this per position.")]
@@ -210,7 +214,7 @@ namespace jeanf.tooltip
         public BillboardMode BillboardModeDefault => billboardMode;
 
         // Exposed for the editor range/trigger visualisation (read-only mirrors of the runtime thresholds).
-        public float MinimizedRange => minimizedRange;
+        public float ShowDistance => showDistance;
         public bool EnableRepositioning => enableRepositioning;
         public float DistanceWeight => distanceWeight;
         // Shared across every tooltip via TooltipPoolManager (performance knobs, not per-tooltip appearance) —
@@ -368,7 +372,7 @@ namespace jeanf.tooltip
         {
             string s = $"pooled={_pooled} pool={(TooltipPoolManager.Instance != null)} " +
                        $"permanent={isPermanentTooltip} showTooltip={showTooltip} inZone={isPlayerInZone} " +
-                       $"near={IsNearForShow()} (trigger={_isPlayerNear} inRange={IsWithinMinimizedRange()}) " +
+                       $"near={IsNearForShow()} (trigger={_isPlayerNear} inRange={IsWithinShowDistance()}) " +
                        $"looking={CheckIfPlayerIsLooking()} permMgr={(RequestShowTooltip != null)}";
             if (s == _lastGateLog) return;
             _lastGateLog = s;
@@ -413,7 +417,7 @@ namespace jeanf.tooltip
         // Legacy (non-pooled) near-trigger only: the player's collider is identified by the layer mask
         // configured on TooltipPoolManager when one is set, else by this project's "Player" layer name or the
         // built-in "Player" tag (so a project that only sets one of them still detects). Pooled tooltips never
-        // get here — their proximity is a distance test to the camera (IsWithinMinimizedRange).
+        // get here — their proximity is a distance test to the camera (IsWithinShowDistance).
         private bool IsPlayerCollider(Collider other)
         {
             var pool = TooltipPoolManager.Instance;
@@ -1146,7 +1150,7 @@ namespace jeanf.tooltip
 
             // Permanent tooltips never receive the punctual `showTooltip` event, so don't gate the
             // minimized disc on it — show whenever in range. Punctual tooltips still require it.
-            bool wantMinimized = (isPermanentTooltip || showTooltip) && IsWithinMinimizedRange();
+            bool wantMinimized = (isPermanentTooltip || showTooltip) && IsWithinShowDistance();
             if (!wantMinimized) { ReleasePooledView(); return; }
 
             bool newlyAcquired = false;
@@ -1171,11 +1175,11 @@ namespace jeanf.tooltip
         // Proximity gate for the show-chain. Legacy mode uses the FarTooltip trigger volume
         // (OnTriggerEnter -> _isPlayerNear). Pooled mode has no such volume, so "near" is a pure
         // distance test against Minimized Range — no trigger collider required on the tooltip.
-        private bool IsNearForShow() => _pooled ? IsWithinMinimizedRange() : _isPlayerNear;
+        private bool IsNearForShow() => _pooled ? IsWithinShowDistance() : _isPlayerNear;
 
-        private bool IsWithinMinimizedRange()
+        private bool IsWithinShowDistance()
         {
-            if (minimizedRange <= 0f) return true; // 0 or negative -> no range limit
+            if (showDistance <= 0f) return true; // 0 or negative -> no distance limit
 
             // Measure to the player's VIEWPOINT (main camera / head), not the player GameObject's root. In a VR
             // or FPS rig the head is a moving child while the root sits at the feet/spawn and may not track the
@@ -1185,7 +1189,7 @@ namespace jeanf.tooltip
             if (cam == null) return true;
 
             float sqr = (transform.position - cam.position).sqrMagnitude;
-            return sqr <= minimizedRange * minimizedRange;
+            return sqr <= showDistance * showDistance;
         }
 
         // Pooled billboard preference for this tooltip: null = follow the manager default, true/false = force.

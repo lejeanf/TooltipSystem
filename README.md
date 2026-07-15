@@ -42,9 +42,11 @@ Put an **InteractableTooltipController** on (or near) the thing to annotate and 
 - **Object To Be Viewed** — what the player must look at to maximize the tooltip.
 - **Current Zone** — the `jeanf.scenemanagement` zone the tooltip shows in.
 - **Use Pooled Rendering** — on.
-- **Minimized Range** — distance within which the minimized disc appears.
+- **Show Distance** — how close the player must be for the tooltip to appear at all (beyond it, hidden).
 
-That's the minimum. Look at the object from inside the zone and within range → the tooltip maximizes.
+The per-tooltip inspector is split into two tabs — **Content** (object to view, zone, action content, gaze settings, click event) and **In-world** (icon side, billboarding, rendering, repositioning, candidate positions, per-position overrides, scene preview) — with `isDebug` and the debug panel outside the tabs.
+
+That's the minimum. Look at the object from inside the zone and within Show Distance → the tooltip maximizes.
 
 ---
 
@@ -53,7 +55,7 @@ That's the minimum. Look at the object from inside the zone and within range →
 | Player state | Tooltip |
 |---|---|
 | Not in the tooltip's zone | hidden |
-| In zone, beyond **Minimized Range** | hidden |
+| In zone, beyond **Show Distance** | hidden |
 | In zone, within range, **not** looking | **minimized disc** |
 | In zone, within range, **looking** (gaze cone) + arbiter permission | **maximized pill** |
 
@@ -116,7 +118,7 @@ On click the tooltip **flashes** (`Click Flash Color` over `Click Flash Duration
 
 The `InteractableTooltipController` inspector includes:
 
-- A **scene preview** of the pooled tooltip at any candidate position (no pool manager required to preview), with editable Minimized Range handle and range/gaze gizmos.
+- A **scene preview** of the pooled tooltip at any candidate position (no pool manager required to preview), with editable Show Distance handle and range/gaze gizmos.
 - A **Force show** (play-mode, editor-only) toggle to display the tooltip regardless of gates while testing.
 - A **Tooltip state (debug)** panel (toggle it on the `TooltipPoolManager`) showing live gate state and candidate scoring in Play mode.
 
@@ -139,7 +141,7 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 - ⚠ **Breaking:** the click event is now an **On Click UnityEvent** on the controller (plus a `Clicked` C# event) instead of a `StringEventChannelSO` + string message. Re-wire any click listeners in the inspector. `TooltipClickRelay` changed the same way.
 - **Two size sliders** on the pooled prefab — *Minimized Scale* / *Expanded Scale* — with every granular sizing/animation/wiring field moved under an **Advanced** foldout.
 - **Non-billboard tooltips can be oriented**: they hold their authored rotation at runtime, with a Scene rotation handle + forward arrow to author it and a Game-view debug arrow (debug panel on) to see it.
-- **Contextual inspectors**: `isDebug` first; billboard limits hidden unless billboarding; *Minimized Range* hidden unless pooled; repositioning knobs hidden until enabled. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
+- **Tabbed, contextual inspector**: the controller splits into **Content** / **In-world** tabs (`isDebug` + debug panel outside them); billboard limits hidden unless billboarding; *Show Distance* (renamed from *Minimized Range*) hidden unless pooled; repositioning knobs hidden until enabled. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
 - **Rendering**: double-sided background (URP + HDRP) so the back shows the background, not the text; crisper SDF corners.
 - Range/gaze **Scene gizmos now render under URP** too (explicit `Handles.zTest`).
 

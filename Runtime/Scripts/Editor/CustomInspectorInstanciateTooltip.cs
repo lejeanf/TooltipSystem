@@ -30,6 +30,8 @@ public class CustomInspectorInstanciateTooltip : Editor
     private bool _legacyFoldout = false;                            // collapse the bottom legacy-references block (closed by default)
     private bool _debugFoldout = true;                              // collapse the live debug-state panel (when globally enabled)
     private bool _sceneMulti;                                       // cached Multi for OnSceneGUI (can't read `targets` there)
+    private int _tab;                                               // 0 = Content, 1 = In-world
+    private bool _overridesFoldout = true;                          // collapse the per-candidate overrides block
 
     private void OnEnable()
     {
@@ -98,7 +100,7 @@ public class CustomInspectorInstanciateTooltip : Editor
                 mExclude.Add("billboardConstraints");
             var mPooled = serializedObject.FindProperty("usePooledRendering");
             if (mPooled != null && !mPooled.hasMultipleDifferentValues && !mPooled.boolValue)
-                mExclude.Add("minimizedRange");
+                mExclude.Add("showDistance");
 
             DrawPropertiesExcluding(serializedObject, mExclude.ToArray());
             DrawRepositioning();
@@ -107,45 +109,19 @@ public class CustomInspectorInstanciateTooltip : Editor
             return;
         }
 
-        DrawPreviewControls(controller);
+        // isDebug is pinned above the tabs (house style: quick to find, applies to either tab).
+        Prop("isDebug");
 
+        // Two tabs: Content = what the tooltip is / when it shows; In-world = how it looks & where it sits.
         EditorGUILayout.Space();
-        // Repositioning, candidate list, and legacy refs are drawn below in their own collapsible blocks.
-        var exclude = new List<string>
-        {
-            "m_Script", "candidateAnchors", "showTooltip",
-            "enableRepositioning", "distanceWeight",
-            "rejectOccluded", "obstacleMask",
-            "tooltipGameObjectPrefab", "inputIconSo", "interactableTooltipInputSo"
-        };
-        // The general (controller-level) billboard mode + limits apply only to the "self" position. Once the
-        // tooltip repositions across candidates, each position owns its own (via TooltipAnchor), so hide both.
-        if (controller.UsesCandidatesEditor)
-        {
-            exclude.Add("billboardConstraints");
-            exclude.Add("billboardMode");
-        }
-        else if (controller.BillboardModeDefault == BillboardMode.Never)
-        {
-            // Not billboarding -> no per-axis limits to set (orient via the Scene rotation handle instead).
-            exclude.Add("billboardConstraints");
-        }
+        _tab = GUILayout.Toolbar(_tab, TabLabels);
+        EditorGUILayout.Space(2);
 
-        // Minimized Range only applies to pooled rendering.
-        var usePooledProp = serializedObject.FindProperty("usePooledRendering");
-        if (usePooledProp != null && !usePooledProp.boolValue)
-            exclude.Add("minimizedRange");
+        if (_tab == 0) DrawContentTab();
+        else DrawInWorldTab(controller);
 
-        DrawPropertiesExcluding(serializedObject, exclude.ToArray());
-
-        if (controller.UsesCandidatesEditor)
-            EditorGUILayout.HelpBox(
-                "Billboarding and its limits are set per candidate position (select one below — the Billboard dropdown, " +
-                "and \"Override billboard limits\"). The general billboard settings apply only when there are no candidates.",
-                MessageType.None);
-
-        DrawRepositioning();
-        DrawCandidatePositions(controller);
+        // Below the tabs, always reachable: the legacy references and the live debug panel.
+        EditorGUILayout.Space();
         DrawLegacyReferences();
         DrawDebugState(controller);
 
@@ -155,6 +131,58 @@ public class CustomInspectorInstanciateTooltip : Editor
 
         // The inspector only repaints on change by default; force it while playing so the debug panel updates.
         if (Application.isPlaying && TooltipDebugPrefs.Enabled && _debugFoldout) Repaint();
+    }
+
+    private static readonly string[] TabLabels = { "Content", "In-world" };
+
+    // Draw a serialized property by name (with children). Used for the explicit per-tab field ordering.
+    private void Prop(string name)
+    {
+        var p = serializedObject.FindProperty(name);
+        if (p != null) EditorGUILayout.PropertyField(p, true);
+    }
+
+    // "Content" tab — what the tooltip is and when it shows.
+    private void DrawContentTab()
+    {
+        Prop("objectToBeViewed");
+        Prop("currentZone");
+        Prop("actionContentSo");
+        Prop("interactableTooltipSettingsSo");
+        EditorGUILayout.Space();
+        Prop("onClick");
+        Prop("clickMinimizeDuration");
+    }
+
+    // "In-world" tab — how the tooltip looks and where it sits (orientation, rendering, placement, preview).
+    private void DrawInWorldTab(InteractableTooltipController controller)
+    {
+        // Appearance / orientation.
+        Prop("iconOnRight");
+        Prop("billboardMode");
+        if (controller.UsesCandidatesEditor)
+        {
+            EditorGUILayout.HelpBox(
+                "Billboarding and its limits are set per candidate position (see \"Selected position overrides\" " +
+                "below). The general billboard settings apply only when there are no candidate positions.",
+                MessageType.None);
+        }
+        else if (controller.BillboardModeDefault != BillboardMode.Never)
+        {
+            // Not billboarding -> no per-axis limits to set (orient via the Scene rotation handle instead).
+            Prop("billboardConstraints");
+        }
+
+        // Rendering.
+        EditorGUILayout.Space();
+        Prop("usePooledRendering");
+        var pooled = serializedObject.FindProperty("usePooledRendering");
+        if (pooled == null || pooled.boolValue) Prop("showDistance"); // pooled-only
+
+        DrawRepositioning();
+        DrawCandidatePositions(controller);
+        DrawSelectedPositionOverrides(controller);
+        DrawScenePreview(controller);
     }
 
     private void DrawRepositioning()
@@ -274,9 +302,13 @@ public class CustomInspectorInstanciateTooltip : Editor
         EditorGUILayout.EndHorizontal();
     }
 
-    private void DrawPreviewControls(InteractableTooltipController controller)
+    // Pure scene visualization: which position/mode/state to show, range gizmos, and the play-mode force-show.
+    // Per-candidate overrides live in DrawSelectedPositionOverrides (they used to be mixed in here, which made
+    // this block read as "just a preview" when it actually WROTE to the selected position's TooltipAnchor).
+    private void DrawScenePreview(InteractableTooltipController controller)
     {
-        _previewFoldout = EditorGUILayout.Foldout(_previewFoldout, "Preview (pooled tooltip in the scene)", true, EditorStyles.foldoutHeader);
+        EditorGUILayout.Space();
+        _previewFoldout = EditorGUILayout.Foldout(_previewFoldout, "Scene preview", true, EditorStyles.foldoutHeader);
         if (!_previewFoldout) return;
 
         // Build the "preview at" options: None, Base, then each candidate position.
@@ -310,8 +342,6 @@ public class CustomInspectorInstanciateTooltip : Editor
             else BuildPreview(controller);
         }
 
-        DrawIconSideControls(controller);
-
         _showRanges = EditorGUILayout.Toggle(new GUIContent("Visualize ranges (scene)",
             "Draw the minimized range, the maximize gaze-cone state, and candidate scoring in the Scene view, using the Scene camera as a stand-in for the player."), _showRanges);
 
@@ -327,17 +357,22 @@ public class CustomInspectorInstanciateTooltip : Editor
             EditorGUILayout.HelpBox("Assign an Action Content SO to preview each mode's icon/text. Without it the preview shows the prefab's placeholder content.", MessageType.None);
     }
 
-    // Per-position icon side + billboarding for the thing currently being previewed, editable inline so the
-    // flip is live. One dropdown each (Inherit / Left / Right and Inherit / Always / Never) — no two-checkbox
-    // "override" trap.
-    private void DrawIconSideControls(InteractableTooltipController controller)
+    // Per-candidate overrides for the position currently selected in Scene preview: its TooltipAnchor's icon
+    // side, billboarding and axis limits. Editing here WRITES to that TooltipAnchor (with Undo) — it is not just
+    // a preview. Pick which position in "Scene preview" below. One dropdown each (Inherit / Left / Right and
+    // Inherit / Always / Never) — no two-checkbox "override" trap.
+    private void DrawSelectedPositionOverrides(InteractableTooltipController controller)
     {
-        if (_previewPos < 2) // None / Base -> the tooltip's own default, edited on the controller below.
+        EditorGUILayout.Space();
+        _overridesFoldout = EditorGUILayout.Foldout(_overridesFoldout, "Selected position overrides", true, EditorStyles.foldoutHeader);
+        if (!_overridesFoldout) return;
+
+        if (_previewPos < 2) // None / Base -> no candidate selected; the defaults live above in this tab.
         {
-            if (_previewPos == 1)
-                EditorGUILayout.LabelField("Icon side", controller.IconOnRightDefault
-                    ? "Right (tooltip default — see Icon On Right below)"
-                    : "Left (tooltip default — see Icon On Right below)");
+            EditorGUILayout.HelpBox(
+                "Pick a candidate position in \"Scene preview\" below to override its icon side, billboarding and " +
+                "axis limits. With none selected, the tooltip uses its defaults (Icon side + Billboard Mode above).",
+                MessageType.None);
             return;
         }
 
@@ -515,7 +550,7 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void DrawRangeGizmos(InteractableTooltipController controller)
     {
         Vector3 origin = controller.transform.position;
-        float range = controller.MinimizedRange;
+        float range = controller.ShowDistance;
 
         // --- Minimized range: an editable radius handle (drag to set) + faint disc. Measured from the
         // controller root at runtime; edits write straight back to the inspector field. ---
@@ -530,7 +565,7 @@ public class CustomInspectorInstanciateTooltip : Editor
             {
                 // Local SerializedObject (not the Editor's) so the write is legal inside OnSceneGUI.
                 var so = new SerializedObject(controller);
-                var p = so.FindProperty("minimizedRange");
+                var p = so.FindProperty("showDistance");
                 if (p != null)
                 {
                     p.floatValue = Mathf.Max(0f, newRange);
@@ -1105,7 +1140,7 @@ public class CustomInspectorInstanciateTooltip : Editor
         Vector3 eyeFwd = sv.camera.transform.forward;
         Vector3 origin = controller.transform.position;
 
-        float range = controller.MinimizedRange;
+        float range = controller.ShowDistance;
         inRange = range <= 0f || (origin - eye).magnitude <= range;
 
         Transform lookT = controller.LookTarget;
