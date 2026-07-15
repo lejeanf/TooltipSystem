@@ -25,7 +25,6 @@ public class CustomInspectorInstanciateTooltip : Editor
     private bool _showRanges = true;                                // draw range/trigger gizmos in the scene
     private bool _followBest = true;                                // preview follows the best candidate for the scene cam
     private bool _previewFoldout = true;                            // collapse the scene-preview block
-    private bool _candidatesFoldout = true;                         // collapse the candidate-positions list
     private bool _sceneMulti;                                       // cached Multi for OnSceneGUI (can't read `targets` there)
     private int _tab;                                               // 0 = Content, 1 = In-world, 2 = Debug
 
@@ -925,28 +924,10 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (anchors == null) return;
 
         EditorGUILayout.Space();
-        _candidatesFoldout = EditorGUILayout.Foldout(_candidatesFoldout,
-            $"Candidate positions (repositioning) — {anchors.arraySize}", true, EditorStyles.foldoutHeader);
-        if (!_candidatesFoldout) return;
-
-        int removeIndex = -1;
-        for (int i = 0; i < anchors.arraySize; i++)
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PropertyField(anchors.GetArrayElementAtIndex(i), new GUIContent($"Position {i}"));
-            if (GUILayout.Button("Remove", GUILayout.Width(70))) removeIndex = i;
-            EditorGUILayout.EndHorizontal();
-        }
-
-        if (removeIndex >= 0)
-        {
-            var t = anchors.GetArrayElementAtIndex(removeIndex).objectReferenceValue as Transform;
-            if (t != null && t.parent == controller.transform && t.name.StartsWith("TooltipPosition"))
-                Undo.DestroyObjectImmediate(t.gameObject);
-            if (anchors.GetArrayElementAtIndex(removeIndex).objectReferenceValue != null)
-                anchors.DeleteArrayElementAtIndex(removeIndex);
-            anchors.DeleteArrayElementAtIndex(removeIndex);
-        }
+        // Unity's built-in list drawer: add (+), remove (-) and drag-reorder, with its own collapse arrow.
+        // Assign scene Transforms directly, or use the sphere buttons below to create positioned children.
+        // (Removing here only unlinks the reference; it doesn't delete a generated TooltipPosition object.)
+        EditorGUILayout.PropertyField(anchors, new GUIContent("Candidate positions (repositioning)"), true);
 
         // --- Quick setup: spread positions evenly on a sphere around the root (Fibonacci / golden spiral) ---
         EditorGUILayout.Space();
