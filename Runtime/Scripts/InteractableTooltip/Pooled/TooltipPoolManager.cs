@@ -24,7 +24,7 @@ namespace jeanf.tooltip
         public bool BillboardDefault => billboardToCamera;
 
         [Header("Pool size (prewarmed; grows if exceeded)")]
-        [SerializeField, Min(0)] private int capacity = 24;
+        [SerializeField, Min(0)] private int capacity = 10;
 
         [Header("Billboard")]
         [Tooltip("Default for tooltips that don't override it. A tooltip can force billboarding on/off per-instance (see the controller's Auto-orient mode).")]
