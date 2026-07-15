@@ -29,10 +29,13 @@ public class CustomInspectorInstanciateTooltip : Editor
     private bool _candidatesFoldout = true;                         // collapse the candidate-positions list
     private bool _legacyFoldout = false;                            // collapse the bottom legacy-references block (closed by default)
     private bool _debugFoldout = true;                              // collapse the live debug-state panel (when globally enabled)
+    private bool _sceneMulti;                                       // cached Multi for OnSceneGUI (can't read `targets` there)
 
     private void OnEnable()
     {
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
+
+        _sceneMulti = Multi; // cache here: OnSceneGUI must not touch the `targets` array
 
         var controller = target as InteractableTooltipController;
         if (controller == null || Application.isPlaying || Multi) return;
@@ -414,18 +417,21 @@ public class CustomInspectorInstanciateTooltip : Editor
 
     private Transform GetPreviewAnchorTransform()
     {
-        var anchors = serializedObject.FindProperty("candidateAnchors");
+        // Read the live list off the target (works in both OnInspectorGUI and OnSceneGUI, where the Editor's
+        // serializedObject is off-limits).
+        var anchors = (target as InteractableTooltipController)?.CandidateAnchorsEditor;
         int idx = _previewPos - 2;
-        if (anchors == null || idx < 0 || idx >= anchors.arraySize) return null;
-        return anchors.GetArrayElementAtIndex(idx).objectReferenceValue as Transform;
+        if (anchors == null || idx < 0 || idx >= anchors.Count) return null;
+        return anchors[idx];
     }
 
     // Scene-view authoring: place the tooltip and edit its candidate positions with handles.
     private void OnSceneGUI()
     {
-        // Single-selection only: the handles write through serializedObject (e.g. the range radius), which on
-        // a multi-target editor would silently stamp one tooltip's dragged value onto every selected tooltip.
-        if (Multi) return;
+        // Single-selection only: the handles write to the target (e.g. the range radius), which on a
+        // multi-target editor would silently stamp one tooltip's dragged value onto every selected tooltip.
+        // Uses the cached flag because OnSceneGUI must not read the `targets` array.
+        if (_sceneMulti) return;
 
         var controller = target as InteractableTooltipController;
         if (controller == null) return;
@@ -474,12 +480,12 @@ public class CustomInspectorInstanciateTooltip : Editor
         // Script root (Base) — just a marker (the object's own transform tool moves it).
         DrawTargetMarker(controller, 1, basePos, "root", Color.cyan);
 
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray) return;
+        var anchors = controller.CandidateAnchorsEditor; // read off the target, not the Editor serializedObject
+        if (anchors == null) return;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var anchor = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var anchor = anchors[i];
             if (anchor == null) continue;
 
             bool active = _previewPos == i + 2;
@@ -522,12 +528,13 @@ public class CustomInspectorInstanciateTooltip : Editor
             float newRange = Handles.RadiusHandle(Quaternion.identity, origin, range);
             if (EditorGUI.EndChangeCheck())
             {
-                serializedObject.Update();
-                var p = serializedObject.FindProperty("minimizedRange");
+                // Local SerializedObject (not the Editor's) so the write is legal inside OnSceneGUI.
+                var so = new SerializedObject(controller);
+                var p = so.FindProperty("minimizedRange");
                 if (p != null)
                 {
                     p.floatValue = Mathf.Max(0f, newRange);
-                    serializedObject.ApplyModifiedProperties(); // updates the inspector + Undo
+                    so.ApplyModifiedProperties(); // updates the inspector + Undo
                 }
             }
 
@@ -785,8 +792,8 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void AppendCandidateScores(InteractableTooltipController controller, Vector3 eye,
         List<(string text, Color col)> lines)
     {
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray || anchors.arraySize == 0) return;
+        var anchors = controller.CandidateAnchorsEditor; // off the target (OnSceneGUI: no Editor serializedObject)
+        if (anchors == null || anchors.Count == 0) return;
 
         float w = controller.DistanceWeight;
         Transform centerT = controller.LookTarget;
@@ -794,14 +801,14 @@ public class CustomInspectorInstanciateTooltip : Editor
         Vector3 dirCenterToEye = eye - centerPos;
         if (dirCenterToEye.sqrMagnitude > 1e-6f) dirCenterToEye.Normalize();
 
-        var scores = new float[anchors.arraySize];
-        var positions = new Vector3[anchors.arraySize];
+        var scores = new float[anchors.Count];
+        var positions = new Vector3[anchors.Count];
         int bestIdx = -1;
         float bestScore = float.NegativeInfinity;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var t = anchors[i];
             scores[i] = float.NegativeInfinity;
             if (t == null) continue;
             positions[i] = t.position;
@@ -820,7 +827,7 @@ public class CustomInspectorInstanciateTooltip : Editor
 
         var amber = new Color(1f, 0.8f, 0.3f);
         lines.Add(("candidates (green = chosen):", Color.white));
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
             if (float.IsNegativeInfinity(scores[i])) continue;
             bool best = i == bestIdx;
@@ -1117,8 +1124,8 @@ public class CustomInspectorInstanciateTooltip : Editor
         var sv = SceneView.lastActiveSceneView;
         if (sv == null || sv.camera == null) return false;
 
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray || anchors.arraySize == 0) return false;
+        var anchors = controller.CandidateAnchorsEditor; // off the target (OnSceneGUI: no Editor serializedObject)
+        if (anchors == null || anchors.Count == 0) return false;
 
         Vector3 eye = sv.camera.transform.position;
         float w = controller.DistanceWeight;
@@ -1128,9 +1135,9 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (dirCenterToEye.sqrMagnitude > 1e-6f) dirCenterToEye.Normalize();
         float bestScore = float.NegativeInfinity;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var t = anchors[i];
             if (t == null) continue;
             Vector3 to = t.position - eye;
             float d = to.magnitude;

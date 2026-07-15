@@ -1247,6 +1247,10 @@ namespace jeanf.tooltip
         }
 
 #if UNITY_EDITOR
+        // Live candidate list for the scene-GUI / preview code, read straight off the target so the editor
+        // doesn't touch the Editor.serializedObject inside OnSceneGUI (Unity forbids that).
+        internal List<Transform> CandidateAnchorsEditor => candidateAnchors;
+
         // Editor scene-GUI / preview access to the live constraint config and its rest frame.
         internal BillboardMode BillboardModeEditor => billboardMode;
         // Rest rotation for an explicitly previewed candidate (the inspector may preview a position that isn't
