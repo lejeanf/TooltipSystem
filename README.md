@@ -85,6 +85,18 @@ Edit it in the inspector or directly in the **Scene view**: axis-coloured arcs (
 
 ---
 
+## Orienting a non-billboard tooltip
+
+Set **Billboard Mode → Never** to pin a tooltip to a fixed facing instead of turning to the camera. Author that facing by rotating the tooltip's transform (or the candidate position): the **Scene view shows a rotation handle + a forward arrow** for the non-billboard case (billboarding tooltips show the axis-limit arcs above instead). At runtime the pooled view holds that authored rotation. Turn on the **debug panel** (on the `TooltipPoolManager`) to also see a forward **arrow in the Game view** — for every active non-billboard tooltip — with the Game-view *Gizmos* toggle enabled.
+
+---
+
+## Sizing the pooled tooltip
+
+On the `PooledTooltip` prefab (`PooledTooltipView`) two sliders set the overall size in each state — **Minimized Scale** (the disc) and **Expanded Scale** (the pill) — each a uniform multiplier over the granular per-shape sizes tucked under **Advanced**. One slider each is usually all you need for real-world tuning.
+
+---
+
 ## Clicking
 
 Every pooled tooltip is **clickable out of the box** — the view auto-adds a trigger `BoxCollider` (sized to the pill/disc, never collides with scene objects, no Rigidbody needed).
@@ -92,7 +104,7 @@ Every pooled tooltip is **clickable out of the box** — the view auto-adds a tr
 - **Mouse / editor:** the view's built-in `OnMouseDown`.
 - **VR:** wire an `XRSimpleInteractable`'s **Select Entered → `PooledTooltipView.Click()`** on the `PooledTooltip` prefab.
 
-A click raises the controller's **On Click Channel** (`StringEventChannelSO`) with **Click Message**; the game listens and performs the interaction. Clicking only raises that event — it does **not** change minimize/maximize (that stays gaze-driven). `Click()` de-dupes per frame, so multiple detectors are safe.
+A click invokes the controller's **On Click** UnityEvent — wire the game-side interaction to it in the inspector (or subscribe to the controller's `Clicked` C# event from code). Clicking only invokes that event — it does **not** change minimize/maximize (that stays gaze-driven). `Click()` de-dupes per frame, so multiple detectors are safe.
 
 ### Click feedback
 
@@ -119,6 +131,17 @@ The `InteractableTooltipController` inspector includes:
 - **TooltipActionContentSo** — per-control-scheme icon/text for one action.
 
 The package also contains other tooltip families (Help, Navigation, Far/legacy canvas tooltips) used elsewhere in the game.
+
+---
+
+## What's new in 2.4.0
+
+- ⚠ **Breaking:** the click event is now an **On Click UnityEvent** on the controller (plus a `Clicked` C# event) instead of a `StringEventChannelSO` + string message. Re-wire any click listeners in the inspector. `TooltipClickRelay` changed the same way.
+- **Two size sliders** on the pooled prefab — *Minimized Scale* / *Expanded Scale* — with every granular sizing/animation/wiring field moved under an **Advanced** foldout.
+- **Non-billboard tooltips can be oriented**: they hold their authored rotation at runtime, with a Scene rotation handle + forward arrow to author it and a Game-view debug arrow (debug panel on) to see it.
+- **Contextual inspectors**: `isDebug` first; billboard limits hidden unless billboarding; *Minimized Range* hidden unless pooled; repositioning knobs hidden until enabled. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
+- **Rendering**: double-sided background (URP + HDRP) so the back shows the background, not the text; crisper SDF corners.
+- Range/gaze **Scene gizmos now render under URP** too (explicit `Handles.zTest`).
 
 ---
 
