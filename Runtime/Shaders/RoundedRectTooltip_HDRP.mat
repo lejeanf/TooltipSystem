@@ -83,7 +83,7 @@ Material:
     - _OpaqueCullMode: 2
     - _PerPixelSorting: 0
     - _RenderQueueType: 3
-    - _Softness: 0.003
+    - _Softness: 0.001
     - _SrcBlend: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
