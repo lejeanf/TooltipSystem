@@ -100,10 +100,8 @@ public class CustomInspectorInstanciateTooltip : Editor
             return;
         }
 
-        // isDebug is pinned above the tabs (house style: quick to find, applies to either tab).
-        Prop("isDebug");
-
-        // Two tabs: Content = what the tooltip is / when it shows; In-world = how it looks & where it sits.
+        // Tabs: Content = what the tooltip is / when it shows; In-world = how it looks & where it sits;
+        // Debug = the isDebug toggle + live gate state.
         EditorGUILayout.Space();
         _tab = GUILayout.Toolbar(_tab, TabLabels);
         EditorGUILayout.Space(2);
@@ -176,7 +174,6 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void DrawRepositioning()
     {
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Repositioning (optional)", EditorStyles.boldLabel);
         var enableProp = serializedObject.FindProperty("enableRepositioning");
         if (enableProp != null) EditorGUILayout.PropertyField(enableProp);
         // The scoring knobs only matter once repositioning is on — hide them otherwise.
@@ -198,6 +195,9 @@ public class CustomInspectorInstanciateTooltip : Editor
     // (OnInspectorGUI forces a repaint while the Debug tab is active).
     private void DrawDebugState(InteractableTooltipController controller)
     {
+        Prop("isDebug");
+        EditorGUILayout.Space();
+
         if (!Application.isPlaying)
             EditorGUILayout.HelpBox("Enter Play mode for live gate state (zone / proximity / looking update each frame).", MessageType.None);
 
@@ -342,7 +342,6 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void DrawSelectedPositionOverrides(InteractableTooltipController controller)
     {
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Selected position overrides", EditorStyles.boldLabel);
 
         if (_previewPos < 2) // None / Base -> no candidate selected; the defaults live above in this tab.
         {

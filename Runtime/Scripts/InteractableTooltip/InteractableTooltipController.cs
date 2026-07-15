@@ -20,7 +20,6 @@ namespace jeanf.tooltip
     // IReticleHoverable: anything with a tooltip makes the player's cursor react on hover.
     public class InteractableTooltipController : Tooltip, IReticleHoverable
     {
-        [Header("Debug")]
         [Tooltip("Log this tooltip's state changes to the console.")]
         public bool isDebug = false;
 
@@ -37,7 +36,6 @@ namespace jeanf.tooltip
         [Validation("A zone is required — the tooltip is hidden unless the player is inside it.")]
         public Zone currentZone;
 
-        [Header("Rendering")]
         [Tooltip("How close the player's viewpoint (camera / head) must be for this tooltip to appear at all. " +
                  "Beyond this distance the tooltip is hidden; within it the minimized disc shows, and it maximizes " +
                  "when the player looks at the target. 0 = no distance limit. (Pooled mode; replaces the old " +
@@ -45,7 +43,6 @@ namespace jeanf.tooltip
         [FormerlySerializedAs("minimizedRange")]
         [SerializeField] private float showDistance = 15f;
 
-        [Header("Appearance & orientation")]
         [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a TooltipAnchor can override this per position.")]
         [SerializeField] private bool iconOnRight = true;
         [Tooltip("Per-tooltip billboarding. UseManagerDefault: follow the TooltipPoolManager's global setting (pooled) / off (legacy). Always / Never: force this tooltip on or off regardless of the manager. When Never, orient the tooltip by rotating its transform (or the candidate position) — a Scene rotation handle is provided.")]
