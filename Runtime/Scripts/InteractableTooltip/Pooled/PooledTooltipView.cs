@@ -26,6 +26,12 @@ namespace jeanf.tooltip
         [SerializeField] private TMP_Text descriptionText;      // 3D TextMeshPro
         [SerializeField] private SpriteRenderer iconRenderer;
 
+        [Header("Overall size")]
+        [Tooltip("Uniform scale of the WHOLE tooltip while minimized (the disc) — the single 'minimized size' slider. The granular sizes under Advanced are the baseline this multiplies.")]
+        [Range(0.25f, 4f)] [SerializeField] private float minimizedScale = 1f;
+        [Tooltip("Uniform scale of the WHOLE tooltip while expanded (the pill) — the single 'maximized size' slider. The granular sizes under Advanced are the baseline this multiplies.")]
+        [Range(0.25f, 4f)] [SerializeField] private float expandedScale = 1f;
+
         [Header("Minimized state")]
         [SerializeField] private Vector2 minSize = new Vector2(0.4f, 0.4f);
         [SerializeField] private Vector4 minRadius = new Vector4(0.2f, 0.2f, 0.2f, 0.2f); // TR,BR,TL,BL
@@ -435,6 +441,11 @@ namespace jeanf.tooltip
         private void ApplyMorph(float t)
         {
             _morph = t;
+
+            // One uniform scale per state (the two "size" sliders), interpolated by the morph so the whole
+            // tooltip — background, text, icon and click collider (all children of this root) — grows together.
+            // The granular sizes below stay the per-shape baseline this multiplies.
+            transform.localScale = Vector3.one * Mathf.Lerp(minimizedScale, expandedScale, t);
 
             float width = Mathf.Lerp(minSize.x, _expandedWidth > 0f ? _expandedWidth : minSize.x, t);
             float height = Mathf.Lerp(minSize.y, expandedHeight, t);
