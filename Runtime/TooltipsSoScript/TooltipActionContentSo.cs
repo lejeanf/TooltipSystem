@@ -19,7 +19,8 @@ namespace jeanf.tooltip
         public class ModeContent
         {
             public Sprite icon;
-            [TextArea] public string text;
+            [Tooltip("Short action phrase shown in the tooltip (kept to one line — e.g. \"Open\", \"Pick up\").")]
+            public string text;
         }
 
         public ModeContent keyboardMouse = new ModeContent();
