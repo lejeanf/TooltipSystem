@@ -931,11 +931,15 @@ public class CustomInspectorInstanciateTooltip : Editor
         // --- Quick setup: spread positions evenly on a sphere around the root (Fibonacci / golden spiral) ---
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Auto-place on a sphere", EditorStyles.miniBoldLabel);
+        // Explicit widths so the fields stay compact and the Generate button always fits on the right
+        // (labeled EditorGUILayout fields otherwise expand and clip the button off-screen).
         EditorGUILayout.BeginHorizontal();
-        _spawnCount = Mathf.Max(1, EditorGUILayout.IntField(
-            new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), _spawnCount));
-        _spawnRadius = Mathf.Max(0f, EditorGUILayout.FloatField(
-            new GUIContent("Radius", "Distance (local units) each position sits from the root."), _spawnRadius));
+        GUILayout.Label(new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), GUILayout.Width(44f));
+        _spawnCount = Mathf.Max(1, EditorGUILayout.IntField(_spawnCount, GUILayout.Width(48f)));
+        GUILayout.Space(12f);
+        GUILayout.Label(new GUIContent("Radius", "Distance (local units) each position sits from the root."), GUILayout.Width(48f));
+        _spawnRadius = Mathf.Max(0f, EditorGUILayout.FloatField(_spawnRadius, GUILayout.Width(56f)));
+        GUILayout.FlexibleSpace();
         if (GUILayout.Button(new GUIContent("Generate", "Create Count positions spread evenly on a sphere (replaces the current list)."), GUILayout.Width(90f)))
             GenerateOnSphere(controller, anchors);
         EditorGUILayout.EndHorizontal();
