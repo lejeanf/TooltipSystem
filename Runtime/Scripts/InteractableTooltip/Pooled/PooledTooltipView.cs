@@ -102,6 +102,12 @@ namespace jeanf.tooltip
             transform.rotation = _billboardConstraints.Apply(_billboardRest, transform.position - camPos, camUp);
         }
 
+        /// <summary>Hold the authored rest orientation the owning controller pushed (the controller's or the
+        /// chosen candidate's rotation). Called centrally by the pool manager each LateUpdate for views whose
+        /// <see cref="ShouldBillboard"/> is false — so a non-billboarding tooltip keeps its designed facing
+        /// instead of the identity a recycled view resets to.</summary>
+        public void ApplyFixedRotation() => transform.rotation = _billboardRest;
+
         private bool _expanded;
         private bool _iconOnRight = true;
         private float _morph;          // 0 = minimized, 1 = expanded (current)
@@ -824,8 +830,9 @@ namespace jeanf.tooltip
             }
             else
             {
-                // "Never": match runtime, where an un-billboarded pooled view sits at identity world rotation.
-                transform.rotation = Quaternion.identity;
+                // "Never": match runtime — an un-billboarded pooled view holds the authored rest rotation
+                // (the controller's / candidate's facing) that ConfigurePreview pushed via SetBillboardConstraints.
+                transform.rotation = _billboardRest;
             }
 
             UnityEditor.SceneView.RepaintAll();

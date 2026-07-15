@@ -443,6 +443,7 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (_showRanges) DrawRangeGizmos(controller);
 
         DrawBillboardConstraintHandles(controller);
+        DrawOrientationHandle(controller);
 
         // Script root (Base) — just a marker (the object's own transform tool moves it).
         DrawTargetMarker(controller, 1, basePos, "root", Color.cyan);
@@ -616,6 +617,40 @@ public class CustomInspectorInstanciateTooltip : Editor
     }
 
     private GUIStyle _billboardHintStyle;
+
+    // --- Fixed-facing rotation handle -----------------------------------------------------------------
+    // When the previewed target does NOT billboard, its orientation is authored by rotating the transform
+    // (base = the controller, candidate = the position). Give it a proper rotation handle + a forward arrow.
+    // Billboarding targets use the constraint arcs above instead — the two cases are mutually exclusive.
+    private void DrawOrientationHandle(InteractableTooltipController controller)
+    {
+        if (GetPreviewBillboard(controller)) return; // billboarding -> the axis-limit arcs own the handles
+
+        Transform anchorTf = _previewPos >= 2 ? GetPreviewAnchorTransform() : null;
+        Transform target = anchorTf != null ? anchorTf : controller.transform;
+        if (target == null) return;
+
+        Vector3 pos = _preview != null ? _preview.transform.position
+                    : anchorTf != null ? anchorTf.position
+                    : controller.transform.position;
+
+        // Forward arrow so the authored facing is obvious even before you grab the handle.
+        Handles.color = new Color(0.3f, 0.9f, 1f, 0.95f);
+        float len = HandleUtility.GetHandleSize(pos) * 1.1f;
+        Handles.ArrowHandleCap(0, pos, target.rotation, len, EventType.Repaint);
+        Handles.Label(pos + target.rotation * Vector3.forward * len,
+            _previewPos >= 2 ? "facing (position)" : "facing (tooltip)");
+
+        EditorGUI.BeginChangeCheck();
+        Quaternion newRot = Handles.RotationHandle(target.rotation, pos);
+        if (EditorGUI.EndChangeCheck())
+        {
+            Undo.RecordObject(target, "Rotate Tooltip Facing");
+            target.rotation = newRot;
+            if (_preview != null) ConfigurePreview(controller); // push the new rest rotation to the live preview
+            Repaint();
+        }
+    }
 
     private static float Wrap180(float a) => Mathf.Repeat(a + 180f, 360f) - 180f;
 
