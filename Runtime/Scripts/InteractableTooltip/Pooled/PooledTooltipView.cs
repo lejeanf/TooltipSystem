@@ -178,8 +178,8 @@ namespace jeanf.tooltip
 
         /// <summary>Wire your scene click detectors to this — the built-in <see cref="OnMouseDown"/> (M&amp;K) and a
         /// VR <c>XRSimpleInteractable</c>'s Select Entered both call it. Forwards to the currently-owning
-        /// tooltip's onClickChannel; no-op while pooled/unowned. De-dupes per frame so multiple detectors firing
-        /// together count as a single click.</summary>
+        /// tooltip's click handler (its onClick UnityEvent / Clicked event); no-op while pooled/unowned. De-dupes
+        /// per frame so multiple detectors firing together count as a single click.</summary>
         private int _lastClickFrame = -1;
         public void Click()
         {

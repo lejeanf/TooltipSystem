@@ -12,6 +12,7 @@ namespace jeanf.tooltip
     /// get their own foldout.
     /// </summary>
     [CustomEditor(typeof(PooledTooltipView))]
+    [CanEditMultipleObjects]
     public class PooledTooltipViewEditor : Editor
     {
         private static bool _advanced;
