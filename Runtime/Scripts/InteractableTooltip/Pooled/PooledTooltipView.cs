@@ -111,8 +111,11 @@ namespace jeanf.tooltip
         /// <summary>Hold the authored rest orientation the owning controller pushed (the controller's or the
         /// chosen candidate's rotation). Called centrally by the pool manager each LateUpdate for views whose
         /// <see cref="ShouldBillboard"/> is false — so a non-billboarding tooltip keeps its designed facing
-        /// instead of the identity a recycled view resets to.</summary>
-        public void ApplyFixedRotation() => transform.rotation = _billboardRest;
+        /// instead of the identity a recycled view resets to. Uses the same neutral flip as a billboard at
+        /// yaw/pitch 0 (<see cref="BillboardConstraints.Apply"/>), so the readable side faces ALONG the authored
+        /// forward — i.e. rotating the anchor so its forward points at the player makes the text face the player,
+        /// matching the Scene 'facing' arrow.</summary>
+        public void ApplyFixedRotation() => transform.rotation = _billboardRest * Quaternion.AngleAxis(180f, Vector3.up);
 
         private bool _expanded;
         private bool _iconOnRight = true;
@@ -825,15 +828,15 @@ namespace jeanf.tooltip
 
             ApplyMorph(morph);
 
-            // Billboard toward the Scene-view camera, like the runtime pool does at play time — unless this
-            // tooltip's billboard mode is off (so "Never" looks fixed while authoring, matching play mode).
+            // Billboard toward the Scene-view camera, like the runtime pool does at play time, so the tooltip
+            // faces you AND its per-axis clamp previews live: the readable side (toward the camera) stays inside
+            // the min/max arcs as you orbit. Unless this tooltip's billboard mode is off — then it holds its
+            // authored rest facing (matching play mode) and you aim it with the Scene rotation handle instead.
             if (_editorBillboard)
             {
                 var sv = UnityEditor.SceneView.lastActiveSceneView;
                 if (sv != null && sv.camera != null)
                 {
-                    // Same constrained path as runtime, with the Scene-view camera as the player proxy, so the
-                    // axis limits/clamps preview live while authoring.
                     var camT = sv.camera.transform;
                     if ((transform.position - camT.position).sqrMagnitude > 1e-4f)
                         ApplyBillboard(camT.position, camT.up);
@@ -841,9 +844,9 @@ namespace jeanf.tooltip
             }
             else
             {
-                // "Never": match runtime — an un-billboarded pooled view holds the authored rest rotation
-                // (the controller's / candidate's facing) that ConfigurePreview pushed via SetBillboardConstraints.
-                transform.rotation = _billboardRest;
+                // Non-billboard: hold the authored facing, same neutral flip as runtime ApplyFixedRotation so the
+                // readable side points ALONG the rest forward (= the Scene 'facing' arrow you aim with the handle).
+                transform.rotation = _billboardRest * Quaternion.AngleAxis(180f, Vector3.up);
             }
 
             UnityEditor.SceneView.RepaintAll();

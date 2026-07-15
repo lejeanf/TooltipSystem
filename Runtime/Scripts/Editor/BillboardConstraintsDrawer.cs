@@ -95,7 +95,7 @@ namespace jeanf.tooltip
                 var max = prop.FindPropertyRelative(ax.max);
 
                 EditorGUI.PropertyField(r, center, new GUIContent("Center (°)",
-                    "Rotate the whole allowed band around the circle. The Range below is relative to this; move it to place the band anywhere, even across ±180°."));
+                    "Rotate the whole allowed band around the circle, relative to the object's forward. The Range below is relative to this; move it to place the band anywhere, even across ±180°."));
                 r.y += Line + Pad;
 
                 Rect row = EditorGUI.IndentedRect(r);

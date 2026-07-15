@@ -1237,7 +1237,6 @@ namespace jeanf.tooltip
         internal List<Transform> CandidateAnchorsEditor => candidateAnchors;
 
         // Editor scene-GUI / preview access to the live constraint config and its rest frame.
-        internal BillboardMode BillboardModeEditor => billboardMode;
         // Rest rotation for an explicitly previewed candidate (the inspector may preview a position that isn't
         // the runtime-selected _currentAnchor). Falls back to the controller transform.
         internal Quaternion BillboardRestForEditor(Transform previewAnchor) =>
@@ -1253,8 +1252,6 @@ namespace jeanf.tooltip
             }
             return billboardConstraints;
         }
-        // True when the tooltip repositions across candidates (so the general billboard limits don't apply).
-        internal bool UsesCandidatesEditor => RepositioningActive;
 #endif
 
         private void ReleasePooledView()
