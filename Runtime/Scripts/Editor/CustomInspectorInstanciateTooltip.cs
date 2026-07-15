@@ -24,15 +24,15 @@ public class CustomInspectorInstanciateTooltip : Editor
     private PreviewState _previewState = PreviewState.Expanded;
     private bool _showRanges = true;                                // draw range/trigger gizmos in the scene
     private bool _followBest = true;                                // preview follows the best candidate for the scene cam
-    private bool _previewFoldout = true;                            // collapse the editor-only preview block
-    private bool _repositioningFoldout = true;                      // collapse the repositioning settings block
-    private bool _candidatesFoldout = true;                         // collapse the candidate-positions list
-    private bool _legacyFoldout = false;                            // collapse the bottom legacy-references block (closed by default)
-    private bool _debugFoldout = true;                              // collapse the live debug-state panel (when globally enabled)
+    private bool _previewFoldout = true;                            // collapse the scene-preview block
+    private bool _sceneMulti;                                       // cached Multi for OnSceneGUI (can't read `targets` there)
+    private int _tab;                                               // 0 = Content, 1 = In-world, 2 = Debug
 
     private void OnEnable()
     {
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
+
+        _sceneMulti = Multi; // cache here: OnSceneGUI must not touch the `targets` array
 
         var controller = target as InteractableTooltipController;
         if (controller == null || Application.isPlaying || Multi) return;
@@ -81,83 +81,110 @@ public class CustomInspectorInstanciateTooltip : Editor
                 $"Editing {targets.Length} tooltips — shared settings only. Scene preview, candidate positions " +
                 "and the debug panel need a single selection.", MessageType.None);
 
-            DrawPropertiesExcluding(serializedObject, "m_Script", "candidateAnchors", "showTooltip",
+            var mExclude = new List<string>
+            {
+                "m_Script", "candidateAnchors", "showTooltip",
                 "enableRepositioning", "distanceWeight", "rejectOccluded", "obstacleMask",
-                "tooltipGameObjectPrefab", "inputIconSo", "interactableTooltipInputSo");
+                "tooltipGameObjectPrefab", "inputIconSo", "interactableTooltipInputSo"
+            };
+            // Same contextual hiding as single-select, but only when every selected tooltip agrees (a mixed
+            // selection keeps the field visible so the shared edit isn't silently hidden).
+            var mBillboard = serializedObject.FindProperty("billboardMode");
+            if (mBillboard != null && !mBillboard.hasMultipleDifferentValues
+                && mBillboard.enumValueIndex == (int)BillboardMode.Never)
+                mExclude.Add("billboardConstraints");
+
+            DrawPropertiesExcluding(serializedObject, mExclude.ToArray());
             DrawRepositioning();
-            DrawLegacyReferences();
             serializedObject.ApplyModifiedProperties();
             return;
         }
 
-        DrawPreviewControls(controller);
-
+        // Tabs: Content = what the tooltip is / when it shows; In-world = how it looks & where it sits;
+        // Debug = the isDebug toggle + live gate state.
         EditorGUILayout.Space();
-        // Repositioning, candidate list, and legacy refs are drawn below in their own collapsible blocks.
-        var exclude = new List<string>
-        {
-            "m_Script", "candidateAnchors", "showTooltip",
-            "enableRepositioning", "distanceWeight",
-            "rejectOccluded", "obstacleMask",
-            "tooltipGameObjectPrefab", "inputIconSo", "interactableTooltipInputSo"
-        };
-        // The general (controller-level) billboard mode + limits apply only to the "self" position. Once the
-        // tooltip repositions across candidates, each position owns its own (via TooltipAnchor), so hide both.
-        if (controller.UsesCandidatesEditor)
-        {
-            exclude.Add("billboardConstraints");
-            exclude.Add("billboardMode");
-        }
+        _tab = GUILayout.Toolbar(_tab, TabLabels);
+        EditorGUILayout.Space(2);
 
-        DrawPropertiesExcluding(serializedObject, exclude.ToArray());
-
-        if (controller.UsesCandidatesEditor)
-            EditorGUILayout.HelpBox(
-                "Billboarding and its limits are set per candidate position (select one below — the Billboard dropdown, " +
-                "and \"Override billboard limits\"). The general billboard settings apply only when there are no candidates.",
-                MessageType.None);
-
-        DrawRepositioning();
-        DrawCandidatePositions(controller);
-        DrawLegacyReferences();
-        DrawDebugState(controller);
+        if (_tab == 0) DrawContentTab();
+        else if (_tab == 1) DrawInWorldTab(controller);
+        else DrawDebugState(controller);
 
         serializedObject.ApplyModifiedProperties();
 
         if (_preview != null) ConfigurePreview(controller); // keep preview in sync with field edits
 
-        // The inspector only repaints on change by default; force it while playing so the debug panel updates.
-        if (Application.isPlaying && TooltipDebugPrefs.Enabled && _debugFoldout) Repaint();
+        // Force a repaint while playing on the Debug tab so the live gate state updates each frame.
+        if (Application.isPlaying && _tab == 2) Repaint();
     }
 
+    private static readonly string[] TabLabels = { "Content", "In-world", "Debug" };
+
+    // Draw a serialized property by name (with children). Used for the explicit per-tab field ordering.
+    private void Prop(string name)
+    {
+        var p = serializedObject.FindProperty(name);
+        if (p != null) EditorGUILayout.PropertyField(p, true);
+    }
+
+    // "Content" tab — what the tooltip is and when it shows.
+    private void DrawContentTab()
+    {
+        Prop("objectToBeViewed");
+        Prop("currentZone");
+        Prop("actionContentSo");
+        Prop("interactableTooltipSettingsSo");
+        EditorGUILayout.Space();
+        Prop("onClick");
+        Prop("clickMinimizeDuration");
+    }
+
+    // "In-world" tab — how the tooltip looks and where it sits (orientation, rendering, placement, preview).
+    private void DrawInWorldTab(InteractableTooltipController controller)
+    {
+        // Appearance / orientation.
+        Prop("iconOnRight");
+        Prop("billboardMode");
+        // Show the general billboard limits only for the "self" case: hidden when candidates own their own
+        // (via TooltipAnchor) and when not billboarding (orient via the Scene rotation handle instead).
+        if (!controller.UsesCandidatesEditor && controller.BillboardModeDefault != BillboardMode.Never)
+            Prop("billboardConstraints");
+
+        // Rendering (pooling is always on) — how close the player must be for the tooltip to appear at all.
+        EditorGUILayout.Space();
+        Prop("showDistance");
+
+        // Placement. Candidate positions list is drawn LAST (per request); the overrides / preview above
+        // act on whichever position is selected in it.
+        DrawRepositioning();
+        DrawSelectedPositionOverrides(controller);
+        DrawScenePreview(controller);
+        DrawCandidatePositions(controller);
+    }
+
+    // Flat (no foldout) — short block, kept inline to reduce the number of collapsibles in this tab.
     private void DrawRepositioning()
     {
         EditorGUILayout.Space();
-        _repositioningFoldout = EditorGUILayout.Foldout(_repositioningFoldout, "Repositioning (optional)", true, EditorStyles.foldoutHeader);
-        if (!_repositioningFoldout) return;
-
-        EditorGUI.indentLevel++;
-        foreach (var propName in new[] { "enableRepositioning", "distanceWeight", "rejectOccluded", "obstacleMask" })
+        var enableProp = serializedObject.FindProperty("enableRepositioning");
+        if (enableProp != null) EditorGUILayout.PropertyField(enableProp);
+        // The scoring knobs only matter once repositioning is on — hide them otherwise.
+        if (enableProp != null && enableProp.boolValue)
         {
-            var p = serializedObject.FindProperty(propName);
-            if (p != null) EditorGUILayout.PropertyField(p);
+            foreach (var propName in new[] { "distanceWeight", "rejectOccluded", "obstacleMask" })
+            {
+                var p = serializedObject.FindProperty(propName);
+                if (p != null) EditorGUILayout.PropertyField(p);
+            }
         }
-        EditorGUILayout.HelpBox(
-            "Evaluation Interval and Reposition Hysteresis moved to TooltipPoolManager — they affect performance, " +
-            "not appearance, so they're tuned once for every tooltip instead of per instance.",
-            MessageType.None);
-        EditorGUI.indentLevel--;
     }
 
-    // Live gate-state panel, shown only when the global toggle (on the pool manager) is on. Read-only; the
-    // values update each frame in play mode (OnInspectorGUI forces a repaint above).
+    // Live gate-state panel — its own inspector tab. Read-only; values update each frame in play mode
+    // (OnInspectorGUI forces a repaint while the Debug tab is active).
     private void DrawDebugState(InteractableTooltipController controller)
     {
-        if (!TooltipDebugPrefs.Enabled) return;
-
+        Prop("isDebug");
         EditorGUILayout.Space();
-        _debugFoldout = EditorGUILayout.Foldout(_debugFoldout, "Tooltip state (debug)", true, EditorStyles.foldoutHeader);
-        if (!_debugFoldout) return;
 
         if (!Application.isPlaying)
             EditorGUILayout.HelpBox("Enter Play mode for live gate state (zone / proximity / looking update each frame).", MessageType.None);
@@ -241,9 +268,13 @@ public class CustomInspectorInstanciateTooltip : Editor
         EditorGUILayout.EndHorizontal();
     }
 
-    private void DrawPreviewControls(InteractableTooltipController controller)
+    // Pure scene visualization: which position/mode/state to show, range gizmos, and the play-mode force-show.
+    // Per-candidate overrides live in DrawSelectedPositionOverrides (they used to be mixed in here, which made
+    // this block read as "just a preview" when it actually WROTE to the selected position's TooltipAnchor).
+    private void DrawScenePreview(InteractableTooltipController controller)
     {
-        _previewFoldout = EditorGUILayout.Foldout(_previewFoldout, "Preview (pooled tooltip in the scene)", true, EditorStyles.foldoutHeader);
+        EditorGUILayout.Space();
+        _previewFoldout = EditorGUILayout.Foldout(_previewFoldout, "Scene preview", true, EditorStyles.foldoutHeader);
         if (!_previewFoldout) return;
 
         // Build the "preview at" options: None, Base, then each candidate position.
@@ -277,8 +308,6 @@ public class CustomInspectorInstanciateTooltip : Editor
             else BuildPreview(controller);
         }
 
-        DrawIconSideControls(controller);
-
         _showRanges = EditorGUILayout.Toggle(new GUIContent("Visualize ranges (scene)",
             "Draw the minimized range, the maximize gaze-cone state, and candidate scoring in the Scene view, using the Scene camera as a stand-in for the player."), _showRanges);
 
@@ -294,17 +323,20 @@ public class CustomInspectorInstanciateTooltip : Editor
             EditorGUILayout.HelpBox("Assign an Action Content SO to preview each mode's icon/text. Without it the preview shows the prefab's placeholder content.", MessageType.None);
     }
 
-    // Per-position icon side + billboarding for the thing currently being previewed, editable inline so the
-    // flip is live. One dropdown each (Inherit / Left / Right and Inherit / Always / Never) — no two-checkbox
-    // "override" trap.
-    private void DrawIconSideControls(InteractableTooltipController controller)
+    // Per-candidate overrides for the position currently selected in Scene preview: its TooltipAnchor's icon
+    // side, billboarding and axis limits. Editing here WRITES to that TooltipAnchor (with Undo) — it is not just
+    // a preview. Pick which position in "Scene preview" below. One dropdown each (Inherit / Left / Right and
+    // Inherit / Always / Never) — no two-checkbox "override" trap.
+    private void DrawSelectedPositionOverrides(InteractableTooltipController controller)
     {
-        if (_previewPos < 2) // None / Base -> the tooltip's own default, edited on the controller below.
+        EditorGUILayout.Space();
+
+        if (_previewPos < 2) // None / Base -> no candidate selected; the defaults live above in this tab.
         {
-            if (_previewPos == 1)
-                EditorGUILayout.LabelField("Icon side", controller.IconOnRightDefault
-                    ? "Right (tooltip default — see Icon On Right below)"
-                    : "Left (tooltip default — see Icon On Right below)");
+            EditorGUILayout.HelpBox(
+                "Pick a candidate position in \"Scene preview\" below to override its icon side, billboarding and " +
+                "axis limits. With none selected, the tooltip uses its defaults (Icon side + Billboard Mode above).",
+                MessageType.None);
             return;
         }
 
@@ -384,22 +416,37 @@ public class CustomInspectorInstanciateTooltip : Editor
 
     private Transform GetPreviewAnchorTransform()
     {
-        var anchors = serializedObject.FindProperty("candidateAnchors");
+        // Read the live list off the target (works in both OnInspectorGUI and OnSceneGUI, where the Editor's
+        // serializedObject is off-limits).
+        var anchors = (target as InteractableTooltipController)?.CandidateAnchorsEditor;
         int idx = _previewPos - 2;
-        if (anchors == null || idx < 0 || idx >= anchors.arraySize) return null;
-        return anchors.GetArrayElementAtIndex(idx).objectReferenceValue as Transform;
+        if (anchors == null || idx < 0 || idx >= anchors.Count) return null;
+        return anchors[idx];
     }
 
     // Scene-view authoring: place the tooltip and edit its candidate positions with handles.
     private void OnSceneGUI()
     {
-        // Single-selection only: the handles write through serializedObject (e.g. the range radius), which on
-        // a multi-target editor would silently stamp one tooltip's dragged value onto every selected tooltip.
-        if (Multi) return;
+        // Single-selection only: the handles write to the target (e.g. the range radius), which on a
+        // multi-target editor would silently stamp one tooltip's dragged value onto every selected tooltip.
+        // Uses the cached flag because OnSceneGUI must not read the `targets` array.
+        if (_sceneMulti) return;
 
         var controller = target as InteractableTooltipController;
         if (controller == null) return;
 
+        // Draw all authoring gizmos ON TOP regardless of scene depth. URP and HDRP apply different default
+        // Handles depth-tests, so under URP the range disc / radius handle were depth-occluded by geometry and
+        // read as "missing"; forcing zTest = Always makes both pipelines render them identically. The
+        // try/finally guarantees it's restored even if a draw throws.
+        var prevZTest = Handles.zTest;
+        Handles.zTest = UnityEngine.Rendering.CompareFunction.Always;
+        try { DrawSceneGizmos(controller); }
+        finally { Handles.zTest = prevZTest; }
+    }
+
+    private void DrawSceneGizmos(InteractableTooltipController controller)
+    {
         Vector3 basePos = controller.transform.position;
 
         // Live, scene-camera-driven preview: auto-follow the best candidate and/or Auto expand-collapse.
@@ -427,16 +474,17 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (_showRanges) DrawRangeGizmos(controller);
 
         DrawBillboardConstraintHandles(controller);
+        DrawOrientationHandle(controller);
 
         // Script root (Base) — just a marker (the object's own transform tool moves it).
         DrawTargetMarker(controller, 1, basePos, "root", Color.cyan);
 
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray) return;
+        var anchors = controller.CandidateAnchorsEditor; // read off the target, not the Editor serializedObject
+        if (anchors == null) return;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var anchor = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var anchor = anchors[i];
             if (anchor == null) continue;
 
             bool active = _previewPos == i + 2;
@@ -466,7 +514,7 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void DrawRangeGizmos(InteractableTooltipController controller)
     {
         Vector3 origin = controller.transform.position;
-        float range = controller.MinimizedRange;
+        float range = controller.ShowDistance;
 
         // --- Minimized range: an editable radius handle (drag to set) + faint disc. Measured from the
         // controller root at runtime; edits write straight back to the inspector field. ---
@@ -479,12 +527,13 @@ public class CustomInspectorInstanciateTooltip : Editor
             float newRange = Handles.RadiusHandle(Quaternion.identity, origin, range);
             if (EditorGUI.EndChangeCheck())
             {
-                serializedObject.Update();
-                var p = serializedObject.FindProperty("minimizedRange");
+                // Local SerializedObject (not the Editor's) so the write is legal inside OnSceneGUI.
+                var so = new SerializedObject(controller);
+                var p = so.FindProperty("showDistance");
                 if (p != null)
                 {
                     p.floatValue = Mathf.Max(0f, newRange);
-                    serializedObject.ApplyModifiedProperties(); // updates the inspector + Undo
+                    so.ApplyModifiedProperties(); // updates the inspector + Undo
                 }
             }
 
@@ -601,6 +650,40 @@ public class CustomInspectorInstanciateTooltip : Editor
 
     private GUIStyle _billboardHintStyle;
 
+    // --- Fixed-facing rotation handle -----------------------------------------------------------------
+    // When the previewed target does NOT billboard, its orientation is authored by rotating the transform
+    // (base = the controller, candidate = the position). Give it a proper rotation handle + a forward arrow.
+    // Billboarding targets use the constraint arcs above instead — the two cases are mutually exclusive.
+    private void DrawOrientationHandle(InteractableTooltipController controller)
+    {
+        if (GetPreviewBillboard(controller)) return; // billboarding -> the axis-limit arcs own the handles
+
+        Transform anchorTf = _previewPos >= 2 ? GetPreviewAnchorTransform() : null;
+        Transform target = anchorTf != null ? anchorTf : controller.transform;
+        if (target == null) return;
+
+        Vector3 pos = _preview != null ? _preview.transform.position
+                    : anchorTf != null ? anchorTf.position
+                    : controller.transform.position;
+
+        // Forward arrow so the authored facing is obvious even before you grab the handle.
+        Handles.color = new Color(0.3f, 0.9f, 1f, 0.95f);
+        float len = HandleUtility.GetHandleSize(pos) * 1.1f;
+        Handles.ArrowHandleCap(0, pos, target.rotation, len, EventType.Repaint);
+        Handles.Label(pos + target.rotation * Vector3.forward * len,
+            _previewPos >= 2 ? "facing (position)" : "facing (tooltip)");
+
+        EditorGUI.BeginChangeCheck();
+        Quaternion newRot = Handles.RotationHandle(target.rotation, pos);
+        if (EditorGUI.EndChangeCheck())
+        {
+            Undo.RecordObject(target, "Rotate Tooltip Facing");
+            target.rotation = newRot;
+            if (_preview != null) ConfigurePreview(controller); // push the new rest rotation to the live preview
+            Repaint();
+        }
+    }
+
     private static float Wrap180(float a) => Mathf.Repeat(a + 180f, 360f) - 180f;
 
     private void DrawBillboardAxis(SerializedObject so, string label, string centerProp, string minProp, string maxProp,
@@ -708,8 +791,8 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void AppendCandidateScores(InteractableTooltipController controller, Vector3 eye,
         List<(string text, Color col)> lines)
     {
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray || anchors.arraySize == 0) return;
+        var anchors = controller.CandidateAnchorsEditor; // off the target (OnSceneGUI: no Editor serializedObject)
+        if (anchors == null || anchors.Count == 0) return;
 
         float w = controller.DistanceWeight;
         Transform centerT = controller.LookTarget;
@@ -717,14 +800,14 @@ public class CustomInspectorInstanciateTooltip : Editor
         Vector3 dirCenterToEye = eye - centerPos;
         if (dirCenterToEye.sqrMagnitude > 1e-6f) dirCenterToEye.Normalize();
 
-        var scores = new float[anchors.arraySize];
-        var positions = new Vector3[anchors.arraySize];
+        var scores = new float[anchors.Count];
+        var positions = new Vector3[anchors.Count];
         int bestIdx = -1;
         float bestScore = float.NegativeInfinity;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var t = anchors[i];
             scores[i] = float.NegativeInfinity;
             if (t == null) continue;
             positions[i] = t.position;
@@ -743,7 +826,7 @@ public class CustomInspectorInstanciateTooltip : Editor
 
         var amber = new Color(1f, 0.8f, 0.3f);
         lines.Add(("candidates (green = chosen):", Color.white));
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
             if (float.IsNegativeInfinity(scores[i])) continue;
             bool best = i == bestIdx;
@@ -828,61 +911,117 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (anchors == null) return;
 
         EditorGUILayout.Space();
-        _candidatesFoldout = EditorGUILayout.Foldout(_candidatesFoldout,
-            $"Candidate positions (repositioning) — {anchors.arraySize}", true, EditorStyles.foldoutHeader);
-        if (!_candidatesFoldout) return;
+        // Unity's built-in list drawer: add (+), remove (-) and drag-reorder, with its own collapse arrow.
+        // Assign scene Transforms directly, or use the sphere buttons below to create positioned children.
+        // (Removing here only unlinks the reference; it doesn't delete a generated TooltipPosition object.)
+        EditorGUILayout.PropertyField(anchors, new GUIContent("Candidate positions (repositioning)"), true);
 
-        int removeIndex = -1;
-        for (int i = 0; i < anchors.arraySize; i++)
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PropertyField(anchors.GetArrayElementAtIndex(i), new GUIContent($"Position {i}"));
-            if (GUILayout.Button("Remove", GUILayout.Width(70))) removeIndex = i;
-            EditorGUILayout.EndHorizontal();
-        }
+        // --- Quick setup: spread positions evenly on a sphere around the root (Fibonacci / golden spiral) ---
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Auto-place on a sphere", EditorStyles.miniBoldLabel);
 
-        if (removeIndex >= 0)
+        // Two 50/50 rows: [Count | Generate] then [Radius | Distribute]. Rect-split so each column is exactly
+        // half the content width (labeled fields otherwise expand and clip the buttons).
+        float prevLabel = EditorGUIUtility.labelWidth;
+
+        SplitRow(out Rect countRect, out Rect genRect);
+        EditorGUIUtility.labelWidth = 46f;
+        _spawnCount = Mathf.Max(1, EditorGUI.IntField(countRect,
+            new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), _spawnCount));
+        EditorGUIUtility.labelWidth = prevLabel;
+        if (GUI.Button(genRect, new GUIContent("Generate", "Create Count positions spread evenly on a sphere (replaces the current list).")))
+            GenerateOnSphere(controller, anchors);
+
+        SplitRow(out Rect radiusRect, out Rect distRect);
+        EditorGUIUtility.labelWidth = 46f;
+        _spawnRadius = Mathf.Max(0f, EditorGUI.FloatField(radiusRect,
+            new GUIContent("Radius", "Distance (local units) each position sits from the root."), _spawnRadius));
+        EditorGUIUtility.labelWidth = prevLabel;
+        using (new EditorGUI.DisabledScope(anchors.arraySize < 2))
+            if (GUI.Button(distRect, new GUIContent("Distribute existing evenly on sphere",
+                "Reposition the current positions evenly on the sphere (keeps their per-position overrides).")))
+                DistributeEvenly(controller, anchors);
+    }
+
+    private int _spawnCount = 8;
+    private float _spawnRadius = 0.5f;
+
+    // Reserve one inspector line and split it into two equal columns with a small gap between them.
+    private static void SplitRow(out Rect left, out Rect right, float gap = 4f)
+    {
+        Rect row = EditorGUILayout.GetControlRect();
+        float half = (row.width - gap) * 0.5f;
+        left = new Rect(row.x, row.y, half, row.height);
+        right = new Rect(row.x + half + gap, row.y, half, row.height);
+    }
+
+    // Evenly-distributed point on a UNIT sphere via the Fibonacci / golden-spiral method (good spread for any n).
+    private static Vector3 FibonacciSpherePoint(int i, int n)
+    {
+        if (n <= 1) return Vector3.up;
+        float y = 1f - (i / (float)(n - 1)) * 2f;                 // 1 .. -1
+        float r = Mathf.Sqrt(Mathf.Max(0f, 1f - y * y));
+        float theta = Mathf.PI * (3f - Mathf.Sqrt(5f)) * i;        // golden angle
+        return new Vector3(Mathf.Cos(theta) * r, y, Mathf.Sin(theta) * r);
+    }
+
+    // Create a TooltipPosition child (with a TooltipAnchor) at a root-local position; returns its transform.
+    private static Transform CreateCandidateObject(Transform root, string name, Vector3 localPos)
+    {
+        var go = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(go, "Add Tooltip Candidate Position");
+        go.transform.SetParent(root, false);
+        go.transform.localPosition = localPos;
+        go.AddComponent<TooltipAnchor>();
+        return go.transform;
+    }
+
+    // Quick setup: replace the current candidates with `_spawnCount` fresh ones spread evenly on the sphere.
+    private void GenerateOnSphere(InteractableTooltipController controller, SerializedProperty anchors)
+    {
+        if (anchors.arraySize > 0 &&
+            !EditorUtility.DisplayDialog("Generate candidate positions",
+                $"This removes the current {anchors.arraySize} candidate position(s) and creates {_spawnCount} " +
+                "spread evenly on a sphere. Continue?", "Generate", "Cancel"))
+            return;
+
+        // Destroy the auto-created children we own; external transforms are just dropped from the list.
+        for (int i = anchors.arraySize - 1; i >= 0; i--)
         {
-            var t = anchors.GetArrayElementAtIndex(removeIndex).objectReferenceValue as Transform;
+            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
             if (t != null && t.parent == controller.transform && t.name.StartsWith("TooltipPosition"))
                 Undo.DestroyObjectImmediate(t.gameObject);
-            if (anchors.GetArrayElementAtIndex(removeIndex).objectReferenceValue != null)
-                anchors.DeleteArrayElementAtIndex(removeIndex);
-            anchors.DeleteArrayElementAtIndex(removeIndex);
         }
+        anchors.ClearArray();
 
-        if (GUILayout.Button("Add candidate position"))
+        for (int i = 0; i < _spawnCount; i++)
         {
-            var go = new GameObject($"TooltipPosition {anchors.arraySize}");
-            Undo.RegisterCreatedObjectUndo(go, "Add Tooltip Candidate Position");
-            go.transform.SetParent(controller.transform, false);
-            go.transform.localPosition = new Vector3(0f, 0.3f * (anchors.arraySize + 1), 0f);
-            go.AddComponent<TooltipAnchor>();
-
-            int idx = anchors.arraySize;
-            anchors.arraySize = idx + 1;
-            anchors.GetArrayElementAtIndex(idx).objectReferenceValue = go.transform;
+            var tf = CreateCandidateObject(controller.transform, $"TooltipPosition {i}",
+                FibonacciSpherePoint(i, _spawnCount) * _spawnRadius);
+            anchors.arraySize = i + 1;
+            anchors.GetArrayElementAtIndex(i).objectReferenceValue = tf;
         }
+
+        _previewPos = 2; // focus the first generated position in the preview
+        _followBest = false;
+        serializedObject.ApplyModifiedProperties();
+        GUIUtility.ExitGUI(); // objects created/destroyed mid-GUI — abort this pass so the inspector rebuilds
     }
 
-    // Legacy (non-pooled / no Action Content SO) references, tucked into a collapsed foldout at the very
-    // bottom so they don't clutter the common pooled setup. Drawn explicitly (excluded from the main pass).
-    private void DrawLegacyReferences()
+    // Non-destructive: reposition the EXISTING candidates evenly on the sphere (keeps their TooltipAnchor overrides).
+    private void DistributeEvenly(InteractableTooltipController controller, SerializedProperty anchors)
     {
-        EditorGUILayout.Space();
-        _legacyFoldout = EditorGUILayout.Foldout(_legacyFoldout,
-            "Legacy references (non-pooled / no Action Content SO)", true, EditorStyles.foldoutHeader);
-        if (!_legacyFoldout) return;
-
-        EditorGUI.indentLevel++;
-        var prefab = serializedObject.FindProperty("tooltipGameObjectPrefab");
-        var inputIcon = serializedObject.FindProperty("inputIconSo");
-        var inputSo = serializedObject.FindProperty("interactableTooltipInputSo");
-        if (prefab != null) EditorGUILayout.PropertyField(prefab);
-        if (inputIcon != null) EditorGUILayout.PropertyField(inputIcon);
-        if (inputSo != null) EditorGUILayout.PropertyField(inputSo);
-        EditorGUI.indentLevel--;
+        int n = anchors.arraySize;
+        for (int i = 0; i < n; i++)
+        {
+            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            if (t == null) continue;
+            Undo.RecordObject(t, "Distribute Tooltip Candidates");
+            t.position = controller.transform.TransformPoint(FibonacciSpherePoint(i, n) * _spawnRadius);
+        }
+        if (_preview != null) ConfigurePreview(controller);
     }
+
 
     private void BuildPreview(InteractableTooltipController controller, bool warnIfNoPool = true)
     {
@@ -1021,7 +1160,7 @@ public class CustomInspectorInstanciateTooltip : Editor
         Vector3 eyeFwd = sv.camera.transform.forward;
         Vector3 origin = controller.transform.position;
 
-        float range = controller.MinimizedRange;
+        float range = controller.ShowDistance;
         inRange = range <= 0f || (origin - eye).magnitude <= range;
 
         Transform lookT = controller.LookTarget;
@@ -1040,8 +1179,8 @@ public class CustomInspectorInstanciateTooltip : Editor
         var sv = SceneView.lastActiveSceneView;
         if (sv == null || sv.camera == null) return false;
 
-        var anchors = serializedObject.FindProperty("candidateAnchors");
-        if (anchors == null || !anchors.isArray || anchors.arraySize == 0) return false;
+        var anchors = controller.CandidateAnchorsEditor; // off the target (OnSceneGUI: no Editor serializedObject)
+        if (anchors == null || anchors.Count == 0) return false;
 
         Vector3 eye = sv.camera.transform.position;
         float w = controller.DistanceWeight;
@@ -1051,9 +1190,9 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (dirCenterToEye.sqrMagnitude > 1e-6f) dirCenterToEye.Normalize();
         float bestScore = float.NegativeInfinity;
 
-        for (int i = 0; i < anchors.arraySize; i++)
+        for (int i = 0; i < anchors.Count; i++)
         {
-            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            var t = anchors[i];
             if (t == null) continue;
             Vector3 to = t.position - eye;
             float d = to.magnitude;

@@ -83,7 +83,7 @@ Material:
     - _OpaqueCullMode: 2
     - _PerPixelSorting: 0
     - _RenderQueueType: 3
-    - _Softness: 0.003
+    - _Softness: 0.001
     - _SrcBlend: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
@@ -95,7 +95,7 @@ Material:
     - _StencilWriteMaskMV: 43
     - _SurfaceType: 1
     - _TransparentBackfaceEnable: 0
-    - _TransparentCullMode: 2
+    - _TransparentCullMode: 0
     - _TransparentDepthPostpassEnable: 0
     - _TransparentDepthPrepassEnable: 0
     - _TransparentSortPriority: 0

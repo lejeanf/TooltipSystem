@@ -29,6 +29,10 @@ namespace jeanf.tooltip
     [CustomEditor(typeof(TooltipPoolManager))]
     public class TooltipPoolManagerEditor : Editor
     {
+        // Pooling is always used, so only the View Prefab + prewarm capacity are routinely interesting.
+        // Everything else (billboard default, occlusion, repositioning perf, legacy player layer) lives here.
+        private static bool _advanced;
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -75,14 +79,28 @@ namespace jeanf.tooltip
                 EditorGUILayout.Space();
             }
 
-            DrawPropertiesExcluding(serializedObject, "m_Script", "viewPrefab");
+            // Primary: just the prewarm count (the pool grows on demand past it).
+            var cap = serializedObject.FindProperty("capacity");
+            if (cap != null) EditorGUILayout.PropertyField(cap);
+
+            EditorGUILayout.Space();
+            _advanced = EditorGUILayout.Foldout(_advanced,
+                "Advanced (billboard, occlusion, repositioning perf, legacy)", true, EditorStyles.foldoutHeader);
+            if (_advanced)
+            {
+                EditorGUI.indentLevel++;
+                DrawPropertiesExcluding(serializedObject, "m_Script", "viewPrefab", "capacity");
+                EditorGUI.indentLevel--;
+            }
+
             serializedObject.ApplyModifiedProperties();
 
             EditorGUILayout.Space();
             TooltipDebugPrefs.Enabled = EditorGUILayout.ToggleLeft(
-                new GUIContent("Show tooltip debug panel",
-                    "When on, selecting an InteractableTooltipController shows a live state panel in its inspector " +
-                    "(updates in play mode). Global editor toggle."),
+                new GUIContent("Show in-world facing arrows (debug)",
+                    "When on, active non-billboard tooltips draw a forward arrow in the Scene/Game view at play time " +
+                    "(Game view needs the Gizmos toggle). The per-tooltip live gate state is always on its Debug tab. " +
+                    "Global editor toggle."),
                 TooltipDebugPrefs.Enabled);
         }
 

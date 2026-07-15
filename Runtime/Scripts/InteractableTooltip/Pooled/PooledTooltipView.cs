@@ -26,6 +26,12 @@ namespace jeanf.tooltip
         [SerializeField] private TMP_Text descriptionText;      // 3D TextMeshPro
         [SerializeField] private SpriteRenderer iconRenderer;
 
+        [Header("Overall size")]
+        [Tooltip("Uniform scale of the WHOLE tooltip while minimized (the disc) — the single 'minimized size' slider. The granular sizes under Advanced are the baseline this multiplies.")]
+        [Range(0.25f, 4f)] [SerializeField] private float minimizedScale = 1f;
+        [Tooltip("Uniform scale of the WHOLE tooltip while expanded (the pill) — the single 'maximized size' slider. The granular sizes under Advanced are the baseline this multiplies.")]
+        [Range(0.25f, 4f)] [SerializeField] private float expandedScale = 1f;
+
         [Header("Minimized state")]
         [SerializeField] private Vector2 minSize = new Vector2(0.4f, 0.4f);
         [SerializeField] private Vector4 minRadius = new Vector4(0.2f, 0.2f, 0.2f, 0.2f); // TR,BR,TL,BL
@@ -102,6 +108,12 @@ namespace jeanf.tooltip
             transform.rotation = _billboardConstraints.Apply(_billboardRest, transform.position - camPos, camUp);
         }
 
+        /// <summary>Hold the authored rest orientation the owning controller pushed (the controller's or the
+        /// chosen candidate's rotation). Called centrally by the pool manager each LateUpdate for views whose
+        /// <see cref="ShouldBillboard"/> is false — so a non-billboarding tooltip keeps its designed facing
+        /// instead of the identity a recycled view resets to.</summary>
+        public void ApplyFixedRotation() => transform.rotation = _billboardRest;
+
         private bool _expanded;
         private bool _iconOnRight = true;
         private float _morph;          // 0 = minimized, 1 = expanded (current)
@@ -166,8 +178,8 @@ namespace jeanf.tooltip
 
         /// <summary>Wire your scene click detectors to this — the built-in <see cref="OnMouseDown"/> (M&amp;K) and a
         /// VR <c>XRSimpleInteractable</c>'s Select Entered both call it. Forwards to the currently-owning
-        /// tooltip's onClickChannel; no-op while pooled/unowned. De-dupes per frame so multiple detectors firing
-        /// together count as a single click.</summary>
+        /// tooltip's click handler (its onClick UnityEvent / Clicked event); no-op while pooled/unowned. De-dupes
+        /// per frame so multiple detectors firing together count as a single click.</summary>
         private int _lastClickFrame = -1;
         public void Click()
         {
@@ -429,6 +441,11 @@ namespace jeanf.tooltip
         private void ApplyMorph(float t)
         {
             _morph = t;
+
+            // One uniform scale per state (the two "size" sliders), interpolated by the morph so the whole
+            // tooltip — background, text, icon and click collider (all children of this root) — grows together.
+            // The granular sizes below stay the per-shape baseline this multiplies.
+            transform.localScale = Vector3.one * Mathf.Lerp(minimizedScale, expandedScale, t);
 
             float width = Mathf.Lerp(minSize.x, _expandedWidth > 0f ? _expandedWidth : minSize.x, t);
             float height = Mathf.Lerp(minSize.y, expandedHeight, t);
@@ -824,8 +841,9 @@ namespace jeanf.tooltip
             }
             else
             {
-                // "Never": match runtime, where an un-billboarded pooled view sits at identity world rotation.
-                transform.rotation = Quaternion.identity;
+                // "Never": match runtime — an un-billboarded pooled view holds the authored rest rotation
+                // (the controller's / candidate's facing) that ConfigurePreview pushed via SetBillboardConstraints.
+                transform.rotation = _billboardRest;
             }
 
             UnityEditor.SceneView.RepaintAll();

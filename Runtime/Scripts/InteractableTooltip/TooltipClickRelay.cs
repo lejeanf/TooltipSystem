@@ -1,15 +1,15 @@
-using jeanf.EventSystem;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace jeanf.tooltip
 {
     /// <summary>
     /// Makes a tooltip clickable while keeping the package free of any game-project dependency.
-    /// When a click is detected it raises a <see cref="StringEventChannelSO"/> carrying a message;
-    /// the game side listens to that channel and performs the matching interaction.
+    /// When a click is detected it invokes a <see cref="UnityEvent"/>; wire the game-side interaction to it
+    /// in the Inspector.
     ///
     /// A <see cref="BoxCollider"/> is required and auto-sized to the tooltip's RectTransform, so the
-    /// click detectors have something to hit. You only need to set the channel + message by hand.
+    /// click detectors have something to hit. You only need to wire the <c>On Click</c> event by hand.
     ///
     /// Click DETECTION is wired in the scene/prefab, reusing existing components:
     ///   - Mouse &amp; Keyboard: the interactable's click hook (e.g. Highlight_Interactionable.TriggerFunction)
@@ -19,26 +19,18 @@ namespace jeanf.tooltip
     [RequireComponent(typeof(BoxCollider))]
     public class TooltipClickRelay : MonoBehaviour
     {
-        [Header("Click event (raised on click)")]
-        [Tooltip("Channel raised when this tooltip is clicked. The game side listens and performs the interaction.")]
-        [SerializeField] private StringEventChannelSO onClickChannel;
+        [Header("Debug")]
+        [SerializeField] private bool isDebug = false;
 
-        [Tooltip("Message sent on the channel, identifying what this tooltip's click should do.")]
-        [SerializeField] private string clickMessage = "";
+        [Header("Click event (invoked on click)")]
+        [Tooltip("Invoked when this tooltip is clicked. Wire the game-side interaction here.")]
+        [SerializeField] private UnityEvent onClick;
 
         [Header("Auto collider")]
         [Tooltip("Depth (Z) of the auto-sized box collider. X/Y match the tooltip RectTransform.")]
         [SerializeField] private float colliderDepth = 0.01f;
         [Tooltip("Uniform padding added to the auto-sized collider's width/height.")]
         [SerializeField] private float colliderPadding = 0f;
-
-        [SerializeField] private bool isDebug = false;
-
-        public string ClickMessage
-        {
-            get => clickMessage;
-            set => clickMessage = value;
-        }
 
         private void Awake() => EnsureColliderSized();
 
@@ -50,14 +42,8 @@ namespace jeanf.tooltip
         /// <summary>Wire this to your M&amp;K and VR click detectors (UnityEvents) in the Inspector.</summary>
         public void RaiseClick()
         {
-            if (onClickChannel == null)
-            {
-                if (isDebug) Debug.LogWarning($"[TooltipClickRelay] No onClickChannel assigned on '{name}'.", this);
-                return;
-            }
-
-            if (isDebug) Debug.Log($"[TooltipClickRelay] Raising click message '{clickMessage}'.", this);
-            onClickChannel.RaiseEvent(clickMessage);
+            if (isDebug) Debug.Log($"[TooltipClickRelay] Click on '{name}'.", this);
+            onClick?.Invoke();
         }
 
         private void EnsureColliderSized()

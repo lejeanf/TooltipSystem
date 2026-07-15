@@ -24,7 +24,7 @@ namespace jeanf.tooltip
         public bool BillboardDefault => billboardToCamera;
 
         [Header("Pool size (prewarmed; grows if exceeded)")]
-        [SerializeField, Min(0)] private int capacity = 24;
+        [SerializeField, Min(0)] private int capacity = 10;
 
         [Header("Billboard")]
         [Tooltip("Default for tooltips that don't override it. A tooltip can force billboarding on/off per-instance (see the controller's Auto-orient mode).")]
@@ -172,10 +172,16 @@ namespace jeanf.tooltip
             Vector3 camUp = _cam.up; // only used by views whose roll axis follows camera tilt
 
             // Billboard per view: each tooltip can override the global default (or follow it), and applies its
-            // own per-axis constraints (free/locked/clamped yaw, pitch, roll) inside ApplyBillboard.
+            // own per-axis constraints (free/locked/clamped yaw, pitch, roll) inside ApplyBillboard. A view that
+            // does NOT billboard holds the authored rest rotation the controller pushed, so its designed facing
+            // is honored instead of the identity a recycled view resets to.
             for (int i = 0; i < _active.Count; i++)
+            {
                 if (_active[i].ShouldBillboard(billboardToCamera))
                     _active[i].ApplyBillboard(camPos, camUp);
+                else
+                    _active[i].ApplyFixedRotation();
+            }
 
             if (checkOcclusion)
                 UpdateOcclusionStaggered(camPos);
@@ -207,5 +213,32 @@ namespace jeanf.tooltip
                 view.SetMinimizedVisible(!blocked);
             }
         }
+
+#if UNITY_EDITOR
+        // Debug facing arrow: for every ACTIVE non-billboarding view, draw a world-space arrow along its
+        // forward so you can see which way it faces while playing. Gated behind the tooltip debug panel toggle.
+        // World-space gizmos appear in the Game view only with the toolbar's "Gizmos" toggle enabled.
+        private void OnDrawGizmos()
+        {
+            if (!Application.isPlaying || !TooltipDebugPrefs.Enabled) return;
+
+            Gizmos.color = new Color(0.3f, 0.9f, 1f, 0.95f);
+            for (int i = 0; i < _active.Count; i++)
+            {
+                var v = _active[i];
+                if (v == null || v.ShouldBillboard(billboardToCamera)) continue; // only non-billboard views
+
+                Transform t = v.T;
+                Vector3 p = t.position;
+                Vector3 fwd = t.forward;
+                const float len = 0.4f;
+                Vector3 tip = p + fwd * len;
+                Gizmos.DrawLine(p, tip);
+                // Two-sided arrowhead in the tooltip's own plane.
+                Gizmos.DrawLine(tip, tip + t.rotation * Quaternion.Euler(0f, 155f, 0f) * Vector3.forward * (len * 0.25f));
+                Gizmos.DrawLine(tip, tip + t.rotation * Quaternion.Euler(0f, 205f, 0f) * Vector3.forward * (len * 0.25f));
+            }
+        }
+#endif
     }
 }
