@@ -931,26 +931,41 @@ public class CustomInspectorInstanciateTooltip : Editor
         // --- Quick setup: spread positions evenly on a sphere around the root (Fibonacci / golden spiral) ---
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Auto-place on a sphere", EditorStyles.miniBoldLabel);
-        // Explicit widths so the fields stay compact and the Generate button always fits on the right
-        // (labeled EditorGUILayout fields otherwise expand and clip the button off-screen).
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Label(new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), GUILayout.Width(44f));
-        _spawnCount = Mathf.Max(1, EditorGUILayout.IntField(_spawnCount, GUILayout.Width(48f)));
-        GUILayout.Space(12f);
-        GUILayout.Label(new GUIContent("Radius", "Distance (local units) each position sits from the root."), GUILayout.Width(48f));
-        _spawnRadius = Mathf.Max(0f, EditorGUILayout.FloatField(_spawnRadius, GUILayout.Width(56f)));
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button(new GUIContent("Generate", "Create Count positions spread evenly on a sphere (replaces the current list)."), GUILayout.Width(90f)))
-            GenerateOnSphere(controller, anchors);
-        EditorGUILayout.EndHorizontal();
 
+        // Two 50/50 rows: [Count | Generate] then [Radius | Distribute]. Rect-split so each column is exactly
+        // half the content width (labeled fields otherwise expand and clip the buttons).
+        float prevLabel = EditorGUIUtility.labelWidth;
+
+        SplitRow(out Rect countRect, out Rect genRect);
+        EditorGUIUtility.labelWidth = 46f;
+        _spawnCount = Mathf.Max(1, EditorGUI.IntField(countRect,
+            new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), _spawnCount));
+        EditorGUIUtility.labelWidth = prevLabel;
+        if (GUI.Button(genRect, new GUIContent("Generate", "Create Count positions spread evenly on a sphere (replaces the current list).")))
+            GenerateOnSphere(controller, anchors);
+
+        SplitRow(out Rect radiusRect, out Rect distRect);
+        EditorGUIUtility.labelWidth = 46f;
+        _spawnRadius = Mathf.Max(0f, EditorGUI.FloatField(radiusRect,
+            new GUIContent("Radius", "Distance (local units) each position sits from the root."), _spawnRadius));
+        EditorGUIUtility.labelWidth = prevLabel;
         using (new EditorGUI.DisabledScope(anchors.arraySize < 2))
-            if (GUILayout.Button("Distribute existing evenly on sphere"))
+            if (GUI.Button(distRect, new GUIContent("Distribute existing evenly on sphere",
+                "Reposition the current positions evenly on the sphere (keeps their per-position overrides).")))
                 DistributeEvenly(controller, anchors);
     }
 
     private int _spawnCount = 8;
     private float _spawnRadius = 0.5f;
+
+    // Reserve one inspector line and split it into two equal columns with a small gap between them.
+    private static void SplitRow(out Rect left, out Rect right, float gap = 4f)
+    {
+        Rect row = EditorGUILayout.GetControlRect();
+        float half = (row.width - gap) * 0.5f;
+        left = new Rect(row.x, row.y, half, row.height);
+        right = new Rect(row.x + half + gap, row.y, half, row.height);
+    }
 
     // Evenly-distributed point on a UNIT sphere via the Fibonacci / golden-spiral method (good spread for any n).
     private static Vector3 FibonacciSpherePoint(int i, int n)
