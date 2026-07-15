@@ -1,4 +1,3 @@
-using jeanf.EventSystem;
 using UnityEngine;
 
 namespace jeanf.tooltip
@@ -8,10 +7,10 @@ namespace jeanf.tooltip
     /// the object that tooltip points at is clicked. You only link the tooltip — this tester is a pure listener
     /// and can live anywhere (on the target, a test manager, etc.); it does NOT need to sit on the object.
     ///
-    /// How it works: it subscribes to the tooltip's own On Click Channel (so the tooltip click toggles), and at
-    /// play time it adds a tiny forwarder to the tooltip's looked-at object so a mouse click there raises that
-    /// same channel — both clicks flow through one path. (Object mouse-click is M&K/editor only; in VR the
-    /// object would be a real interactable.)
+    /// How it works: it subscribes to the tooltip's own <see cref="InteractableTooltipController.Clicked"/>
+    /// event (so the tooltip click toggles), and at play time it adds a tiny forwarder to the tooltip's
+    /// looked-at object so a mouse click there raises the SAME click — both flow through one path. (Object
+    /// mouse-click is M&K/editor only; in VR the object would be a real interactable.)
     ///
     /// Setup: link Tooltip = the InteractableTooltipController, Target = the GameObject to show/hide. Done.
     /// </summary>
@@ -26,8 +25,6 @@ namespace jeanf.tooltip
         [Tooltip("Log each toggle to the console.")]
         [SerializeField] private bool logToConsole = true;
 
-        private StringEventChannelSO _channel;
-
         private void OnEnable()
         {
             if (tooltip == null)
@@ -36,12 +33,10 @@ namespace jeanf.tooltip
                 return;
             }
 
-            // Tooltip click -> the tooltip's own channel.
-            _channel = tooltip.OnClickChannel;
-            if (_channel != null) _channel.OnEventRaised += OnClicked;
-            else Debug.LogWarning("[TooltipClickTester] Linked tooltip has no On Click Channel assigned.", this);
+            // Tooltip click -> the tooltip's own Clicked event.
+            tooltip.Clicked += OnClicked;
 
-            // Object click -> make the looked-at object raise the SAME channel (via the controller's RaiseClick),
+            // Object click -> make the looked-at object raise the SAME click (via the controller's RaiseClick),
             // so we never have to live on that object. M&K/editor only (OnMouseDown).
             var obj = tooltip.ObjectToBeViewed;
             if (obj != null)
@@ -54,10 +49,10 @@ namespace jeanf.tooltip
 
         private void OnDisable()
         {
-            if (_channel != null) _channel.OnEventRaised -= OnClicked;
+            if (tooltip != null) tooltip.Clicked -= OnClicked;
         }
 
-        private void OnClicked(string message)
+        private void OnClicked()
         {
             if (target == null)
             {
@@ -68,7 +63,7 @@ namespace jeanf.tooltip
             bool show = !target.activeSelf;
             target.SetActive(show);
             if (logToConsole)
-                Debug.Log($"[TooltipClickTester] click ('{message}') → '{target.name}' {(show ? "SHOWN" : "HIDDEN")}", this);
+                Debug.Log($"[TooltipClickTester] click → '{target.name}' {(show ? "SHOWN" : "HIDDEN")}", this);
         }
     }
 

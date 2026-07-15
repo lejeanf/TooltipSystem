@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using jeanf.EventSystem;
 using jeanf.scenemanagement;
 using jeanf.universalplayer;
 using jeanf.validationTools;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
@@ -20,6 +20,10 @@ namespace jeanf.tooltip
     // IReticleHoverable: anything with a tooltip makes the player's cursor react on hover.
     public class InteractableTooltipController : Tooltip, IReticleHoverable
     {
+        [Header("Debug")]
+        [Tooltip("Log this tooltip's state changes to the console.")]
+        public bool isDebug = false;
+
         [Header("Tooltip Settings")]
         [FormerlySerializedAs("interactableToolTipSettingsSo")]
         [Validation("Shared settings (gaze threshold…) are required for this tooltip to work.")]
@@ -33,6 +37,26 @@ namespace jeanf.tooltip
         [Validation("A zone is required — the tooltip is hidden unless the player is inside it.")]
         public Zone currentZone;
 
+        [Header("Rendering mode")]
+        [Tooltip("Render via TooltipPoolManager (sprite minimized + pooled expanded canvas) instead of instantiating a per-tooltip canvas. Requires a TooltipPoolManager in the scene; falls back to the legacy per-tooltip canvas if none is present. Keep the legacy tooltip prefab (Legacy references) assigned for that fallback.")]
+        [SerializeField] private bool usePooledRendering = false;
+        [Tooltip("Pooled mode only: distance within which the minimized indicator shows (replaces the FarTooltip range trigger, which isn't instantiated in pooled mode). Set this to your old far-trigger radius.")]
+        [SerializeField] private float minimizedRange = 15f;
+
+        [Header("Appearance & orientation")]
+        [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a TooltipAnchor can override this per position.")]
+        [SerializeField] private bool iconOnRight = true;
+        [Tooltip("Per-tooltip billboarding. UseManagerDefault: follow the TooltipPoolManager's global setting (pooled) / off (legacy). Always / Never: force this tooltip on or off regardless of the manager. When Never, orient the tooltip by rotating its transform (or the candidate position) — a Scene rotation handle is provided.")]
+        [SerializeField] private BillboardMode billboardMode = BillboardMode.Never;
+        [Tooltip("Per-axis limits on the billboarding: free/locked/clamped yaw, pitch and roll, measured from this tooltip's (or the chosen candidate's) authored facing. Defaults = the classic free, world-upright billboard.")]
+        [SerializeField] private BillboardConstraints billboardConstraints = new BillboardConstraints();
+
+        [Header("Click")]
+        [Tooltip("Invoked when this tooltip is clicked. Clicking always works — the pooled view auto-adds a collider — so this event just defines WHAT the click does; wire game-side listeners here. Leave empty if the click should do nothing.")]
+        [SerializeField] private UnityEvent onClick;
+        [Tooltip("On click, flash the tooltip and briefly collapse it to the minimized disc for this long (seconds), then re-grow if the player is still looking at it. 0 = no click-minimize.")]
+        [SerializeField, Min(0f)] private float clickMinimizeDuration = 0.2f;
+
         // Permanent (default) = a zone/proximity/gaze-driven hint that persists. Punctual = one-shot,
         // event-driven (hidden once its action completes). Punctual is no longer an inspector option — it
         // confused setup and nothing serialized it on purpose. It stays reachable at runtime via
@@ -40,22 +64,6 @@ namespace jeanf.tooltip
         // still honors IsPermanentTooltip. NOT serialized, so any stale inspector value is ignored and every
         // tooltip starts permanent.
         private bool isPermanentTooltip = true;
-        [Tooltip("Log this tooltip's state changes to the console.")]
-        public bool isDebug = false;
-        [Tooltip("Per-tooltip billboarding. UseManagerDefault: follow the TooltipPoolManager's global setting (pooled) / off (legacy). Always / Never: force this tooltip on or off regardless of the manager.")]
-        [SerializeField] private BillboardMode billboardMode = BillboardMode.Never;
-        [Tooltip("Per-axis limits on the billboarding: free/locked/clamped yaw, pitch and roll, measured from this tooltip's (or the chosen candidate's) authored facing. Defaults = the classic free, world-upright billboard.")]
-        [SerializeField] private BillboardConstraints billboardConstraints = new BillboardConstraints();
-        [Tooltip("Default side for the expanded tooltip's icon (right when on, left when off). A candidate position with a TooltipAnchor can override this.")]
-        [SerializeField] private bool iconOnRight = true;
-
-        [Header("Click event (raised when the tooltip is clicked)")]
-        [Tooltip("SO event channel raised when this tooltip is clicked. Clicking always works — the pooled view auto-adds a collider — so this channel + message just define WHAT the click does; the game side listens and acts. Leave empty if the click should do nothing.")]
-        [SerializeField] private StringEventChannelSO onClickChannel;
-        [Tooltip("Message sent on the channel for THIS tooltip.")]
-        [SerializeField] private string clickMessage = "";
-        [Tooltip("On click, flash the tooltip and briefly collapse it to the minimized disc for this long (seconds), then re-grow if the player is still looking at it. 0 = no click-minimize.")]
-        [SerializeField, Min(0f)] private float clickMinimizeDuration = 0.2f;
 
         /// <summary>
         /// The text to show: the per-mode text from the action-content SO for the current control scheme,
@@ -74,12 +82,15 @@ namespace jeanf.tooltip
             }
         }
 
+        /// <summary>Fires when this tooltip is clicked — for code listeners (e.g. TooltipClickTester) that
+        /// can't use the inspector <c>onClick</c> UnityEvent. Raised alongside it.</summary>
+        public event System.Action Clicked;
+
         /// <summary>Raises this tooltip's per-instance click event. Wire your click detector to this.</summary>
         public void RaiseClick()
         {
             if (isDebug)
-                Debug.Log($"[InteractableTooltip '{name}'] RaiseClick -> channel=" +
-                          $"{(onClickChannel != null ? onClickChannel.name : "<none>")} message='{clickMessage}'", this);
+                Debug.Log($"[InteractableTooltip '{name}'] RaiseClick", this);
 
             // Click feedback: flash the pill FIRST, then once the flash ends collapse to the disc for the
             // minimize window; the gate (UpdateTooltipVisibility) re-grows it afterward if still looked at.
@@ -90,12 +101,9 @@ namespace jeanf.tooltip
                 _clickMinimizeUntil = _clickMinimizeFrom + clickMinimizeDuration;
             }
 
-            if (onClickChannel == null) return;
-            onClickChannel.RaiseEvent(clickMessage);
+            onClick?.Invoke();
+            Clicked?.Invoke();
         }
-
-        /// <summary>The channel this tooltip raises on click — lets a listener link to it without re-wiring.</summary>
-        public StringEventChannelSO OnClickChannel => onClickChannel;
         /// <summary>The object the player looks at to maximize this tooltip.</summary>
         public GameObject ObjectToBeViewed => objectToBeViewed;
 
@@ -125,12 +133,6 @@ namespace jeanf.tooltip
         [Tooltip("Legacy per-scheme input-binding SO. Only used when no Action Content SO is set above.")]
         [FormerlySerializedAs("interactableToolTipInputSo")]
         [SerializeField] private InteractableTooltipInputSo interactableTooltipInputSo;
-
-        [Header("Pooled rendering (optional, opt-in)")]
-        [Tooltip("Render via TooltipPoolManager (sprite minimized + pooled expanded canvas) instead of instantiating a per-tooltip canvas. Requires a TooltipPoolManager in the scene; falls back to the legacy per-tooltip canvas if none is present. Keep the legacy tooltip prefab assigned above for that fallback.")]
-        [SerializeField] private bool usePooledRendering = false;
-        [Tooltip("Pooled mode only: distance within which the minimized indicator shows (replaces the FarTooltip range trigger, which isn't instantiated in pooled mode). Set this to your old far-trigger radius.")]
-        [SerializeField] private float minimizedRange = 15f;
 
         //Delegates
         public delegate bool RequestShowTooltipDelegate(float playerDirectionDot, InteractableTooltipController interactableTooltipController);

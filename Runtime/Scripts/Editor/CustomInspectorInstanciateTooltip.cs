@@ -108,6 +108,16 @@ public class CustomInspectorInstanciateTooltip : Editor
             exclude.Add("billboardConstraints");
             exclude.Add("billboardMode");
         }
+        else if (controller.BillboardModeDefault == BillboardMode.Never)
+        {
+            // Not billboarding -> no per-axis limits to set (orient via the Scene rotation handle instead).
+            exclude.Add("billboardConstraints");
+        }
+
+        // Minimized Range only applies to pooled rendering.
+        var usePooledProp = serializedObject.FindProperty("usePooledRendering");
+        if (usePooledProp != null && !usePooledProp.boolValue)
+            exclude.Add("minimizedRange");
 
         DrawPropertiesExcluding(serializedObject, exclude.ToArray());
 
@@ -137,15 +147,21 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (!_repositioningFoldout) return;
 
         EditorGUI.indentLevel++;
-        foreach (var propName in new[] { "enableRepositioning", "distanceWeight", "rejectOccluded", "obstacleMask" })
+        var enableProp = serializedObject.FindProperty("enableRepositioning");
+        if (enableProp != null) EditorGUILayout.PropertyField(enableProp);
+        // The scoring knobs only matter once repositioning is on — hide them otherwise.
+        if (enableProp != null && enableProp.boolValue)
         {
-            var p = serializedObject.FindProperty(propName);
-            if (p != null) EditorGUILayout.PropertyField(p);
+            foreach (var propName in new[] { "distanceWeight", "rejectOccluded", "obstacleMask" })
+            {
+                var p = serializedObject.FindProperty(propName);
+                if (p != null) EditorGUILayout.PropertyField(p);
+            }
+            EditorGUILayout.HelpBox(
+                "Evaluation Interval and Reposition Hysteresis moved to TooltipPoolManager — they affect performance, " +
+                "not appearance, so they're tuned once for every tooltip instead of per instance.",
+                MessageType.None);
         }
-        EditorGUILayout.HelpBox(
-            "Evaluation Interval and Reposition Hysteresis moved to TooltipPoolManager — they affect performance, " +
-            "not appearance, so they're tuned once for every tooltip instead of per instance.",
-            MessageType.None);
         EditorGUI.indentLevel--;
     }
 
