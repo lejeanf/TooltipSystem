@@ -937,17 +937,13 @@ public class CustomInspectorInstanciateTooltip : Editor
             new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), _spawnCount));
         _spawnRadius = Mathf.Max(0f, EditorGUILayout.FloatField(
             new GUIContent("Radius", "Distance (local units) each position sits from the root."), _spawnRadius));
-        EditorGUILayout.EndHorizontal();
-
-        if (GUILayout.Button($"Generate {_spawnCount} on sphere"))
+        if (GUILayout.Button(new GUIContent("Generate", "Create Count positions spread evenly on a sphere (replaces the current list)."), GUILayout.Width(90f)))
             GenerateOnSphere(controller, anchors);
+        EditorGUILayout.EndHorizontal();
 
         using (new EditorGUI.DisabledScope(anchors.arraySize < 2))
             if (GUILayout.Button("Distribute existing evenly on sphere"))
                 DistributeEvenly(controller, anchors);
-
-        if (GUILayout.Button("Add candidate position"))
-            AddCandidateOnSphere(controller, anchors);
     }
 
     private int _spawnCount = 8;
@@ -1020,15 +1016,6 @@ public class CustomInspectorInstanciateTooltip : Editor
         if (_preview != null) ConfigurePreview(controller);
     }
 
-    // Single add, placed on the sphere (its slot in an n+1 distribution) rather than stacked vertically.
-    private void AddCandidateOnSphere(InteractableTooltipController controller, SerializedProperty anchors)
-    {
-        int idx = anchors.arraySize;
-        var tf = CreateCandidateObject(controller.transform, $"TooltipPosition {idx}",
-            FibonacciSpherePoint(idx, idx + 1) * _spawnRadius);
-        anchors.arraySize = idx + 1;
-        anchors.GetArrayElementAtIndex(idx).objectReferenceValue = tf;
-    }
 
     private void BuildPreview(InteractableTooltipController controller, bool warnIfNoPool = true)
     {

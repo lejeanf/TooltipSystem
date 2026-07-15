@@ -64,7 +64,7 @@ That's the minimum. Look at the object from inside the zone and within Show Dist
 
 ## Repositioning (optional)
 
-Give the tooltip a list of **candidate positions** (scene transforms; the inspector's *Add candidate position* creates `TooltipAnchor` children). For quick setup, set a **Count** + **Radius** and hit **Generate on sphere** to spawn them spread evenly around the root (Fibonacci distribution), or **Distribute existing evenly** to re-spread the ones you have — then edit/add/remove any by hand. The best one is chosen by the **player's position**, not their gaze:
+Give the tooltip a list of **candidate positions** (scene transforms). For quick setup, set a **Count** + **Radius** and hit **Generate** to spawn `TooltipAnchor` children spread evenly around the root (Fibonacci distribution), or **Distribute existing evenly** to re-spread the ones you have — then add/remove/reorder any in the list. The best one is chosen by the **player's position**, not their gaze:
 
 ```
 score = facing + distanceWeight · 1/(1 + distance)
