@@ -135,9 +135,11 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 
 ---
 
-## What's new in 2.4.0
+## What's new in 3.0.0
 
 - ⚠ **Breaking:** the click event is now an **On Click UnityEvent** on the controller (plus a `Clicked` C# event) instead of a `StringEventChannelSO` + string message. Re-wire any click listeners in the inspector. `TooltipClickRelay` changed the same way.
+- ⚠ **Breaking:** rendering is always pooled (the `Use Pooled Rendering` field is removed), *Minimized Range* / `MinimizedRange` is renamed **Show Distance** / `ShowDistance` (serialized value preserved), and the `OnClickChannel` / `ClickMessage` public API is gone.
+- **Tabbed inspector** (Content / In-world / Debug), a compact per-mode Action Content drawer with an icon preview, candidate positions shown in the viewport when deselected, and candidate **Generate on a sphere** quick-setup.
 - **Two size sliders** on the pooled prefab — *Minimized Scale* / *Expanded Scale* — with every granular sizing/animation/wiring field moved under an **Advanced** foldout.
 - **Non-billboard tooltips can be oriented**: they hold their authored rotation at runtime, with a Scene rotation handle + forward arrow to author it and a Game-view debug arrow (debug panel on) to see it.
 - **Tabbed, contextual inspector**: the controller splits into **Content** / **In-world** / **Debug** tabs (`isDebug` pinned above); billboard limits hidden unless billboarding; repositioning knobs hidden until enabled. Rendering is always pooled (the *Use Pooled Rendering* toggle and the legacy-references section are gone), *Minimized Range* is renamed **Show Distance**, and candidate positions can be **generated evenly on a sphere**. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
