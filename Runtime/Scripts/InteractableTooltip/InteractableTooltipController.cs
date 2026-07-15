@@ -1278,11 +1278,34 @@ namespace jeanf.tooltip
         public void DestroyInstantiateTooltip()
         {
             StopActiveTimer();
-            
+
             if (_tooltip != null)
                 DestroyImmediate(_tooltip);
         }
-        
+
+#if UNITY_EDITOR
+        // Editor-only: draw the candidate positions (amber wire spheres + a line from the root) so the whole
+        // cluster is visible in the Scene view even when this controller isn't selected — regardless of whether
+        // each candidate carries a TooltipAnchor. When it IS selected, the custom inspector's OnSceneGUI draws
+        // richer, interactive markers instead, so skip here to avoid doubling up.
+        private void OnDrawGizmos()
+        {
+            if (candidateAnchors == null || candidateAnchors.Count == 0) return;
+            if (UnityEditor.Selection.Contains(gameObject)) return;
+
+            Gizmos.color = new Color(1f, 0.78f, 0.2f, 0.7f);
+            Vector3 root = transform.position;
+            for (int i = 0; i < candidateAnchors.Count; i++)
+            {
+                var a = candidateAnchors[i];
+                if (a == null) continue;
+                float s = UnityEditor.HandleUtility.GetHandleSize(a.position) * 0.1f;
+                Gizmos.DrawWireSphere(a.position, s);
+                Gizmos.DrawLine(root, a.position);
+            }
+        }
+#endif
+
         #endregion
     }
 }

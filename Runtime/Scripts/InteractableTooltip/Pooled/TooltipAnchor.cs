@@ -37,17 +37,8 @@ namespace jeanf.tooltip
         public bool? BillboardOverride =>
             billboard == Billboard.Inherit ? (bool?)null : billboard == Billboard.Always;
 
-#if UNITY_EDITOR
-        // Editor-only marker so these otherwise-invisible candidate positions are visible in the Scene
-        // view even when the tooltip controller isn't selected. Kept minimal (a small dot, no label) to
-        // avoid clutter — the controller's inspector adds labels/handles when it's selected. Not built.
-        private void OnDrawGizmos()
-        {
-            Vector3 p = transform.position;
-            float s = UnityEditor.HandleUtility.GetHandleSize(p) * 0.08f;
-            Gizmos.color = new Color(1f, 0.78f, 0.2f, 0.6f); // amber, matches the tooltip
-            Gizmos.DrawWireSphere(p, s);
-        }
-#endif
+        // The candidate positions are visualised centrally by InteractableTooltipController.OnDrawGizmos
+        // (amber spheres + lines from the root when the controller isn't selected), so no per-anchor gizmo
+        // is needed here — that avoids a doubled wire sphere at each position.
     }
 }
