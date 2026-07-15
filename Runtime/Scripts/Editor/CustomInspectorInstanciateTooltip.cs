@@ -970,18 +970,105 @@ public class CustomInspectorInstanciateTooltip : Editor
             anchors.DeleteArrayElementAtIndex(removeIndex);
         }
 
-        if (GUILayout.Button("Add candidate position"))
-        {
-            var go = new GameObject($"TooltipPosition {anchors.arraySize}");
-            Undo.RegisterCreatedObjectUndo(go, "Add Tooltip Candidate Position");
-            go.transform.SetParent(controller.transform, false);
-            go.transform.localPosition = new Vector3(0f, 0.3f * (anchors.arraySize + 1), 0f);
-            go.AddComponent<TooltipAnchor>();
+        // --- Quick setup: spread positions evenly on a sphere around the root (Fibonacci / golden spiral) ---
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Auto-place on a sphere", EditorStyles.miniBoldLabel);
+        EditorGUILayout.BeginHorizontal();
+        _spawnCount = Mathf.Max(1, EditorGUILayout.IntField(
+            new GUIContent("Count", "How many positions to spread evenly on a sphere around the root."), _spawnCount));
+        _spawnRadius = Mathf.Max(0f, EditorGUILayout.FloatField(
+            new GUIContent("Radius", "Distance (local units) each position sits from the root."), _spawnRadius));
+        EditorGUILayout.EndHorizontal();
 
-            int idx = anchors.arraySize;
-            anchors.arraySize = idx + 1;
-            anchors.GetArrayElementAtIndex(idx).objectReferenceValue = go.transform;
+        if (GUILayout.Button($"Generate {_spawnCount} on sphere"))
+            GenerateOnSphere(controller, anchors);
+
+        using (new EditorGUI.DisabledScope(anchors.arraySize < 2))
+            if (GUILayout.Button("Distribute existing evenly on sphere"))
+                DistributeEvenly(controller, anchors);
+
+        if (GUILayout.Button("Add candidate position"))
+            AddCandidateOnSphere(controller, anchors);
+    }
+
+    private int _spawnCount = 8;
+    private float _spawnRadius = 0.5f;
+
+    // Evenly-distributed point on a UNIT sphere via the Fibonacci / golden-spiral method (good spread for any n).
+    private static Vector3 FibonacciSpherePoint(int i, int n)
+    {
+        if (n <= 1) return Vector3.up;
+        float y = 1f - (i / (float)(n - 1)) * 2f;                 // 1 .. -1
+        float r = Mathf.Sqrt(Mathf.Max(0f, 1f - y * y));
+        float theta = Mathf.PI * (3f - Mathf.Sqrt(5f)) * i;        // golden angle
+        return new Vector3(Mathf.Cos(theta) * r, y, Mathf.Sin(theta) * r);
+    }
+
+    // Create a TooltipPosition child (with a TooltipAnchor) at a root-local position; returns its transform.
+    private static Transform CreateCandidateObject(Transform root, string name, Vector3 localPos)
+    {
+        var go = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(go, "Add Tooltip Candidate Position");
+        go.transform.SetParent(root, false);
+        go.transform.localPosition = localPos;
+        go.AddComponent<TooltipAnchor>();
+        return go.transform;
+    }
+
+    // Quick setup: replace the current candidates with `_spawnCount` fresh ones spread evenly on the sphere.
+    private void GenerateOnSphere(InteractableTooltipController controller, SerializedProperty anchors)
+    {
+        if (anchors.arraySize > 0 &&
+            !EditorUtility.DisplayDialog("Generate candidate positions",
+                $"This removes the current {anchors.arraySize} candidate position(s) and creates {_spawnCount} " +
+                "spread evenly on a sphere. Continue?", "Generate", "Cancel"))
+            return;
+
+        // Destroy the auto-created children we own; external transforms are just dropped from the list.
+        for (int i = anchors.arraySize - 1; i >= 0; i--)
+        {
+            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            if (t != null && t.parent == controller.transform && t.name.StartsWith("TooltipPosition"))
+                Undo.DestroyObjectImmediate(t.gameObject);
         }
+        anchors.ClearArray();
+
+        for (int i = 0; i < _spawnCount; i++)
+        {
+            var tf = CreateCandidateObject(controller.transform, $"TooltipPosition {i}",
+                FibonacciSpherePoint(i, _spawnCount) * _spawnRadius);
+            anchors.arraySize = i + 1;
+            anchors.GetArrayElementAtIndex(i).objectReferenceValue = tf;
+        }
+
+        _previewPos = 2; // focus the first generated position in the preview
+        _followBest = false;
+        serializedObject.ApplyModifiedProperties();
+        GUIUtility.ExitGUI(); // objects created/destroyed mid-GUI — abort this pass so the inspector rebuilds
+    }
+
+    // Non-destructive: reposition the EXISTING candidates evenly on the sphere (keeps their TooltipAnchor overrides).
+    private void DistributeEvenly(InteractableTooltipController controller, SerializedProperty anchors)
+    {
+        int n = anchors.arraySize;
+        for (int i = 0; i < n; i++)
+        {
+            var t = anchors.GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+            if (t == null) continue;
+            Undo.RecordObject(t, "Distribute Tooltip Candidates");
+            t.position = controller.transform.TransformPoint(FibonacciSpherePoint(i, n) * _spawnRadius);
+        }
+        if (_preview != null) ConfigurePreview(controller);
+    }
+
+    // Single add, placed on the sphere (its slot in an n+1 distribution) rather than stacked vertically.
+    private void AddCandidateOnSphere(InteractableTooltipController controller, SerializedProperty anchors)
+    {
+        int idx = anchors.arraySize;
+        var tf = CreateCandidateObject(controller.transform, $"TooltipPosition {idx}",
+            FibonacciSpherePoint(idx, idx + 1) * _spawnRadius);
+        anchors.arraySize = idx + 1;
+        anchors.GetArrayElementAtIndex(idx).objectReferenceValue = tf;
     }
 
     // Legacy (non-pooled / no Action Content SO) references, tucked into a collapsed foldout at the very
