@@ -46,6 +46,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 2
+  overrideBillboardConstraints: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20
 --- !u!1 &1642013007770799351
 GameObject:
   m_ObjectHideFlags: 0
@@ -97,16 +115,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.InteractableTooltipController
   showTooltip: 0
+  isDebug: 1
   interactableTooltipSettingsSo: {fileID: 11400000, guid: c1529d2ff6357354980580394f28ad76,
     type: 2}
   actionContentSo: {fileID: 11400000, guid: 5003713770a717f4a825e4073f2b1a4c, type: 2}
   objectToBeViewed: {fileID: 0}
   currentZone: {fileID: 11400000, guid: 2b0939a48ac9b554d9da18a49189cb9d, type: 2}
-  isDebug: 1
-  billboardMode: 0
+  showDistance: 3
   iconOnRight: 1
-  onClickChannel: {fileID: 11400000, guid: 4f5235d1ff779064cabee9ca65296d7f, type: 2}
-  clickMessage: Quest initialized.
+  billboardMode: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20
+  onClick:
+    m_PersistentCalls:
+      m_Calls: []
   clickMinimizeDuration: 0.5
   livePreview: 0
   enableRepositioning: 1
@@ -116,8 +153,6 @@ MonoBehaviour:
   - {fileID: 5951515377612981184}
   - {fileID: 2974321304045470724}
   - {fileID: 4086942786837291221}
-  evaluationInterval: 0.2
-  repositionHysteresis: 0.05
   distanceWeight: 0.25
   rejectOccluded: 0
   obstacleMask:
@@ -127,8 +162,6 @@ MonoBehaviour:
   inputIconSo: {fileID: 11400000, guid: bde1c948ca51a1642946461b1ff1177f, type: 2}
   interactableTooltipInputSo: {fileID: 11400000, guid: b4277969991dce6438ae48a9268139ab,
     type: 2}
-  usePooledRendering: 1
-  minimizedRange: 6.5348015
 --- !u!114 &8216385953766042541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,6 +282,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 0
+  overrideBillboardConstraints: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20
 --- !u!1 &4139835830354172332
 GameObject:
   m_ObjectHideFlags: 0
@@ -295,6 +346,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 1
   billboard: 0
+  overrideBillboardConstraints: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20
 --- !u!1 &4324774589299401749
 GameObject:
   m_ObjectHideFlags: 0
@@ -341,6 +410,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 0
   billboard: 0
+  overrideBillboardConstraints: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20
 --- !u!1 &8118854422676337895
 GameObject:
   m_ObjectHideFlags: 0
@@ -387,3 +474,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: jeanf.tooltip::jeanf.tooltip.TooltipAnchor
   iconSide: 1
   billboard: 0
+  overrideBillboardConstraints: 0
+  billboardConstraints:
+    yawAxis: 1
+    pitchAxis: 1
+    rollAxis: 0
+    limitEaseDegrees: 8
+    clampYaw: 0
+    yawCenter: 0
+    yawMin: -60
+    yawMax: 60
+    clampPitch: 0
+    pitchCenter: 0
+    pitchMin: -30
+    pitchMax: 30
+    clampRoll: 0
+    rollCenter: 0
+    rollMin: -20
+    rollMax: 20

@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7300000000000000001}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.4033117, y: -0.33246505, z: 0.16013151, w: 0.83735573}
+  m_LocalRotation: {x: 0.038883623, y: -0.19502069, z: 0.0077378876, w: 0.9799975}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -47,20 +47,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd44ee55ff6600778899a011bb22cc33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  background: {fileID: 7300000000000000063}
-  backgroundTransform: {fileID: 7300000000000000061}
-  descriptionText: {fileID: 5416558778971293564}
-  iconRenderer: {fileID: 7300000000000000042}
-  minSize: {x: 0.1, y: 0.1}
-  minRadius: {x: 0.05, y: 0.05, z: 0.05, w: 0.05}
+  background: {fileID: 7300000000000000063, guid: aa11bb22cc33dd44ee55ff6600778899,
+    type: 3}
+  backgroundTransform: {fileID: 7300000000000000061, guid: aa11bb22cc33dd44ee55ff6600778899,
+    type: 3}
+  descriptionText: {fileID: 5416558778971293564, guid: aa11bb22cc33dd44ee55ff6600778899,
+    type: 3}
+  iconRenderer: {fileID: 7300000000000000042, guid: aa11bb22cc33dd44ee55ff6600778899,
+    type: 3}
+  minimizedScale: 1
+  expandedScale: 1
+  minSize: {x: 0.05, y: 0.05}
+  minRadius: {x: 0.025, y: 0.025, z: 0.025, w: 0.025}
   iconOnRight: 1
-  expandedHeight: 0.2
-  fontSize: 1.25
-  expandedRoundedRadius: 0.1
-  expandedFlatRadius: 0.1
-  horizontalPadding: 0.1
-  iconWidth: 0.1
-  iconSize: 0.15
+  expandedHeight: 0.1
+  fontSize: 0.625
+  expandedRoundedRadius: 0.05
+  expandedFlatRadius: 0.05
+  horizontalPadding: 0.05
+  iconWidth: 0.05
+  iconSize: 0.075
   color: {r: 1, g: 0.6588, b: 0, a: 1}
   contentColor: {r: 1, g: 1, b: 1, a: 1}
   colliderDepth: 0.05
