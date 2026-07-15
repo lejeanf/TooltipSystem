@@ -24,14 +24,10 @@ public class CustomInspectorInstanciateTooltip : Editor
     private PreviewState _previewState = PreviewState.Expanded;
     private bool _showRanges = true;                                // draw range/trigger gizmos in the scene
     private bool _followBest = true;                                // preview follows the best candidate for the scene cam
-    private bool _previewFoldout = true;                            // collapse the editor-only preview block
-    private bool _repositioningFoldout = true;                      // collapse the repositioning settings block
+    private bool _previewFoldout = true;                            // collapse the scene-preview block
     private bool _candidatesFoldout = true;                         // collapse the candidate-positions list
-    private bool _legacyFoldout = false;                            // collapse the bottom legacy-references block (closed by default)
-    private bool _debugFoldout = true;                              // collapse the live debug-state panel (when globally enabled)
     private bool _sceneMulti;                                       // cached Multi for OnSceneGUI (can't read `targets` there)
-    private int _tab;                                               // 0 = Content, 1 = In-world
-    private bool _overridesFoldout = true;                          // collapse the per-candidate overrides block
+    private int _tab;                                               // 0 = Content, 1 = In-world, 2 = Debug
 
     private void OnEnable()
     {
@@ -98,13 +94,9 @@ public class CustomInspectorInstanciateTooltip : Editor
             if (mBillboard != null && !mBillboard.hasMultipleDifferentValues
                 && mBillboard.enumValueIndex == (int)BillboardMode.Never)
                 mExclude.Add("billboardConstraints");
-            var mPooled = serializedObject.FindProperty("usePooledRendering");
-            if (mPooled != null && !mPooled.hasMultipleDifferentValues && !mPooled.boolValue)
-                mExclude.Add("showDistance");
 
             DrawPropertiesExcluding(serializedObject, mExclude.ToArray());
             DrawRepositioning();
-            DrawLegacyReferences();
             serializedObject.ApplyModifiedProperties();
             return;
         }
@@ -118,22 +110,18 @@ public class CustomInspectorInstanciateTooltip : Editor
         EditorGUILayout.Space(2);
 
         if (_tab == 0) DrawContentTab();
-        else DrawInWorldTab(controller);
-
-        // Below the tabs, always reachable: the legacy references and the live debug panel.
-        EditorGUILayout.Space();
-        DrawLegacyReferences();
-        DrawDebugState(controller);
+        else if (_tab == 1) DrawInWorldTab(controller);
+        else DrawDebugState(controller);
 
         serializedObject.ApplyModifiedProperties();
 
         if (_preview != null) ConfigurePreview(controller); // keep preview in sync with field edits
 
-        // The inspector only repaints on change by default; force it while playing so the debug panel updates.
-        if (Application.isPlaying && TooltipDebugPrefs.Enabled && _debugFoldout) Repaint();
+        // Force a repaint while playing on the Debug tab so the live gate state updates each frame.
+        if (Application.isPlaying && _tab == 2) Repaint();
     }
 
-    private static readonly string[] TabLabels = { "Content", "In-world" };
+    private static readonly string[] TabLabels = { "Content", "In-world", "Debug" };
 
     // Draw a serialized property by name (with children). Used for the explicit per-tab field ordering.
     private void Prop(string name)
@@ -173,25 +161,23 @@ public class CustomInspectorInstanciateTooltip : Editor
             Prop("billboardConstraints");
         }
 
-        // Rendering.
+        // Rendering (pooling is always on) — how close the player must be for the tooltip to appear at all.
         EditorGUILayout.Space();
-        Prop("usePooledRendering");
-        var pooled = serializedObject.FindProperty("usePooledRendering");
-        if (pooled == null || pooled.boolValue) Prop("showDistance"); // pooled-only
+        Prop("showDistance");
 
+        // Placement. Candidate positions list is drawn LAST (per request); the overrides / preview above
+        // act on whichever position is selected in it.
         DrawRepositioning();
-        DrawCandidatePositions(controller);
         DrawSelectedPositionOverrides(controller);
         DrawScenePreview(controller);
+        DrawCandidatePositions(controller);
     }
 
+    // Flat (no foldout) — short block, kept inline to reduce the number of collapsibles in this tab.
     private void DrawRepositioning()
     {
         EditorGUILayout.Space();
-        _repositioningFoldout = EditorGUILayout.Foldout(_repositioningFoldout, "Repositioning (optional)", true, EditorStyles.foldoutHeader);
-        if (!_repositioningFoldout) return;
-
-        EditorGUI.indentLevel++;
+        EditorGUILayout.LabelField("Repositioning (optional)", EditorStyles.boldLabel);
         var enableProp = serializedObject.FindProperty("enableRepositioning");
         if (enableProp != null) EditorGUILayout.PropertyField(enableProp);
         // The scoring knobs only matter once repositioning is on — hide them otherwise.
@@ -207,19 +193,12 @@ public class CustomInspectorInstanciateTooltip : Editor
                 "not appearance, so they're tuned once for every tooltip instead of per instance.",
                 MessageType.None);
         }
-        EditorGUI.indentLevel--;
     }
 
-    // Live gate-state panel, shown only when the global toggle (on the pool manager) is on. Read-only; the
-    // values update each frame in play mode (OnInspectorGUI forces a repaint above).
+    // Live gate-state panel — its own inspector tab. Read-only; values update each frame in play mode
+    // (OnInspectorGUI forces a repaint while the Debug tab is active).
     private void DrawDebugState(InteractableTooltipController controller)
     {
-        if (!TooltipDebugPrefs.Enabled) return;
-
-        EditorGUILayout.Space();
-        _debugFoldout = EditorGUILayout.Foldout(_debugFoldout, "Tooltip state (debug)", true, EditorStyles.foldoutHeader);
-        if (!_debugFoldout) return;
-
         if (!Application.isPlaying)
             EditorGUILayout.HelpBox("Enter Play mode for live gate state (zone / proximity / looking update each frame).", MessageType.None);
 
@@ -364,8 +343,7 @@ public class CustomInspectorInstanciateTooltip : Editor
     private void DrawSelectedPositionOverrides(InteractableTooltipController controller)
     {
         EditorGUILayout.Space();
-        _overridesFoldout = EditorGUILayout.Foldout(_overridesFoldout, "Selected position overrides", true, EditorStyles.foldoutHeader);
-        if (!_overridesFoldout) return;
+        EditorGUILayout.LabelField("Selected position overrides", EditorStyles.boldLabel);
 
         if (_previewPos < 2) // None / Base -> no candidate selected; the defaults live above in this tab.
         {
@@ -1069,25 +1047,6 @@ public class CustomInspectorInstanciateTooltip : Editor
             FibonacciSpherePoint(idx, idx + 1) * _spawnRadius);
         anchors.arraySize = idx + 1;
         anchors.GetArrayElementAtIndex(idx).objectReferenceValue = tf;
-    }
-
-    // Legacy (non-pooled / no Action Content SO) references, tucked into a collapsed foldout at the very
-    // bottom so they don't clutter the common pooled setup. Drawn explicitly (excluded from the main pass).
-    private void DrawLegacyReferences()
-    {
-        EditorGUILayout.Space();
-        _legacyFoldout = EditorGUILayout.Foldout(_legacyFoldout,
-            "Legacy references (non-pooled / no Action Content SO)", true, EditorStyles.foldoutHeader);
-        if (!_legacyFoldout) return;
-
-        EditorGUI.indentLevel++;
-        var prefab = serializedObject.FindProperty("tooltipGameObjectPrefab");
-        var inputIcon = serializedObject.FindProperty("inputIconSo");
-        var inputSo = serializedObject.FindProperty("interactableTooltipInputSo");
-        if (prefab != null) EditorGUILayout.PropertyField(prefab);
-        if (inputIcon != null) EditorGUILayout.PropertyField(inputIcon);
-        if (inputSo != null) EditorGUILayout.PropertyField(inputSo);
-        EditorGUI.indentLevel--;
     }
 
     private void BuildPreview(InteractableTooltipController controller, bool warnIfNoPool = true)

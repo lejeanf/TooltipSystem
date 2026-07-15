@@ -97,9 +97,10 @@ namespace jeanf.tooltip
 
             EditorGUILayout.Space();
             TooltipDebugPrefs.Enabled = EditorGUILayout.ToggleLeft(
-                new GUIContent("Show tooltip debug panel",
-                    "When on, selecting an InteractableTooltipController shows a live state panel in its inspector " +
-                    "(updates in play mode). Global editor toggle."),
+                new GUIContent("Show in-world facing arrows (debug)",
+                    "When on, active non-billboard tooltips draw a forward arrow in the Scene/Game view at play time " +
+                    "(Game view needs the Gizmos toggle). The per-tooltip live gate state is always on its Debug tab. " +
+                    "Global editor toggle."),
                 TooltipDebugPrefs.Enabled);
         }
 

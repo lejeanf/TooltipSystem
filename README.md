@@ -41,10 +41,9 @@ Put an **InteractableTooltipController** on (or near) the thing to annotate and 
 - **Action Content So** — per-control-scheme icon + text for this action (the easy path; falls back to the legacy glyph SOs only if unset).
 - **Object To Be Viewed** — what the player must look at to maximize the tooltip.
 - **Current Zone** — the `jeanf.scenemanagement` zone the tooltip shows in.
-- **Use Pooled Rendering** — on.
 - **Show Distance** — how close the player must be for the tooltip to appear at all (beyond it, hidden).
 
-The per-tooltip inspector is split into two tabs — **Content** (object to view, zone, action content, gaze settings, click event) and **In-world** (icon side, billboarding, rendering, repositioning, candidate positions, per-position overrides, scene preview) — with `isDebug` and the debug panel outside the tabs.
+The per-tooltip inspector has three tabs — **Content** (object to view, zone, action content, gaze settings, click event), **In-world** (icon side, billboarding, rendering, repositioning, per-position overrides, scene preview, candidate positions) and **Debug** (live gate state) — with `isDebug` pinned above them. Rendering is always pooled.
 
 That's the minimum. Look at the object from inside the zone and within Show Distance → the tooltip maximizes.
 
@@ -120,7 +119,7 @@ The `InteractableTooltipController` inspector includes:
 
 - A **scene preview** of the pooled tooltip at any candidate position (no pool manager required to preview), with editable Show Distance handle and range/gaze gizmos.
 - A **Force show** (play-mode, editor-only) toggle to display the tooltip regardless of gates while testing.
-- A **Tooltip state (debug)** panel (toggle it on the `TooltipPoolManager`) showing live gate state and candidate scoring in Play mode.
+- A **Debug** tab showing live gate state and candidate scoring in Play mode. (The `TooltipPoolManager`'s debug toggle drives the in-world facing arrow gizmo.)
 
 ---
 
@@ -141,7 +140,7 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 - ⚠ **Breaking:** the click event is now an **On Click UnityEvent** on the controller (plus a `Clicked` C# event) instead of a `StringEventChannelSO` + string message. Re-wire any click listeners in the inspector. `TooltipClickRelay` changed the same way.
 - **Two size sliders** on the pooled prefab — *Minimized Scale* / *Expanded Scale* — with every granular sizing/animation/wiring field moved under an **Advanced** foldout.
 - **Non-billboard tooltips can be oriented**: they hold their authored rotation at runtime, with a Scene rotation handle + forward arrow to author it and a Game-view debug arrow (debug panel on) to see it.
-- **Tabbed, contextual inspector**: the controller splits into **Content** / **In-world** tabs (`isDebug` + debug panel outside them); billboard limits hidden unless billboarding; *Show Distance* (renamed from *Minimized Range*) hidden unless pooled; repositioning knobs hidden until enabled. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
+- **Tabbed, contextual inspector**: the controller splits into **Content** / **In-world** / **Debug** tabs (`isDebug` pinned above); billboard limits hidden unless billboarding; repositioning knobs hidden until enabled. Rendering is always pooled (the *Use Pooled Rendering* toggle and the legacy-references section are gone), *Minimized Range* is renamed **Show Distance**, and candidate positions can be **generated evenly on a sphere**. The pool manager shows just *View Prefab* + *Capacity* (default **10**), everything else under **Advanced**.
 - **Rendering**: double-sided background (URP + HDRP) so the back shows the background, not the text; crisper SDF corners.
 - Range/gaze **Scene gizmos now render under URP** too (explicit `Handles.zTest`).
 

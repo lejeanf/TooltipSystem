@@ -37,9 +37,7 @@ namespace jeanf.tooltip
         [Validation("A zone is required — the tooltip is hidden unless the player is inside it.")]
         public Zone currentZone;
 
-        [Header("Rendering mode")]
-        [Tooltip("Render via TooltipPoolManager (sprite minimized + pooled expanded canvas) instead of instantiating a per-tooltip canvas. Requires a TooltipPoolManager in the scene; falls back to the legacy per-tooltip canvas if none is present. Keep the legacy tooltip prefab (Legacy references) assigned for that fallback.")]
-        [SerializeField] private bool usePooledRendering = false;
+        [Header("Rendering")]
         [Tooltip("How close the player's viewpoint (camera / head) must be for this tooltip to appear at all. " +
                  "Beyond this distance the tooltip is hidden; within it the minimized disc shows, and it maximizes " +
                  "when the player looks at the target. 0 = no distance limit. (Pooled mode; replaces the old " +
@@ -439,40 +437,26 @@ namespace jeanf.tooltip
         // unusable without its prefab + animation, so that still disables — but says exactly what's missing.
         private bool ValidateComponents()
         {
-            // Content source: the per-mode action SO, OR the legacy glyph-map + input SO.
+            // Pooled rendering is always used and never hard-fails: everything has a runtime fallback (default
+            // gaze threshold, description from the settings SO or empty, icon optional), so a partially
+            // configured tooltip renders what it can and just warns about what's missing.
             bool hasContent = actionContentSo != null ||
                               (inputIconSo != null && interactableTooltipInputSo != null);
 
-            if (usePooledRendering)
-            {
-                if (interactableTooltipSettingsSo == null)
-                    Debug.LogWarning($"[InteractableTooltip '{name}'] No Settings SO assigned — using the default gaze threshold and an empty description.", this);
-                if (!hasContent)
-                    Debug.LogWarning($"[InteractableTooltip '{name}'] No content source (Action Content SO, or Input Icon SO + Input SO) — the expanded tooltip will have no icon.", this);
-                return true;
-            }
-
-            if (interactableTooltipSettingsSo == null || !hasContent ||
-                tooltipGameObjectPrefab == null || interactableTooltipSettingsSo.animationSo == null)
-            {
-                Debug.LogError($"[InteractableTooltip '{name}'] Legacy (non-pooled) rendering is missing required references — disabling this tooltip. " +
-                               $"Settings SO: {(interactableTooltipSettingsSo != null ? "ok" : "MISSING")}, " +
-                               $"content source (Action Content SO or Input Icon SO + Input SO): {(hasContent ? "ok" : "MISSING")}, " +
-                               $"tooltip prefab: {(tooltipGameObjectPrefab != null ? "ok" : "MISSING")}, " +
-                               $"animation SO: {(interactableTooltipSettingsSo != null && interactableTooltipSettingsSo.animationSo != null ? "ok" : "MISSING")}.", this);
-                return false;
-            }
+            if (interactableTooltipSettingsSo == null)
+                Debug.LogWarning($"[InteractableTooltip '{name}'] No Settings SO assigned — using the default gaze threshold and an empty description.", this);
+            if (!hasContent)
+                Debug.LogWarning($"[InteractableTooltip '{name}'] No content source (Action Content SO, or Input Icon SO + Input SO) — the expanded tooltip will have no icon.", this);
 
             return true;
         }
 
         private void InitializeTooltip()
         {
-            // Decide pooled vs legacy from the user's choice ALONE — NOT from TooltipPoolManager.Instance,
-            // which may not be set yet at Awake (script execution order). The pool is resolved lazily at show
-            // time (ShowExpandedPooled / ShowMinimizedPooled already no-op when it's null), so a not-yet-ready
-            // manager must never push us down the legacy path and SetActive(false) on a missing legacy prefab.
-            _pooled = usePooledRendering;
+            // Pooled rendering is the only mode. The pool is resolved lazily at show time
+            // (ShowExpandedPooled / ShowMinimizedPooled no-op when it's null), so a not-yet-ready manager is fine.
+            // The legacy per-tooltip-canvas path below is retained only as unreachable fallback code.
+            _pooled = true;
             if (_pooled)
             {
                 InitializePooled();
