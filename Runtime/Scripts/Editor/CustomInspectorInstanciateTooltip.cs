@@ -145,18 +145,10 @@ public class CustomInspectorInstanciateTooltip : Editor
         // Appearance / orientation.
         Prop("iconOnRight");
         Prop("billboardMode");
-        if (controller.UsesCandidatesEditor)
-        {
-            EditorGUILayout.HelpBox(
-                "Billboarding and its limits are set per candidate position (see \"Selected position overrides\" " +
-                "below). The general billboard settings apply only when there are no candidate positions.",
-                MessageType.None);
-        }
-        else if (controller.BillboardModeDefault != BillboardMode.Never)
-        {
-            // Not billboarding -> no per-axis limits to set (orient via the Scene rotation handle instead).
+        // Show the general billboard limits only for the "self" case: hidden when candidates own their own
+        // (via TooltipAnchor) and when not billboarding (orient via the Scene rotation handle instead).
+        if (!controller.UsesCandidatesEditor && controller.BillboardModeDefault != BillboardMode.Never)
             Prop("billboardConstraints");
-        }
 
         // Rendering (pooling is always on) — how close the player must be for the tooltip to appear at all.
         EditorGUILayout.Space();
@@ -184,10 +176,6 @@ public class CustomInspectorInstanciateTooltip : Editor
                 var p = serializedObject.FindProperty(propName);
                 if (p != null) EditorGUILayout.PropertyField(p);
             }
-            EditorGUILayout.HelpBox(
-                "Evaluation Interval and Reposition Hysteresis moved to TooltipPoolManager — they affect performance, " +
-                "not appearance, so they're tuned once for every tooltip instead of per instance.",
-                MessageType.None);
         }
     }
 
