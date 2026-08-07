@@ -101,6 +101,23 @@ namespace jeanf.tooltip
             _billboardRest = rest;
         }
 
+        // Per-checkout colour overrides pushed by the owning controller: null = use the serialized prefab colours.
+        // Reset on Release so a recycled view never inherits the previous owner's colours.
+        private Color? _colorOverride;        // background (pill/disc)
+        private Color? _contentColorOverride; // text + icon tint
+        public void SetColorOverride(Color? background, Color? content)
+        {
+            _colorOverride = background;
+            _contentColorOverride = content;
+            // Re-tint in place when the view is already laid out (_curWidth > 0) — covers editor live edits while
+            // idle. At the first play-mode checkout the dims aren't set yet (0); the show morph applies them then.
+            if (_curWidth > 0f)
+            {
+                ApplyBackgroundProps(_curWidth, _curHeight, _curRadius);
+                ApplyContentColor(Mathf.InverseLerp(0.55f, 1f, _morph));
+            }
+        }
+
         /// <summary>Orient this view toward the camera, honoring its per-axis constraints. Called centrally
         /// by the pool manager each LateUpdate for views whose <see cref="ShouldBillboard"/> is true.</summary>
         public void ApplyBillboard(Vector3 camPos, Vector3 camUp)
@@ -118,6 +135,7 @@ namespace jeanf.tooltip
         public void ApplyFixedRotation() => transform.rotation = _billboardRest * Quaternion.AngleAxis(180f, Vector3.up);
 
         private bool _expanded;
+        private bool _iconOnly;         // no text -> compact icon-only badge (centered, every corner rounded)
         private bool _iconOnRight = true;
         private float _morph;          // 0 = minimized, 1 = expanded (current)
         private float _targetMorph;    // the value we're animating toward
@@ -234,6 +252,7 @@ namespace jeanf.tooltip
             InUse = true;
             _expanded = true;
             _iconOnRight = iconRight;
+            _iconOnly = string.IsNullOrEmpty(description); // no text -> compact icon badge
 
             // Activate FIRST so TextMeshPro can build the mesh — textBounds is invalid while inactive.
             gameObject.SetActive(true);
@@ -344,6 +363,7 @@ namespace jeanf.tooltip
         {
             if (!_expanded) return;
             _iconOnRight = iconRight;
+            _iconOnly = string.IsNullOrEmpty(description); // no text -> compact icon badge
 
             if (descriptionText != null)
             {
@@ -390,6 +410,8 @@ namespace jeanf.tooltip
         {
             InUse = false;
             _billboardOverride = null;
+            _colorOverride = null;        // forget the previous owner's colours so a recycled view resets to the prefab
+            _contentColorOverride = null;
             _billboardRest = Quaternion.identity; // forget the previous owner's rest frame
             _onClick = null; // drop the previous owner's click route before recycling
             transform.rotation = Quaternion.identity; // so a recycled non-billboarding view doesn't keep a stale facing
@@ -457,7 +479,8 @@ namespace jeanf.tooltip
             // Keep the icon-side rounded end anchored at the root (where the minimized circle sits) and
             // grow the box AWAY from it, so the expansion is directional rather than centered.
             float side = _iconOnRight ? 1f : -1f; // +1 = icon/anchor right (grows left), -1 = anchor left (grows right)
-            float boxCenterX = -side * (width - height) * 0.5f;
+            // Icon-only badge: keep the box centered on the icon (at the root) instead of growing away from one end.
+            float boxCenterX = _iconOnly ? 0f : -side * (width - height) * 0.5f;
 
             if (backgroundTransform != null)
             {
@@ -488,21 +511,23 @@ namespace jeanf.tooltip
             background.GetPropertyBlock(_mpb);
             _mpb.SetVector(SizeId, new Vector4(width, height, 0f, 0f));
             _mpb.SetVector(RadiusId, radius);
-            _mpb.SetColor(ColorId, _flashAmount > 0f ? Color.Lerp(color, clickFlashColor, _flashAmount) : color);
+            Color baseCol = _colorOverride ?? color; // per-tooltip override wins over the shared prefab colour
+            _mpb.SetColor(ColorId, _flashAmount > 0f ? Color.Lerp(baseCol, clickFlashColor, _flashAmount) : baseCol);
             background.SetPropertyBlock(_mpb);
         }
 
         private void ApplyContentColor(float fade)
         {
+            Color cc = _contentColorOverride ?? contentColor; // per-tooltip override wins over the shared prefab tint
             if (descriptionText != null)
             {
-                descriptionText.color = contentColor;            // RGB + base alpha
-                descriptionText.alpha = contentColor.a * fade;   // fade multiplier on top
+                descriptionText.color = cc;            // RGB + base alpha
+                descriptionText.alpha = cc.a * fade;   // fade multiplier on top
             }
             if (iconRenderer != null)
             {
-                Color c = contentColor;
-                c.a = contentColor.a * fade;
+                Color c = cc;
+                c.a = cc.a * fade;
                 iconRenderer.color = c;
             }
         }
@@ -553,6 +578,8 @@ namespace jeanf.tooltip
         {
             float r = expandedRoundedRadius; // icon-side corners
             float f = expandedFlatRadius;    // opposite corners
+            if (_iconOnly)
+                return new Vector4(r, r, r, r); // icon-only badge: round every corner symmetrically
             return _iconOnRight
                 ? new Vector4(r, r, f, f)    // icon right -> round right corners (TR, BR)
                 : new Vector4(f, f, r, r);   // icon left  -> round left corners (TL, BL)
@@ -560,8 +587,9 @@ namespace jeanf.tooltip
 
         private float ComputeExpandedWidth()
         {
+            // No text -> a compact badge sized to the icon itself (iconSize), not the wider text-layout iconWidth.
             if (descriptionText == null || string.IsNullOrEmpty(descriptionText.text))
-                return horizontalPadding * 2f + iconWidth;
+                return iconSize + horizontalPadding * 2f;
 
             EnsureSingleLine();
 
@@ -646,6 +674,18 @@ namespace jeanf.tooltip
         /// <summary>Editor preview: whether to billboard toward the Scene-view camera (mirrors the runtime
         /// billboard decision so "Never" looks the same while authoring).</summary>
         public void SetEditorBillboard(bool enabled) => _editorBillboard = enabled;
+
+        // Controller-level content overrides mirrored into the editor preview so the custom-icon / hide-text
+        // toggles look the same while authoring as they do at runtime. Independent of the sample content SO.
+        [NonSerialized] private Sprite _previewIconOverride;
+        [NonSerialized] private bool _previewHideText;
+        /// <summary>Editor preview: force a custom icon (null = keep the SO icon) and/or blank the text, matching
+        /// the controller's Use Custom Icon / Show Text toggles.</summary>
+        public void SetPreviewContentOverride(Sprite iconOverride, bool hideText)
+        {
+            _previewIconOverride = iconOverride;
+            _previewHideText = hideText;
+        }
 
         [NonSerialized] private double _editorAnimStart;
         [NonSerialized] private float _editorAnimFrom;
@@ -771,11 +811,17 @@ namespace jeanf.tooltip
         // play mode. No effect at runtime — the controller supplies the real per-scheme content there.
         private void ApplyPreviewContentFromSo()
         {
-            if (previewContentSo == null) return;
-            string text = previewContentSo.GetText(previewMode);
-            Sprite icon = previewContentSo.GetIcon(previewMode);
-            if (descriptionText != null && !string.IsNullOrEmpty(text)) descriptionText.text = text;
-            if (iconRenderer != null && icon != null) iconRenderer.sprite = icon;
+            if (previewContentSo != null)
+            {
+                string text = previewContentSo.GetText(previewMode);
+                Sprite icon = previewContentSo.GetIcon(previewMode);
+                if (descriptionText != null && !string.IsNullOrEmpty(text)) descriptionText.text = text;
+                if (iconRenderer != null && icon != null) iconRenderer.sprite = icon;
+            }
+
+            // Controller-level overrides (custom icon / hide text), applied on top and independent of the SO.
+            if (_previewIconOverride != null && iconRenderer != null) iconRenderer.sprite = _previewIconOverride;
+            if (_previewHideText && descriptionText != null) descriptionText.text = "";
         }
 
         // Drives the editor preview: eases the morph toward the toggle and, while expanded, re-measures
@@ -823,6 +869,7 @@ namespace jeanf.tooltip
             if (_expanded)
             {
                 ApplyPreviewContentFromSo();           // show the chosen mode's icon/text
+                _iconOnly = descriptionText == null || string.IsNullOrEmpty(descriptionText.text); // compact badge when blank
                 _expandedWidth = ComputeExpandedWidth(); // live re-measure
             }
 

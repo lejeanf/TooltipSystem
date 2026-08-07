@@ -29,6 +29,21 @@ namespace jeanf.tooltip
         [SerializeField] private InteractableTooltipSettingsSo interactableTooltipSettingsSo;
         [Tooltip("Easiest setup: one SO with the icon + text per control scheme (M&K / Gamepad / VR) for this action. If set, it supplies the per-mode icon and text. Leave the legacy glyph SOs (below) empty when using this.")]
         [SerializeField] private TooltipActionContentSo actionContentSo;
+
+        [Header("Content Overrides")]
+        [Tooltip("Use a custom icon (below) instead of the per-scheme icon from the Action Content / legacy glyph SOs. The same sprite is shown for every control scheme.")]
+        [SerializeField] private bool useCustomIcon = false;
+        [Tooltip("Custom icon shown when Use Custom Icon is on. Ignored otherwise.")]
+        [SerializeField] private Sprite customIcon;
+        [Tooltip("Show the tooltip's text. When off, the expanded tooltip shows only the icon (an icon-only pill).")]
+        [SerializeField] private bool showText = true;
+        [Tooltip("Give this tooltip its own colours instead of the shared pooled-prefab defaults. Off = every tooltip uses the prefab's colours.")]
+        [SerializeField] private bool overrideColor = false;
+        [Tooltip("Background (pill/disc) colour when Override Color is on.")]
+        [SerializeField] private Color tooltipColor = new Color(1f, 0.6588f, 0f, 1f);
+        [Tooltip("Tint applied to BOTH the text and the icon when Override Color is on (white = untinted).")]
+        [SerializeField] private Color tooltipContentColor = Color.white;
+
         [Tooltip("The object the player must look at for this tooltip to maximize.")]
         [Validation("Object To Be Viewed is required — without it the gaze test has no target and the tooltip can never maximize.")]
         [SerializeField] private GameObject objectToBeViewed;
@@ -72,6 +87,7 @@ namespace jeanf.tooltip
         {
             get
             {
+                if (!showText) return ""; // text hidden -> icon-only pill (width falls back to padding + iconWidth)
                 if (actionContentSo != null)
                 {
                     string text = actionContentSo.GetText(_currentControlScheme);
@@ -205,6 +221,12 @@ namespace jeanf.tooltip
 
         // Exposed for the editor preview (visualise the pooled tooltip at any candidate position).
         public TooltipActionContentSo ActionContentSo => actionContentSo;
+        public bool UseCustomIcon => useCustomIcon;
+        public Sprite CustomIconSprite => customIcon;
+        public bool IsTextShown => showText;
+        public bool OverrideColor => overrideColor;
+        public Color TooltipColor => tooltipColor;
+        public Color TooltipContentColor => tooltipContentColor;
         public bool IconOnRightDefault => iconOnRight;
         public BillboardMode BillboardModeDefault => billboardMode;
 
@@ -1044,6 +1066,9 @@ namespace jeanf.tooltip
 
         private Sprite EffectiveIcon(BroadcastControlsStatus.ControlScheme scheme)
         {
+            // Custom-icon override wins over every per-scheme source when enabled and assigned.
+            if (useCustomIcon && customIcon != null) return customIcon;
+
             if (actionContentSo != null)
             {
                 Sprite icon = actionContentSo.GetIcon(scheme);
@@ -1098,6 +1123,7 @@ namespace jeanf.tooltip
             if (_pooledShow != PooledShowState.Expanded)
             {
                 PushBillboardToView();
+                PushColorToView();
                 _view.SetClickHandler(_pooledClickHandler);
                 _iconSprite = EffectiveIcon(_currentControlScheme);
                 _view.ShowExpanded(EffectiveDescription, _iconSprite, EffectiveIconSide());
@@ -1143,6 +1169,7 @@ namespace jeanf.tooltip
             if (_pooledShow != PooledShowState.Minimized)
             {
                 PushBillboardToView();
+                PushColorToView();
                 _view.SetClickHandler(_pooledClickHandler);
                 _view.ShowMinimized();
                 if (newlyAcquired) _view.SetPosition(GetVisualPosition());
@@ -1229,6 +1256,15 @@ namespace jeanf.tooltip
             if (_view == null) return;
             _view.SetBillboardOverride(BillboardOverrideForPooled());
             _view.SetBillboardConstraints(EffectiveBillboardConstraints(), BillboardRestRotation());
+        }
+
+        // Push this tooltip's colour override to the pooled view (null = keep the shared prefab colours). Called
+        // at each show transition so a recycled view shows THIS tooltip's colours, not the previous owner's.
+        private void PushColorToView()
+        {
+            if (_view == null) return;
+            if (overrideColor) _view.SetColorOverride(tooltipColor, tooltipContentColor);
+            else _view.SetColorOverride(null, null);
         }
 
 #if UNITY_EDITOR

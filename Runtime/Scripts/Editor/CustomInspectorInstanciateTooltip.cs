@@ -143,6 +143,20 @@ public class CustomInspectorInstanciateTooltip : Editor
         Prop("objectToBeViewed");
         Prop("currentZone");
         Prop("actionContentSo");
+
+        // Content overrides — custom icon (shown only when enabled) and the text on/off toggle.
+        Prop("useCustomIcon");
+        var useCustom = serializedObject.FindProperty("useCustomIcon");
+        if (useCustom != null && useCustom.boolValue) Prop("customIcon");
+        Prop("showText");
+        Prop("overrideColor");
+        var overrideCol = serializedObject.FindProperty("overrideColor");
+        if (overrideCol != null && overrideCol.boolValue)
+        {
+            Prop("tooltipColor");
+            Prop("tooltipContentColor");
+        }
+
         Prop("interactableTooltipSettingsSo");
         EditorGUILayout.Space();
         Prop("onClick");
@@ -1261,6 +1275,16 @@ public class CustomInspectorInstanciateTooltip : Editor
         SetObject(so, "previewContentSo", controller.ActionContentSo);
         SetEnum(so, "previewMode", (int)_previewMode);
         so.ApplyModifiedProperties();
+
+        // Mirror the controller's content overrides (custom icon / hide text) into the preview.
+        view.SetPreviewContentOverride(
+            controller.UseCustomIcon ? controller.CustomIconSprite : null,
+            !controller.IsTextShown);
+
+        // Mirror the controller's colour override into the preview (null = keep the prefab colours).
+        view.SetColorOverride(
+            controller.OverrideColor ? controller.TooltipColor : (Color?)null,
+            controller.OverrideColor ? controller.TooltipContentColor : (Color?)null);
 
         view.SetEditorBillboard(GetPreviewBillboard(controller));
         // Push the live per-axis constraints (this position's override if any) + rest so clamped previews match
