@@ -877,6 +877,17 @@ namespace jeanf.tooltip
                 ? BroadcastControlsStatus.ControlScheme.XR
                 : BroadcastControlsStatus.ControlScheme.KeyboardMouse);
 
+        /// <summary>
+        /// Swap the per-scheme content at runtime (e.g. a seat's tooltip switching between its
+        /// "sit" and "stand" hints) and refresh whatever is currently showing.
+        /// </summary>
+        public void SetActionContent(TooltipActionContentSo content)
+        {
+            if (actionContentSo == content) return;
+            actionContentSo = content;
+            RefreshForScheme(_currentControlScheme);
+        }
+
         // Re-resolve icon + text for the active control scheme and push them to whatever is showing.
         private void RefreshForScheme(BroadcastControlsStatus.ControlScheme scheme)
         {
