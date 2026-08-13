@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace jeanf.tooltip
 {
+    [Obsolete("NavigationTooltip now renders markers via GPU instancing (NavigationPathRenderer); this pool is unused. Removed in 4.0.0.")]
     public class NavigationObjectPool : MonoBehaviour
     {
         [SerializeField] private GameObject prefab;

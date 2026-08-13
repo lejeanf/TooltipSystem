@@ -135,6 +135,20 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 
 ---
 
+## Navigation path (3.2.0)
+
+`NavigationTooltip` draws a guidance path from the player to a target over the navmesh:
+
+- **Path modes** (inspector toggle list + `PathMode` API): **Shortest** (raw NavMesh path) or **Orthogonal** (default — 90° legs snapped to world X/Z, re-centered through doorways/corridors, falling back per-segment on diagonal geometry).
+- **Rounded corners**: `Corner Radius` slider (default max, 1.5 m); every arc is validated with `NavMesh.Raycast` and shrunk per-corner before it would clip a wall.
+- **Path styles** (toggle list + `PathStyle` API): **Line**, **Dots**, or **Arrows** (default) — dots/arrows are SDF shapes drawn by `NavigationMarker_URP/HDRP` in a single `Graphics.RenderMeshInstanced` call (no canvas, no pooled GameObjects, zero per-frame GC).
+- **Pulse**: a brightness wave travels toward the target and fades back over the trail length (all GPU, `_Time`-driven); Single or Train mode, plus base/pulse colors, marker size/spacing and chevron weight.
+- **Transitions**: show/hide fades; markers behind the player fade down instead of popping; on arrival the target ring pops, the path wipes start→target, then the ring fades out.
+- Setup: `LineRenderer` on the same GameObject and the `NavigationMarker_*` material for your pipeline assigned as **Marker Material**. Destination arrives via `NavigationDestinationSender.OnSendDestination` as before.
+- ⚠ Deprecated: `NavigationObjectPool`, `Dot.prefab` sprite trail and `NavigationTooltipType` (`SpriteLine` migrates to `Dots` automatically); removal planned for 4.0.0.
+
+---
+
 ## What's new in 3.0.0
 
 - ⚠ **Breaking:** the click event is now an **On Click UnityEvent** on the controller (plus a `Clicked` C# event) instead of a `StringEventChannelSO` + string message. Re-wire any click listeners in the inspector. `TooltipClickRelay` changed the same way.
