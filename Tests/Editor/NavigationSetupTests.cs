@@ -243,8 +243,47 @@ namespace jeanf.tooltip.tests
 
             var result = Check("Teleport: area colliders");
             Assert.That(result.Message, Does.Contain("TestArea_TriggerOnly"),
-                "A trigger-only teleport area must be flagged — the teleport ray's Raycast Trigger Interaction " +
-                "defaults to Ignore, so it passes straight through.");
+                "A trigger-only teleport area must be flagged — XRI discards triggers when it auto-collects colliders, " +
+                "and the teleport ray's Raycast Trigger Interaction defaults to Ignore anyway.");
+        }
+
+        // The shipped Teleport Area prefab puts its BoxCollider on a CHILD and lets XRI auto-collect
+        // it (XRBaseInteractable.Awake uses GetComponentsInChildren). Checking only the area's own
+        // GameObject condemned every correctly-built teleport surface in the project.
+        [Test]
+        public void TeleportColliderCheck_AcceptsAColliderOnAChild()
+        {
+            var area = SpawnTeleportArea("TestArea_ChildCollider");
+            var child = new GameObject("Plate");
+            child.transform.SetParent(area.transform, false);
+            child.AddComponent<BoxCollider>();
+
+            Assert.That(NavigationSetupValidation.TeleportColliders(area), Is.Not.Empty,
+                "A collider on a child is what XRI itself collects — it must count as the area's collider.");
+            Assert.That(Check("Teleport: area colliders").Message, Does.Not.Contain("TestArea_ChildCollider"),
+                "A teleport area whose collider sits on a child is correctly built and must not be flagged.");
+        }
+
+        // A Colliders entry that resolves to null (deleted child, or a child removed on a prefab
+        // instance) is a different problem from "nobody gave it a collider", and the message has to
+        // say so — otherwise the author looks for a collider that the list claims is already there.
+        [Test]
+        public void TeleportColliderCheck_DistinguishesABrokenColliderReference()
+        {
+            var area = SpawnTeleportArea("TestArea_BrokenRef");
+            var serialized = new SerializedObject(area);
+            var colliders = serialized.FindProperty("m_Colliders");
+            Assume.That(colliders, Is.Not.Null, "XRBaseInteractable no longer serializes m_Colliders — update the validator.");
+            colliders.arraySize = 1;
+            colliders.GetArrayElementAtIndex(0).objectReferenceValue = null;
+            serialized.ApplyModifiedProperties();
+
+            Assert.That(NavigationSetupValidation.HasBrokenColliderReference(area), Is.True);
+
+            var result = Check("Teleport: area colliders");
+            Assert.That(result.Severity, Is.EqualTo(NavigationSetupValidation.Severity.Fail));
+            Assert.That(result.Message, Does.Contain("TestArea_BrokenRef").And.Contain("NO LONGER EXISTS"),
+                "The message must name the broken reference as such, not as a plain missing collider.");
         }
 
         [Test]

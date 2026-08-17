@@ -102,7 +102,7 @@ namespace jeanf.tooltip
                 CheckDestinationSenders(),
                 CheckNavMeshData(),
                 CheckSurfacesBaked(surfaces),
-                CheckCollectionScope(surfaces),
+                CheckCollectionScope(surfaces, subScenePaths.Count > 0),
                 CheckAgentTypes(surfaces),
                 CheckPlayerStart(),
                 CheckTeleportAreasPresent(teleportAreas),
@@ -233,7 +233,7 @@ namespace jeanf.tooltip
         // scene bake the floor/wall meshes of the open SubScenes. The flip side: with Collect
         // Objects = All, every surface bakes EVERY loaded floor, so loading two of them at runtime
         // stacks two copies of the building's navmesh on top of each other.
-        private static CheckResult CheckCollectionScope(NavMeshSurface[] surfaces)
+        private static CheckResult CheckCollectionScope(NavMeshSurface[] surfaces, bool hasSubScenes)
         {
             const string check = "NavMesh: collection scope";
             if (surfaces.Length == 0)
@@ -253,11 +253,17 @@ namespace jeanf.tooltip
                     $"The single surface '{surfaces[0].name}' collects everything in the stage — fine while it is the only one.");
 
             return new CheckResult(check, Severity.Warning,
-                $"{collectAll.Count} of {surfaces.Length} surface(s) use Collect Objects = All: {Names(collectAll)}. Each of them " +
-                "bakes every scene open in the stage, so each floor's asset contains the whole building and loading two floors " +
-                "stacks overlapping navmeshes (paths then jump between duplicate surfaces).",
-                "Set Collect Objects = Volume on each surface and size the box to that floor, then re-bake with the floor's " +
-                "SubScenes open (Tools/TooltipSystem/Setup Navigation Floor does both).");
+                $"{collectAll.Count} of {surfaces.Length} surface(s) use Collect Objects = All: {Names(collectAll)}. 'All' means " +
+                "\"bake everything that is open in the editor right now\", so all of them bake the SAME geometry — at runtime you " +
+                $"get {collectAll.Count} copies of the same walkable area stacked on top of each other (wasted memory, and a path " +
+                "query can land on any of the duplicates).",
+                "Pick one of two shapes. (a) One surface for the whole area: keep a single Collect Objects = All surface and delete " +
+                "the extra ones — simplest when everything loads together. (b) One surface per area: set Collect Objects = Volume on " +
+                "each and size its box to just its own part of the level, so each asset holds only that piece and streams with it — " +
+                "select the objects and run Tools/TooltipSystem/Setup Navigation Floor to get this. Either way, re-bake afterwards" +
+                (hasSubScenes
+                    ? ", with the SubScenes that hold the geometry OPEN — a closed SubScene contributes nothing to the bake."
+                    : "."));
         }
 
         // NavigationTooltip calls NavMesh.CalculatePath, which always uses the DEFAULT agent type.
@@ -349,28 +355,56 @@ namespace jeanf.tooltip
             if (areas.Length == 0)
                 return new CheckResult(check, Severity.Warning, "No teleport surfaces — collider checks skipped.");
 
+            var brokenReference = new List<string>();
             var noCollider = new List<string>();
             var triggerOnly = new List<string>();
             foreach (var area in areas)
             {
                 var colliders = TeleportColliders(area);
-                if (colliders.Count == 0) { noCollider.Add($"'{area.name}'"); continue; }
+                if (colliders.Count == 0)
+                {
+                    // A list entry that resolves to null is a different (and much more confusing)
+                    // problem than an area nobody ever gave a collider — say which one it is.
+                    if (HasBrokenColliderReference(area)) brokenReference.Add($"'{area.name}'");
+                    else noCollider.Add($"'{area.name}'");
+                    continue;
+                }
                 if (colliders.All(c => c.isTrigger)) triggerOnly.Add($"'{area.name}'");
             }
 
-            if (noCollider.Count == 0 && triggerOnly.Count == 0)
+            if (brokenReference.Count == 0 && noCollider.Count == 0 && triggerOnly.Count == 0)
                 return new CheckResult(check, Severity.Pass, $"All {areas.Length} teleport surface(s) expose a solid collider.");
 
             var message = new StringBuilder();
+            var hint = new StringBuilder();
+            if (brokenReference.Count > 0)
+            {
+                message.Append($"{brokenReference.Count} teleport surface(s) list a collider that NO LONGER EXISTS: {Names(brokenReference)} — " +
+                               "the Colliders slot shows 'Missing' or 'None'. Usually the child object holding the collider was deleted, " +
+                               "or removed on this prefab instance. The ray has nothing to hit. ");
+                hint.Append($"Select {Names(brokenReference, 3)} in the Hierarchy. If it is a prefab instance, the quickest fix is the " +
+                            "Overrides dropdown > Revert All, which brings the deleted collider child back. Otherwise add a child (or a " +
+                            "collider on the object itself) and drag it into the TeleportationArea's Colliders list. ");
+            }
             if (noCollider.Count > 0)
-                message.Append($"{noCollider.Count} teleport surface(s) have no collider at all — the ray cannot hit them: {Names(noCollider)}. ");
+            {
+                message.Append($"{noCollider.Count} teleport surface(s) have no collider anywhere on them or their children — " +
+                               $"the ray cannot hit them: {Names(noCollider)}. ");
+                hint.Append("Add a non-trigger collider (a thin BoxCollider matching the walkable surface, or the floor's MeshCollider) " +
+                            "on the area or a child of it. ");
+            }
             if (triggerOnly.Count > 0)
+            {
                 message.Append($"{triggerOnly.Count} teleport surface(s) only have TRIGGER colliders: {Names(triggerOnly)} — the teleport ray's " +
                                "Raycast Trigger Interaction defaults to Ignore, so it passes straight through them. ");
+                hint.Append("Untick 'Is Trigger' on those colliders, or set the teleport XRRayInteractor's Raycast Trigger Interaction " +
+                            "to Collide. ");
+            }
 
-            return new CheckResult(check, noCollider.Count > 0 ? Severity.Fail : Severity.Warning, message.ToString().TrimEnd(),
-                "Give the teleport plate a non-trigger collider (a thin BoxCollider or the floor MeshCollider) and list it in the " +
-                "TeleportationArea's Colliders, or set the teleport XRRayInteractor's Raycast Trigger Interaction to Collide.");
+            var severity = triggerOnly.Count > 0 && brokenReference.Count == 0 && noCollider.Count == 0
+                ? Severity.Warning
+                : Severity.Fail;
+            return new CheckResult(check, severity, message.ToString().TrimEnd(), hint.ToString().TrimEnd());
         }
 
         private static CheckResult CheckTeleportInteractionLayers(Component[] areas)
@@ -533,21 +567,46 @@ namespace jeanf.tooltip
         internal static Type XriTeleportType() =>
             FindType("UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationArea");
 
-        /// <summary>The colliders the interactable actually uses: its explicit list, else the ones on its GameObject.</summary>
-        internal static List<Collider> TeleportColliders(Component area)
+        /// <summary>
+        /// The colliders XRI will actually use, mirroring XRBaseInteractable.Awake: the serialized
+        /// Colliders list whenever it has entries, otherwise the colliders found in CHILDREN with
+        /// triggers discarded. (Checking only the area's own GameObject would falsely condemn the
+        /// standard Teleport Area prefab, whose collider sits on a child.)
+        /// </summary>
+        public static List<Collider> TeleportColliders(Component area)
+        {
+            var listed = ListedColliders(area, out _, out int entryCount);
+            if (entryCount > 0) return listed; // XRI does not fall back while the list is non-empty
+
+            var children = new List<Collider>();
+            area.GetComponentsInChildren(children);
+            children.RemoveAll(c => c.isTrigger); // XRI drops triggers from the automatic fallback
+            return children;
+        }
+
+        /// <summary>True when the Colliders list has an entry whose collider no longer exists.</summary>
+        public static bool HasBrokenColliderReference(Component area)
+        {
+            ListedColliders(area, out bool broken, out _);
+            return broken;
+        }
+
+        private static List<Collider> ListedColliders(Component area, out bool broken, out int entryCount)
         {
             var listed = new List<Collider>();
+            broken = false;
+            entryCount = 0;
+
             var property = new SerializedObject(area).FindProperty("m_Colliders");
-            if (property != null && property.isArray)
+            if (property == null || !property.isArray) return listed;
+
+            entryCount = property.arraySize;
+            for (int i = 0; i < entryCount; i++)
             {
-                for (int i = 0; i < property.arraySize; i++)
-                {
-                    if (property.GetArrayElementAtIndex(i).objectReferenceValue is Collider collider)
-                        listed.Add(collider);
-                }
+                if (property.GetArrayElementAtIndex(i).objectReferenceValue is Collider collider) listed.Add(collider);
+                else broken = true;
             }
-            if (listed.Count > 0) return listed;
-            return area.GetComponents<Collider>().ToList();
+            return listed;
         }
 
         /// <summary>Scene paths that are authored as ECS SubScenes among the loaded scenes.</summary>
