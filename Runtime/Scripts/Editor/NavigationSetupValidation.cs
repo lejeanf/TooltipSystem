@@ -29,7 +29,7 @@ namespace jeanf.tooltip
             ValidateScene(false);
         }
 
-        [MenuItem("Tools/Tooltip/Validate Setup")]
+        [MenuItem("Tools/TooltipSystem/Validate Setup")]
         private static void ValidateFromMenu()
         {
             int problems = ValidateScene(true);
