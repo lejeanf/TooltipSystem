@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "jeanf.tooltip",
+        "Unity.AI.Navigation",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
