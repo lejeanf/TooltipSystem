@@ -47,8 +47,9 @@ namespace jeanf.tooltip
         [Tooltip("The object the player must look at for this tooltip to maximize.")]
         [Validation("Object To Be Viewed is required — without it the gaze test has no target and the tooltip can never maximize.")]
         [SerializeField] private GameObject objectToBeViewed;
-        [Tooltip("The tooltip only shows while the player is in this zone.")]
-        [Validation("A zone is required — the tooltip is hidden unless the player is inside it.")]
+        [Tooltip("The tooltip only shows while the player is in this zone. Leave empty to auto-detect it at " +
+                 "runtime from the zone volume containing this tooltip (SceneManagement's ObjectZoneTrackingBridge, " +
+                 "the same volume test the player uses). Assign one only to override the detection.")]
         public Zone currentZone;
 
         [Tooltip("How close the player's viewpoint (camera / head) must be for this tooltip to appear at all. " +
@@ -157,6 +158,7 @@ namespace jeanf.tooltip
         public static WarnHideTooltipDelegate WarnHideTooltip;
 
         //States
+        private bool _zoneAutoDetect; // registered with ObjectZoneTrackingBridge (no authored zone)
         private bool isPlayerInZone = false;
         private bool _isPlayerNear;
         private bool _isTooltipDisplayed;
@@ -831,12 +833,25 @@ namespace jeanf.tooltip
             // is already inside its zone (the common case), it would never hear the broadcast and stay
             // hidden — so seed from the zone the player is currently in.
             SeedZoneFromWorld();
+
+            // No zone assigned -> auto-detect it from the zone volumes (ObjectZoneTrackingBridge runs the
+            // same VolumeMath containment test as the player). Registration is pre-queued if the bridge
+            // isn't alive yet and fires once the volume entities stream in, so SubScene-spawned tooltips
+            // resolve as soon as their floor loads. AssignZone re-seeds membership on every (re)assignment.
+            _zoneAutoDetect = currentZone == null;
+            if (_zoneAutoDetect) ObjectZoneTrackingBridge.Register(transform, AssignZone);
         }
         
         private void UnSubscribe()
         {
             StopActiveTimer();
-            
+
+            if (_zoneAutoDetect)
+            {
+                ObjectZoneTrackingBridge.Unregister(transform);
+                _zoneAutoDetect = false;
+            }
+
             TooltipControlSchemeManager.UpdateShowTooltip -= UpdateIsShowingTooltip;
             TooltipControlSchemeManager.UpdateTooltipControlSchemeWithHmd -= UpdateControlSchemeWithHmd;
             TooltipControlSchemeManager.UpdateTooltipControlScheme -= UpdateControlScheme;
@@ -920,10 +935,10 @@ namespace jeanf.tooltip
         }
 
         /// <summary>
-        /// Assigns the gating zone at runtime — for tooltips spawned from a baked SubScene
-        /// (see TooltipDataBridge), where the Zone asset arrives via the entity data after
-        /// OnEnable has already run — and re-syncs membership, since PublishCurrentZoneId
-        /// only fires on a zone CHANGE and the player may already be inside.
+        /// Assigns the gating zone at runtime — the auto-detection callback (ObjectZoneTrackingBridge)
+        /// and TooltipDataBridge's SubScene zone override both land here, after OnEnable has already
+        /// run — and re-syncs membership, since PublishCurrentZoneId only fires on a zone CHANGE and
+        /// the player may already be inside.
         /// </summary>
         public void AssignZone(Zone zone)
         {

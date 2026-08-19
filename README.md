@@ -135,7 +135,7 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 
 ---
 
-## Tooltips in ECS SubScenes (3.4.0)
+## Tooltips in ECS SubScenes (3.4.0, zone auto-detection + preview in 3.5.0)
 
 Tooltips are pure GameObject constructs, so a tooltip authored inside a baked SubScene would be
 stripped at runtime. The `jeanf.tooltip.entities` assembly bridges the gap with the same
@@ -144,16 +144,20 @@ baker + main-world-bridge pattern as the Seat and Door systems:
 1. Build your tooltip as a **self-contained prefab**: controller, gaze target (`Object To Be Viewed`)
    and any candidate positions all inside the prefab — no scene references.
 2. In the SubScene, add a **`TooltipAuthoring`** on an (empty) GameObject where the tooltip should
-   appear, assign the prefab and the gating **Zone** asset (Zones are ScriptableObjects, so a
-   SubScene can reference them safely). Position/rotation/scale of the authoring object are baked.
+   appear and assign the prefab. Position/rotation/scale of the authoring object are baked. While
+   it is selected, the Scene view shows a **live preview** — the prefab contents plus the expanded
+   pooled pill with the prefab's content — and the inspector reports the **auto-detected zone**.
 3. In the main scene, add a **`TooltipDataBridge`** on a persistent GameObject (next to the
    `TooltipPoolManager` is a good spot). It instantiates the prefab in the main world while the
-   SubScene section is streamed in, wires the Zone into the spawned controller(s), and destroys
-   the instance when the section streams out.
+   SubScene section is streamed in and destroys the instance when it streams out.
 
-The authored Zone fills every `InteractableTooltipController` in the instance that has no zone of
-its own; prefabs without a controller (e.g. other tooltip families) spawn as-is. In classic
-additive scenes nothing changes — keep placing tooltips directly.
+**Zones are auto-detected**: a controller with no zone assigned registers with SceneManagement's
+`ObjectZoneTrackingBridge` and receives the zone of the volume containing it — the same volume
+test the player uses. This works for scene-placed tooltips too, so the controller's zone field is
+now optional everywhere. The authoring's **Zone Override** (and the controller's own zone field)
+remain for tooltips outside every volume or gating on a different zone. Prefabs without a
+controller (other tooltip families) spawn as-is. In classic additive scenes nothing changes —
+keep placing tooltips directly.
 
 ---
 

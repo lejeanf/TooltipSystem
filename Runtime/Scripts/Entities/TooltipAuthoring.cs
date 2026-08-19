@@ -9,7 +9,7 @@ namespace jeanf.tooltip
     /// Baked placement record for a tooltip authored inside an ECS SubScene. Tooltips are pure
     /// GameObject constructs (pooled canvas-free views, zone/gaze gating, XR click) with no
     /// entity-world counterpart, so the SubScene only carries WHICH prefab to spawn, WHERE
-    /// (the entity's LocalToWorld) and the gating <see cref="Zone"/>. <see cref="TooltipDataBridge"/>
+    /// (the entity's LocalToWorld) and an optional zone override. <see cref="TooltipDataBridge"/>
     /// keeps an instance of the prefab alive in the main world while this entity exists.
     /// </summary>
     public struct TooltipSpawnData : IComponentData
@@ -17,7 +17,8 @@ namespace jeanf.tooltip
         /// <summary>The fully configured tooltip prefab to instantiate. A <see cref="UnityObjectRef{T}"/>
         /// survives SubScene serialization, so no companion object is needed in the main scene.</summary>
         public UnityObjectRef<GameObject> Prefab;
-        /// <summary>Zone gating the tooltip; assigned to the spawned controller(s) whose zone is unset.</summary>
+        /// <summary>Optional zone override; default (null) = the spawned controller auto-detects its
+        /// zone from the zone volumes (ObjectZoneTrackingBridge).</summary>
         public UnityObjectRef<Zone> Zone;
     }
 
@@ -27,6 +28,8 @@ namespace jeanf.tooltip
     /// the gaze target and any candidate positions — everything prefab-local). At runtime
     /// <see cref="TooltipDataBridge"/> instantiates the prefab in the MAIN world at this object's
     /// baked pose whenever the SubScene section streams in, and destroys it when it streams out.
+    /// The gating zone is auto-detected from the zone volumes at runtime; while editing, the
+    /// inspector shows the detected zone and a live scene preview of the tooltip.
     /// In a classic additive scene don't use this — drop the prefab in the scene directly.
     /// </summary>
     public class TooltipAuthoring : MonoBehaviour, IValidatable
@@ -36,26 +39,54 @@ namespace jeanf.tooltip
                  "controller and its gaze target / candidate positions — no scene references.")]
         public GameObject tooltipPrefab;
 
-        [Tooltip("Zone the tooltip only shows in. Applied to every InteractableTooltipController in the spawned " +
-                 "instance that has no zone of its own. A Zone is an asset, so a SubScene can reference it safely. " +
-                 "Leave empty only if the prefab already carries its zone(s).")]
+        [Tooltip("Optional override. Leave empty (recommended): the spawned tooltip auto-detects its zone " +
+                 "from the zone volume containing this position, exactly like player/object zone tracking. " +
+                 "Assign a Zone asset only when the tooltip sits outside every volume or must gate on a " +
+                 "different zone than the one it is in.")]
         public Zone zone;
 
         /// <summary>
-        /// A prefab whose controller has no zone from either side (its own inspector or this authoring)
-        /// can never show — flag that at edit time instead of debugging an invisible tooltip.
-        /// A null prefab returns true here because the [Validation] field above already flags it.
+        /// Valid when the runtime can resolve a zone: an explicit override, a prefab whose controller
+        /// carries its own zone, a prefab without a controller (other tooltip families), or a position
+        /// inside a zone volume in the open scenes. A null prefab returns true here because the
+        /// [Validation] field above already flags it. Volumes living in a scene that is not currently
+        /// open can't be seen — the runtime detection still finds them, so this stays a soft warning.
         /// </summary>
         public bool IsValid
         {
             get
             {
-                if (tooltipPrefab == null) return true;
+#if UNITY_EDITOR
+                if (tooltipPrefab == null || zone != null) return true;
                 var controller = tooltipPrefab.GetComponentInChildren<InteractableTooltipController>(true);
-                if (controller == null) return true; // other tooltip types (e.g. navigation) don't use zones
-                return controller.currentZone != null || zone != null;
+                if (controller == null || controller.currentZone != null) return true;
+                return DetectZoneAt(transform.position) != null;
+#else
+                return true;
+#endif
             }
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor mirror of the runtime volume test: the zone of the first <see cref="VolumeAuthoring"/>
+        /// in the open scenes whose box contains the point, using the same <see cref="VolumeMath"/>
+        /// convention (orientation from the transform, extents from localScale, matrix scale ignored).
+        /// </summary>
+        public static Zone DetectZoneAt(Vector3 worldPosition)
+        {
+            var volumes = FindObjectsByType<VolumeAuthoring>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var volume in volumes)
+            {
+                if (volume.zone == null) continue;
+                var t = volume.transform;
+                var localToWorld = Unity.Mathematics.float4x4.TRS(t.position, t.rotation, new Unity.Mathematics.float3(1f));
+                if (VolumeMath.ContainsPoint(localToWorld, t.localScale, worldPosition))
+                    return volume.zone;
+            }
+            return null;
+        }
+#endif
 
         private void OnDrawGizmos()
         {

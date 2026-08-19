@@ -1232,8 +1232,8 @@ public class CustomInspectorInstanciateTooltip : Editor
 
     // Preview doesn't need a TooltipPoolManager in the scene: prefer one if present (uses the exact prefab
     // the game will pool), else fall back to the PooledTooltipView prefab in the project so authoring works
-    // in any scene.
-    private static PooledTooltipView ResolveViewPrefab()
+    // in any scene. Public: TooltipAuthoringEditor builds its SubScene preview through the same resolution.
+    public static PooledTooltipView ResolveViewPrefab()
     {
         var pool = Object.FindFirstObjectByType<TooltipPoolManager>();
         if (pool != null && pool.ViewPrefab != null)

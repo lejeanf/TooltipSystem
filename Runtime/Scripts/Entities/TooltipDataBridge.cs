@@ -140,9 +140,10 @@ namespace jeanf.tooltip
             var lossyScale = new Vector3(math.length(m.c0.xyz), math.length(m.c1.xyz), math.length(m.c2.xyz));
             t.localScale = Vector3.Scale(t.localScale, lossyScale);
 
-            // Zone wiring: the Zone asset can't be referenced by the prefab per-placement, so the
-            // authored zone fills every controller that doesn't carry its own. AssignZone re-seeds
-            // membership, since OnEnable already ran during Instantiate with the zone still unset.
+            // Zone wiring: normally none is authored and each spawned controller auto-detects its
+            // zone from the zone volumes (ObjectZoneTrackingBridge). An authored override fills every
+            // controller that doesn't carry its own instead. AssignZone re-seeds membership, since
+            // OnEnable already ran during Instantiate with the zone still unset.
             if (zone != null)
             {
                 var controllers = instance.GetComponentsInChildren<InteractableTooltipController>(true);
