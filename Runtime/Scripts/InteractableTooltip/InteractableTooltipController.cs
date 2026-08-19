@@ -919,6 +919,18 @@ namespace jeanf.tooltip
             if (playerZone != null) CheckIfPlayerInZone(playerZone.id);
         }
 
+        /// <summary>
+        /// Assigns the gating zone at runtime — for tooltips spawned from a baked SubScene
+        /// (see TooltipDataBridge), where the Zone asset arrives via the entity data after
+        /// OnEnable has already run — and re-syncs membership, since PublishCurrentZoneId
+        /// only fires on a zone CHANGE and the player may already be inside.
+        /// </summary>
+        public void AssignZone(Zone zone)
+        {
+            currentZone = zone;
+            SeedZoneFromWorld();
+        }
+
         // Under additive loading a tooltip can come online AFTER the world's initial PublishCurrentZoneId has
         // already fired, so it never hears which zone the player is in and stays hidden. Re-seed once the world
         // signals it's initialized. Combined with the seed in Subscribe, this covers both load orders.

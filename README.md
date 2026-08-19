@@ -135,6 +135,28 @@ The package also contains other tooltip families (Help, Navigation, Far/legacy c
 
 ---
 
+## Tooltips in ECS SubScenes (3.4.0)
+
+Tooltips are pure GameObject constructs, so a tooltip authored inside a baked SubScene would be
+stripped at runtime. The `jeanf.tooltip.entities` assembly bridges the gap with the same
+baker + main-world-bridge pattern as the Seat and Door systems:
+
+1. Build your tooltip as a **self-contained prefab**: controller, gaze target (`Object To Be Viewed`)
+   and any candidate positions all inside the prefab — no scene references.
+2. In the SubScene, add a **`TooltipAuthoring`** on an (empty) GameObject where the tooltip should
+   appear, assign the prefab and the gating **Zone** asset (Zones are ScriptableObjects, so a
+   SubScene can reference them safely). Position/rotation/scale of the authoring object are baked.
+3. In the main scene, add a **`TooltipDataBridge`** on a persistent GameObject (next to the
+   `TooltipPoolManager` is a good spot). It instantiates the prefab in the main world while the
+   SubScene section is streamed in, wires the Zone into the spawned controller(s), and destroys
+   the instance when the section streams out.
+
+The authored Zone fills every `InteractableTooltipController` in the instance that has no zone of
+its own; prefabs without a controller (e.g. other tooltip families) spawn as-is. In classic
+additive scenes nothing changes — keep placing tooltips directly.
+
+---
+
 ## Navigation path (3.2.0)
 
 `NavigationTooltip` draws a guidance path from the player to a target over the navmesh:

@@ -1,0 +1,24 @@
+{
+    "name": "jeanf.tooltip.entities",
+    "rootNamespace": "jeanf.tooltip",
+    "references": [
+        "jeanf.tooltip",
+        "jeanf.scenemanagement",
+        "jeanf.propertyDrawer",
+        "Unity.Entities",
+        "Unity.Transforms",
+        "Unity.Collections",
+        "Unity.Burst",
+        "Unity.Mathematics",
+        "Unity.Entities.Hybrid"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
