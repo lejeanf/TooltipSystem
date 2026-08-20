@@ -752,6 +752,13 @@ namespace jeanf.tooltip
             transform.position = worldPosition;
         }
 
+        // The preview may only touch SCENE instances. OnValidate also fires on the prefab ASSET itself
+        // (import / domain reload / selecting it) and on prefab-stage instances; ticking those writes the
+        // billboarded rotation + morph transforms into the .prefab file on the next save — silent VCS noise.
+        private bool EditorPreviewAllowed =>
+            !UnityEditor.EditorUtility.IsPersistent(this)
+            && UnityEditor.SceneManagement.PrefabStageUtility.GetPrefabStage(gameObject) == null;
+
         private void OnValidate()
         {
             if (Application.isPlaying) return;
@@ -762,7 +769,7 @@ namespace jeanf.tooltip
 
         private void BeginEditorPreview()
         {
-            if (this == null || Application.isPlaying) return;
+            if (this == null || Application.isPlaying || !EditorPreviewAllowed) return;
 
             if (!_editorPreviewInitialized)
             {
@@ -828,7 +835,7 @@ namespace jeanf.tooltip
         // the width every tick so editing the text (or any field) updates the pill live.
         private void EditorTick()
         {
-            if (this == null || Application.isPlaying)
+            if (this == null || Application.isPlaying || !EditorPreviewAllowed)
             {
                 StopEditorUpdate();
                 return;
