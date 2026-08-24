@@ -149,8 +149,8 @@ namespace jeanf.tooltip.tests
 
                 Assert.That(paths, Is.Not.Empty, $"{type.Name} exposes no menu item — the tool became unreachable.");
                 foreach (var path in paths)
-                    Assert.That(path, Does.StartWith("Tools/TooltipSystem/"),
-                        $"'{path}' breaks the menu convention (Tools/[PackageName]/[Function]).");
+                    Assert.That(path, Does.StartWith("Tools/Jeanf/TooltipSystem/"),
+                        $"'{path}' breaks the menu convention (Tools/Jeanf/[PackageName]/[Function]).");
             }
         }
 

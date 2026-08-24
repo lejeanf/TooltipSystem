@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 namespace jeanf.tooltip
 {
     /// <summary>
-    /// Tools/TooltipSystem/Validate Setup — checks the whole "show the player where to go, and let
+    /// Tools/Jeanf/TooltipSystem/Validate Setup — checks the whole "show the player where to go, and let
     /// them get there" chain in the loaded scenes, and prints one actionable line per problem: the
     /// NavigationTooltip itself, the navmesh the path is computed on, and the XRI teleportation
     /// areas the VR player lands on.
@@ -27,7 +27,7 @@ namespace jeanf.tooltip
     /// NavMeshData when that scene loads at runtime.
     ///
     /// Also runs automatically before entering Play mode when the scene uses navigation paths.
-    /// Tools/TooltipSystem/Setup Navigation Floor applies the fixes.
+    /// Tools/Jeanf/TooltipSystem/Setup Navigation Floor applies the fixes.
     /// </summary>
     [InitializeOnLoad]
     public static class NavigationSetupValidation
@@ -69,7 +69,7 @@ namespace jeanf.tooltip
             if (results.Any(r => r.Severity != Severity.Pass)) LogResults(results);
         }
 
-        [MenuItem("Tools/TooltipSystem/Validate Setup")]
+        [MenuItem("Tools/Jeanf/TooltipSystem/Validate Setup")]
         private static void ValidateFromMenu()
         {
             var results = RunAllChecks();
@@ -184,7 +184,7 @@ namespace jeanf.tooltip
                 $"{offNavMesh.Count} of {senders.Length} destination sender(s) are further than {NavMeshProbeDistance}m from any " +
                 $"navmesh: {Names(offNavMesh)} — the path to them cannot be computed.",
                 "Move each sender onto the walkable floor, or bake the NavMeshSurface that should cover it " +
-                "(Tools/TooltipSystem/Setup Navigation Floor).");
+                "(Tools/Jeanf/TooltipSystem/Setup Navigation Floor).");
         }
 
         // ---------------------------------------------------------------- navmesh
@@ -198,7 +198,7 @@ namespace jeanf.tooltip
             return new CheckResult(check, Severity.Fail,
                 "No navmesh at all in the loaded scenes — NavMesh.CalculatePath can never return a path, so nothing is ever drawn.",
                 "Open the floor's dependency scene plus the room SubScenes that hold its geometry, then run " +
-                "Tools/TooltipSystem/Setup Navigation Floor on the floor object (it adds and bakes the NavMeshSurface).");
+                "Tools/Jeanf/TooltipSystem/Setup Navigation Floor on the floor object (it adds and bakes the NavMeshSurface).");
         }
 
         private static CheckResult CheckSurfacesBaked(NavMeshSurface[] surfaces)
@@ -224,7 +224,7 @@ namespace jeanf.tooltip
                 message.Append($"{inactive.Count} baked NavMeshSurface(s) are inactive/disabled, so they never AddData(): {Names(inactive)}. ");
 
             return new CheckResult(check, Severity.Fail, message.ToString().TrimEnd(),
-                "Select each surface and press Bake (or run Tools/TooltipSystem/Setup Navigation Floor), and make sure the " +
+                "Select each surface and press Bake (or run Tools/Jeanf/TooltipSystem/Setup Navigation Floor), and make sure the " +
                 "GameObject holding it is active in the scene that loads with that floor.");
         }
 
@@ -260,7 +260,7 @@ namespace jeanf.tooltip
                 "Pick one of two shapes. (a) One surface for the whole area: keep a single Collect Objects = All surface and delete " +
                 "the extra ones — simplest when everything loads together. (b) One surface per area: set Collect Objects = Volume on " +
                 "each and size its box to just its own part of the level, so each asset holds only that piece and streams with it — " +
-                "select the objects and run Tools/TooltipSystem/Setup Navigation Floor to get this. Either way, re-bake afterwards" +
+                "select the objects and run Tools/Jeanf/TooltipSystem/Setup Navigation Floor to get this. Either way, re-bake afterwards" +
                 (hasSubScenes
                     ? ", with the SubScenes that hold the geometry OPEN — a closed SubScene contributes nothing to the bake."
                     : "."));
@@ -335,7 +335,7 @@ namespace jeanf.tooltip
                     "No TeleportationArea/TeleportationAnchor in the loaded scenes — the VR player's teleport ray has nothing to " +
                     "land on, so the navigation path leads somewhere they cannot reach.",
                     "Add a TeleportationArea to the floor plate in each floor's dependency scene " +
-                    "(Tools/TooltipSystem/Setup Navigation Floor adds and wires it).");
+                    "(Tools/Jeanf/TooltipSystem/Setup Navigation Floor adds and wires it).");
 
             var inactive = areas.Where(a => !a.gameObject.activeInHierarchy).Select(a => $"'{a.name}'").ToList();
             if (inactive.Count > 0)
@@ -498,7 +498,7 @@ namespace jeanf.tooltip
                 $"{uncovered.Count} teleport surface(s) have no navmesh above them: {Names(uncovered)} — the VR player can " +
                 "teleport there, but the navigation path can never be drawn to or across them.",
                 "Re-bake the floor's NavMeshSurface with those plates included (check its Collect Objects volume and Include " +
-                "Layers), or run Tools/TooltipSystem/Setup Navigation Floor on the floor object.");
+                "Layers), or run Tools/Jeanf/TooltipSystem/Setup Navigation Floor on the floor object.");
         }
 
         // ---------------------------------------------------------------- SubScenes

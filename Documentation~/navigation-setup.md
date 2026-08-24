@@ -7,8 +7,8 @@ Two menu commands cover the whole thing:
 
 | Command | What it does |
 | --- | --- |
-| `Tools/TooltipSystem/Validate Setup` | Runs 14 checks over the loaded scenes and logs the fix for each problem. Also runs automatically before entering Play mode when the scene uses navigation paths. |
-| `Tools/TooltipSystem/Setup Navigation Floor` | On the selected floor object(s): adds a solid collider, an XRI `TeleportationArea`, and a `NavMeshSurface` bounded to that floor, then bakes and saves the NavMeshData asset. |
+| `Tools/Jeanf/TooltipSystem/Validate Setup` | Runs 14 checks over the loaded scenes and logs the fix for each problem. Also runs automatically before entering Play mode when the scene uses navigation paths. |
+| `Tools/Jeanf/TooltipSystem/Setup Navigation Floor` | On the selected floor object(s): adds a solid collider, an XRI `TeleportationArea`, and a `NavMeshSurface` bounded to that floor, then bakes and saves the NavMeshData asset. |
 
 ## 1. Why the components cannot live in the SubScene
 
@@ -43,7 +43,7 @@ in; unloading it takes it back out. That gives per-floor navmesh streaming for f
    room SubScenes that hold its floor/wall meshes. Closed SubScenes contribute nothing to the bake.
 2. Select the floor object in the dependency scene (a flat "floor plate" object is fine — it does not
    need to be the visible mesh).
-3. Run `Tools/TooltipSystem/Setup Navigation Floor`. It writes:
+3. Run `Tools/Jeanf/TooltipSystem/Setup Navigation Floor`. It writes:
    - a non-trigger `Collider` (existing trigger colliders get `Is Trigger` cleared — the teleport
      ray's *Raycast Trigger Interaction* defaults to `Ignore`, so triggers are invisible to it);
    - a `TeleportationArea` with that collider listed and a non-empty Interaction Layer Mask (copied
@@ -52,7 +52,7 @@ in; unloading it takes it back out. That gives per-floor navmesh streaming for f
      and Agent Type set to the default;
    - the baked `NavMesh-<object>.asset` next to the scene, the same place and naming the Navigation
      window uses.
-4. Run `Tools/TooltipSystem/Validate Setup` and fix anything it reports.
+4. Run `Tools/Jeanf/TooltipSystem/Validate Setup` and fix anything it reports.
 5. Save the dependency scene.
 
 ### Volume, not All

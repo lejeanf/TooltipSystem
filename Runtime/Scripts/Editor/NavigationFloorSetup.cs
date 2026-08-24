@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 namespace jeanf.tooltip
 {
     /// <summary>
-    /// Tools/TooltipSystem/Setup Navigation Floor — turns the selected object(s) into a complete
+    /// Tools/Jeanf/TooltipSystem/Setup Navigation Floor — turns the selected object(s) into a complete
     /// "floor the player can be guided across and teleport onto": a solid collider, an XRI
     /// TeleportationArea, and a NavMeshSurface bounded to that floor, baked on the spot.
     ///
@@ -33,10 +33,10 @@ namespace jeanf.tooltip
         /// <summary>Vertical padding of the bake volume around the floor, in meters (head room for walls/stairs).</summary>
         private const float VolumeHeadRoom = 4f;
 
-        [MenuItem("Tools/TooltipSystem/Setup Navigation Floor", true)]
+        [MenuItem("Tools/Jeanf/TooltipSystem/Setup Navigation Floor", true)]
         private static bool ValidateSetupFloor() => Selection.gameObjects.Length > 0;
 
-        [MenuItem("Tools/TooltipSystem/Setup Navigation Floor")]
+        [MenuItem("Tools/Jeanf/TooltipSystem/Setup Navigation Floor")]
         private static void SetupFloor()
         {
             var targets = Selection.gameObjects;
@@ -65,7 +65,7 @@ namespace jeanf.tooltip
             {
                 AssetDatabase.SaveAssets();
                 report.AppendLine();
-                report.Append("Run Tools/TooltipSystem/Validate Setup to confirm the whole chain.");
+                report.Append("Run Tools/Jeanf/TooltipSystem/Validate Setup to confirm the whole chain.");
             }
             Debug.Log(report.ToString(), targets.FirstOrDefault());
         }
