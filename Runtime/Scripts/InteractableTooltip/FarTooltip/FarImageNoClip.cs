@@ -23,7 +23,7 @@ namespace jeanf.tooltip
             image = GetComponent<Image>();
             tooltipFar = transform.parent.GetComponent<InteractableTooltipFar>();
             // Spread per-tooltip raycasts across frames so they don't all fire on the same frame.
-            _frameOffset = (GetInstanceID() & 0x7fffffff) % Mathf.Max(1, framesBetweenChecks);
+            _frameOffset = (GetEntityId().GetHashCode() & 0x7fffffff) % Mathf.Max(1, framesBetweenChecks);
         }
 
         void Update()

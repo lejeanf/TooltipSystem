@@ -341,7 +341,7 @@ namespace jeanf.tooltip
         
         private void Awake()
         {
-            timerName = $"TooltipTimer_{GetInstanceID()}";
+            timerName = $"TooltipTimer_{GetEntityId()}";
             
             if (isDebug)
                 Debug.Log($"[InteractableTooltip] Created with timer name: {timerName}", this);
