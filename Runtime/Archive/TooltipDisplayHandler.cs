@@ -14,7 +14,7 @@ namespace jeanf.tooltip
 
         private void OnEnable()
         {
-            stringBoolEventChannelSO.OnEventRaised += (str, hmdStatus) => DisplayTooltip(str, hmdStatus);
+            stringBoolEventChannelSO.OnEventRaised += DisplayTooltip;
         }
 
         private void OnDisable() => Unsubscribe();
@@ -23,16 +23,16 @@ namespace jeanf.tooltip
 
         private void Unsubscribe()
         {
-            stringBoolEventChannelSO.OnEventRaised -= (str, hmdStatus) => DisplayTooltip(str, hmdStatus);
+            stringBoolEventChannelSO.OnEventRaised -= DisplayTooltip;
         }
 
-        void DisplayTooltip(string tooltipToDisplay, bool hmdStatus)
+        private void DisplayTooltip(string tooltipToDisplay, bool hmdStatus)
         {
             if (hmdStatus)
             {
                 Debug.Log(hmdStatus);
             }
-            else if(!hmdStatus && TmpScreenUGUI != null)
+            else if(!hmdStatus && TmpScreenUGUI)
             {
                 TmpScreenUGUI.text = tooltipToDisplay;
                 TmpScreenUGUI.gameObject.SetActive(true);
