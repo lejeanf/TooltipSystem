@@ -219,10 +219,17 @@ namespace jeanf.tooltip.tests
             return Spawn(name).AddComponent(type);
         }
 
-        private static Type TeleportAreaType() =>
-            AppDomain.CurrentDomain.GetAssemblies()
+        private static Type TeleportAreaType()
+        {
+#if UNITY_6000_4_OR_NEWER
+            var assemblies = UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies();
+#else
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+#endif
+            return assemblies
                 .Select(a => a.GetType("UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationArea", false))
                 .FirstOrDefault(t => t != null);
+        }
 
         [Test]
         public void TeleportColliderCheck_FlagsAnAreaWithNoCollider()

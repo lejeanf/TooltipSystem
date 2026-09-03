@@ -1235,7 +1235,7 @@ public class CustomInspectorInstanciateTooltip : Editor
     // in any scene. Public: TooltipAuthoringEditor builds its SubScene preview through the same resolution.
     public static PooledTooltipView ResolveViewPrefab()
     {
-        var pool = Object.FindFirstObjectByType<TooltipPoolManager>();
+        var pool = Object.FindAnyObjectByType<TooltipPoolManager>();
         if (pool != null && pool.ViewPrefab != null)
         {
             var v = pool.ViewPrefab.GetComponent<PooledTooltipView>();
@@ -1318,7 +1318,7 @@ public class CustomInspectorInstanciateTooltip : Editor
             var a = GetPreviewAnchorTransform()?.GetComponent<TooltipAnchor>();
             if (a != null && a.BillboardOverride.HasValue) return a.BillboardOverride.Value;
             // Candidate without override -> manager default (the general Auto-orient mode is self-only).
-            var poolC = Object.FindFirstObjectByType<TooltipPoolManager>();
+            var poolC = Object.FindAnyObjectByType<TooltipPoolManager>();
             return poolC == null || poolC.BillboardDefault;
         }
 
@@ -1327,7 +1327,7 @@ public class CustomInspectorInstanciateTooltip : Editor
             case BillboardMode.Always: return true;
             case BillboardMode.Never: return false;
             default:
-                var pool = Object.FindFirstObjectByType<TooltipPoolManager>();
+                var pool = Object.FindAnyObjectByType<TooltipPoolManager>();
                 return pool == null || pool.BillboardDefault;
         }
     }

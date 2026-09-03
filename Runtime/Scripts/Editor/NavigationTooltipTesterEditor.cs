@@ -15,7 +15,7 @@ namespace jeanf.tooltip
         {
             // Checked once per selection — CalculateTriangulation is too heavy for every repaint.
             _hasNavMesh = NavMesh.CalculateTriangulation().indices.Length > 0;
-            _tooltip = FindFirstObjectByType<NavigationTooltip>(FindObjectsInactive.Include);
+            _tooltip = FindAnyObjectByType<NavigationTooltip>(FindObjectsInactive.Include);
         }
 
         public override void OnInspectorGUI()

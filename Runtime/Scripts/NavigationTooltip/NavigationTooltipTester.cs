@@ -60,7 +60,7 @@ namespace jeanf.tooltip
 
             // Auto-respawn: once the path has been visible and then completed (arrival hides it),
             // schedule the next random destination.
-            if (_tooltip == null) _tooltip = FindFirstObjectByType<NavigationTooltip>();
+            if (_tooltip == null) _tooltip = FindAnyObjectByType<NavigationTooltip>();
             if (_tooltip == null) return;
             if (_tooltip.IsPathVisible)
             {
@@ -76,7 +76,7 @@ namespace jeanf.tooltip
         /// <summary>Logs why the path is (not) showing: full state dump + setup validation.</summary>
         public void Diagnose()
         {
-            if (_tooltip == null) _tooltip = FindFirstObjectByType<NavigationTooltip>(FindObjectsInactive.Include);
+            if (_tooltip == null) _tooltip = FindAnyObjectByType<NavigationTooltip>(FindObjectsInactive.Include);
             if (_tooltip == null)
             {
                 Debug.LogWarning("[NavigationTooltipTester] No NavigationTooltip found in the scene — nothing can draw the path.", this);
@@ -145,7 +145,7 @@ namespace jeanf.tooltip
             // Manual hide also cancels any pending auto-respawn.
             _spawnAt = -1f;
             _sawPathVisible = false;
-            var tooltip = FindFirstObjectByType<NavigationTooltip>();
+            var tooltip = FindAnyObjectByType<NavigationTooltip>();
             if (tooltip != null) tooltip.Hide();
         }
 

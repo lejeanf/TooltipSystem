@@ -78,8 +78,8 @@ namespace jeanf.tooltip
         private void HandleTooltipResumption()
         {
             if(isDebug) Debug.Log($"[TooltipControlSchemeManager] - HandleTooltipResumption");
-            var helpTooltipControls = FindObjectsByType<HelpTooltipControls>(FindObjectsSortMode.None);;
-            var interactableTooltipControls = FindObjectsByType<InteractableTooltipController>(FindObjectsSortMode.None);;
+            var helpTooltipControls = FindObjectsByType<HelpTooltipControls>(FindObjectsInactive.Exclude);
+            var interactableTooltipControls = FindObjectsByType<InteractableTooltipController>(FindObjectsInactive.Exclude);
             
             foreach (var control in interactableTooltipControls)
             {
@@ -119,14 +119,14 @@ namespace jeanf.tooltip
 
         private bool ArePunctualTooltipsCurrentlyActive()
         {
-            var helpTooltipControls = FindObjectsByType<HelpTooltipControls>(FindObjectsSortMode.None);
+            var helpTooltipControls = FindObjectsByType<HelpTooltipControls>(FindObjectsInactive.Exclude);
             foreach (var control in helpTooltipControls)
             {
                 if (!control.IsPermanentTooltip && control.IsShowingTooltip)
                     return true;
             }
             
-            var interactableTooltipControls = FindObjectsByType<InteractableTooltipController>(FindObjectsSortMode.None);
+            var interactableTooltipControls = FindObjectsByType<InteractableTooltipController>(FindObjectsInactive.Exclude);
             foreach (var control in interactableTooltipControls)
             {
                 if (!control.IsPermanentTooltip && control.IsShowingTooltip)

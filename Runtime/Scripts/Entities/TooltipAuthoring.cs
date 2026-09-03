@@ -75,7 +75,7 @@ namespace jeanf.tooltip
         /// </summary>
         public static Zone DetectZoneAt(Vector3 worldPosition)
         {
-            var volumes = FindObjectsByType<VolumeAuthoring>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var volumes = FindObjectsByType<VolumeAuthoring>(FindObjectsInactive.Include);
             foreach (var volume in volumes)
             {
                 if (volume.zone == null) continue;

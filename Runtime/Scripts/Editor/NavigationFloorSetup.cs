@@ -168,7 +168,7 @@ namespace jeanf.tooltip
 
         private static uint ProjectInteractionLayers(Type teleportType, Component exclude)
         {
-            foreach (var other in Object.FindObjectsByType(teleportType, FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var other in Object.FindObjectsByType(teleportType, FindObjectsInactive.Include))
             {
                 if (ReferenceEquals(other, exclude)) continue;
                 var bits = new SerializedObject(other).FindProperty("m_InteractionLayers.m_Bits");

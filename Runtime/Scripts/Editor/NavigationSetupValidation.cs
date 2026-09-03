@@ -538,7 +538,7 @@ namespace jeanf.tooltip
         // ---------------------------------------------------------------- helpers
 
         private static T[] Find<T>() where T : Component =>
-            Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Object.FindObjectsByType<T>(FindObjectsInactive.Include);
 
         /// <summary>
         /// Instances of a type this assembly does not reference (XRI, Entities). Keeps the package
@@ -549,14 +549,19 @@ namespace jeanf.tooltip
         {
             var type = FindType(fullName);
             if (type == null) return Array.Empty<Component>();
-            return Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None)
+            return Object.FindObjectsByType(type, FindObjectsInactive.Include)
                 .OfType<Component>()
                 .ToArray();
         }
 
         private static Type FindType(string fullName)
         {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+#if UNITY_6000_4_OR_NEWER
+            var assemblies = UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies();
+#else
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+#endif
+            foreach (var assembly in assemblies)
             {
                 var type = assembly.GetType(fullName, false);
                 if (type != null) return type;
