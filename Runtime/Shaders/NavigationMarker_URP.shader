@@ -47,6 +47,7 @@ Shader "jeanf/Tooltip/NavigationMarker URP"
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             CBUFFER_START(UnityPerMaterial)
@@ -74,6 +75,7 @@ Shader "jeanf/Tooltip/NavigationMarker URP"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 output.uv = input.uv;
                 return output;
@@ -82,6 +84,7 @@ Shader "jeanf/Tooltip/NavigationMarker URP"
             half4 frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float dist01 = UNITY_ACCESS_INSTANCED_PROP(Props, _PathDist01);
                 // Line ribbons carry their path position in uv.x (LineRenderer texture mode: Stretch).
                 float distM = (_Shape > 1.5 && _Shape < 2.5 ? input.uv.x : dist01) * _PathLength;

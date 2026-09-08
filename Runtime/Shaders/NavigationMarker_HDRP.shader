@@ -51,6 +51,7 @@ Shader "jeanf/Tooltip/NavigationMarker HDRP"
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             CBUFFER_START(UnityPerMaterial)
@@ -78,6 +79,7 @@ Shader "jeanf/Tooltip/NavigationMarker HDRP"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 float3 positionRWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.positionCS = TransformWorldToHClip(positionRWS);
                 output.uv = input.uv;
@@ -87,6 +89,7 @@ Shader "jeanf/Tooltip/NavigationMarker HDRP"
             float4 frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float dist01 = UNITY_ACCESS_INSTANCED_PROP(Props, _PathDist01);
                 float distM = (_Shape > 1.5 && _Shape < 2.5 ? input.uv.x : dist01) * _PathLength;
 
