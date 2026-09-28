@@ -13,6 +13,9 @@
     "email":"robin.jeanfrancois@gmail.com",
     "url":"https://jeanfrancoisrobin.art"
   },
+  "repository": {
+    "url": "https://github.com/lejeanf/TooltipSystem"
+  },
   "dependencies": {
     "fr.jeanf.propertydrawer": "1.2.0"
   },
